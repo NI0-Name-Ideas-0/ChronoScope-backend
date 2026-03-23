@@ -63,5 +63,6 @@ jobs:
           key: ${{ secrets.DEPLOY_KEY }}
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           script: |
+            export DOCKER_HOST=unix:///run/user/1002/docker.sock
             cd ~/docker/backend
             ./start.sh
