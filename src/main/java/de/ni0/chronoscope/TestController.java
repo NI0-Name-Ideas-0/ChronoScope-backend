@@ -8,6 +8,6 @@ public class TestController {
 
     @GetMapping("/test")
     public String testEndpoint() {
-        return "Hello from ChronoScope!";
+        return "Hello from ChronoScope! Test Test";
     }
 }
