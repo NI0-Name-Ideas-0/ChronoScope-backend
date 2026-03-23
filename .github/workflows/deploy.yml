@@ -63,7 +63,5 @@ jobs:
           key: ${{ secrets.DEPLOY_KEY }}
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           script: |
-            cd /opt/ni0-team-app
-            docker compose pull backend
-            docker compose up -d
-            docker image prune -a -f
+            cd ~/docker/backend
+            ./start.sh
