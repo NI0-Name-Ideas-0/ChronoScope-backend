@@ -64,5 +64,7 @@ jobs:
           passphrase: ${{ secrets.SSH_PASSPHRASE }}
           script: |
             export DOCKER_HOST=unix:///run/user/1002/docker.sock
-            cd ~/docker/backend
-            ./start.sh
+            cd ~/docker
+            docker pull ghcr.io/ni0-name-ideas-0/chronoscope-backend-backend:latest
+            docker compose up -d
+            docker image prune -a -f
