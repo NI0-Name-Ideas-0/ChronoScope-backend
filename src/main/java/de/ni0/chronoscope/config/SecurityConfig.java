@@ -1,4 +1,4 @@
-package de.ni0.chronoscope;
+package de.ni0.chronoscope.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -11,7 +11,7 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http.authorizeHttpRequests(auth -> auth
-            .requestMatchers("/test").permitAll()
+            .requestMatchers("/test", "/v1/planScopes", "/v1/planScopes/**").permitAll()
             .anyRequest().authenticated()
         );
         http.csrf(csrf -> csrf.disable());
