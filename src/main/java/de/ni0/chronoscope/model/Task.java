@@ -16,4 +16,13 @@ public class Task {
 
     private String name;
     private Duration duration;
+
+    public Task(String name, Duration duration) {
+        this.name = name;
+        this.duration = duration;
+    }
+
+    public Task() {
+
+    }
 }

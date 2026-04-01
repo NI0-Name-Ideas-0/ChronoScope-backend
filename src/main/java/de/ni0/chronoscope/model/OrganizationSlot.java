@@ -17,4 +17,13 @@ public class OrganizationSlot {
 
     private Instant start;
     private Duration duration;
+
+    public OrganizationSlot(Instant start, Duration duration) {
+        this.start = start;
+        this.duration = duration;
+    }
+
+    public OrganizationSlot() {
+
+    }
 }
