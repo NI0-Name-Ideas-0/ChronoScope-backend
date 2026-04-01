@@ -4,6 +4,7 @@ import de.ni0.chronoscope.controller.dto.PlanScopesResponse;
 import de.ni0.chronoscope.exception.InsufficientSlotsException;
 import de.ni0.chronoscope.model.Scope;
 import de.ni0.chronoscope.service.PlanningService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -14,13 +15,9 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/v1/plan")
+@RequiredArgsConstructor
 public class PlanningController {
-
     private final PlanningService planningService;
-
-    public PlanningController(PlanningService planningService) {
-        this.planningService = planningService;
-    }
 
     @PostMapping("/")
     public PlanScopesResponse plan() {

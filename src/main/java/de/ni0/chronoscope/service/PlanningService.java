@@ -8,7 +8,7 @@ import de.ni0.chronoscope.repository.OrganizationSlotRepository;
 import de.ni0.chronoscope.repository.ScopeRepository;
 import de.ni0.chronoscope.repository.TaskRepository;
 import jakarta.transaction.Transactional;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
@@ -17,11 +17,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class PlanningService {
 
-    private OrganizationSlotRepository organizationSlotRepository;
-    private TaskRepository taskRepository;
-    private ScopeRepository scopeRepository;
+    private final OrganizationSlotRepository organizationSlotRepository;
+    private final TaskRepository taskRepository;
+    private final ScopeRepository scopeRepository;
 
     @Transactional
     public List<Scope> planScopes() {
