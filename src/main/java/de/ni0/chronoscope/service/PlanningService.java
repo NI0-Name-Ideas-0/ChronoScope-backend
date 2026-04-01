@@ -4,6 +4,11 @@ import de.ni0.chronoscope.exception.InsufficientSlotsException;
 import de.ni0.chronoscope.model.OrganizationSlot;
 import de.ni0.chronoscope.model.Scope;
 import de.ni0.chronoscope.model.Task;
+import de.ni0.chronoscope.repository.OrganizationSlotRepository;
+import de.ni0.chronoscope.repository.ScopeRepository;
+import de.ni0.chronoscope.repository.TaskRepository;
+import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
@@ -12,9 +17,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Service
-public class PlanScopesService {
+@RequiredArgsConstructor
+public class PlanningService {
 
-    public List<Scope> planScopes(List<Task> tasks, List<OrganizationSlot> slots) {
+    private final OrganizationSlotRepository organizationSlotRepository;
+    private final TaskRepository taskRepository;
+    private final ScopeRepository scopeRepository;
+
+    @Transactional
+    public List<Scope> planScopes() {
+        List<OrganizationSlot> slots = this.organizationSlotRepository.findAll();
+        List<Task> tasks = this.taskRepository.findAll();
+
         Duration totalTaskDuration = tasks.stream()
                 .map(Task::getDuration)
                 .reduce(Duration.ZERO, Duration::plus);
@@ -47,13 +61,16 @@ public class PlanScopesService {
                         ? durationLeft
                         : slotDurationLeft;
 
-                scopes.add(new Scope(task.getName(), nextScopeBeginTime, scopeDuration));
+                scopes.add(new Scope(task, nextScopeBeginTime, scopeDuration));
 
                 durationLeft = durationLeft.minus(scopeDuration);
                 nextScopeBeginTime = nextScopeBeginTime.plus(scopeDuration);
                 slotDurationLeft = slotDurationLeft.minus(scopeDuration);
             }
         }
+
+        this.scopeRepository.deleteAll();
+        this.scopeRepository.saveAll(scopes);
 
         return scopes;
     }

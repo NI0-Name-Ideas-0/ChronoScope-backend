@@ -1,4 +1,4 @@
-package de.ni0.chronoscope.dto;
+package de.ni0.chronoscope.controller.dto;
 
 import de.ni0.chronoscope.model.Scope;
 import lombok.Data;
