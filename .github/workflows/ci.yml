@@ -38,12 +38,8 @@ jobs:
         run: ./mvnw verify -Dsurefire.skip=true
 
       - name: Test Summary
-        uses: test-summary/action@v2
-        with:
-          paths: |
-            target/surefire-reports/*.xml
-            target/failsafe-reports/*.xml
-        if: always()
+        uses: scacap/action-surefire-report@v1
+        if: success() || failure()
 
   build-and-push-image:
     name: Build & Push Docker Image
