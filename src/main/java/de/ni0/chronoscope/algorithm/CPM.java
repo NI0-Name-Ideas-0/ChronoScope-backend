@@ -19,11 +19,11 @@ public class CPM {
     @Getter
     private final Map<Task, TaskData> taskData = new HashMap<>();
 
-    public CPM(List<Task> tasks) {
+    public CPM(List<Task> tasks, Instant start) {
         List<Task> sorted = this.sort(tasks);
 
         for (Task task : sorted) {
-            Instant earliestStart = Instant.now();
+            Instant earliestStart = start;
             for (Task dependency : task.dependencies()) {
                 Instant dependencyEF = this.taskData.get(dependency).earliestFinish;
                 if (dependencyEF.isAfter(earliestStart)) {

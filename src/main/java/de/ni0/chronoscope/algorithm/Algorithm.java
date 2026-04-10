@@ -1,5 +1,9 @@
 package de.ni0.chronoscope.algorithm;
 
+import de.ni0.chronoscope.model.OrganizationSlot;
+import de.ni0.chronoscope.model.Scope;
+import org.springframework.util.comparator.Comparators;
+
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -46,8 +50,36 @@ public class Algorithm {
         algorithm.computeCPM(tasks);
     }
 
-    private record AlgTask(Task task, int dependencies) {
+    public List<Scope> plan(List<Task> allTasks, List<Task> tasks,
+                            List<OrganizationSlot> slots, int slotIndex,
+                            Duration elapsedSlotTime) {
+        OrganizationSlot slot = slots.get(slotIndex);
+        Instant currentTime = slot.getStart().plus(elapsedSlotTime);
+        Duration remaining = slot.getDuration().minus(elapsedSlotTime);
 
+        CPM cpm = new CPM(allTasks, currentTime);
+        HashMap<Task, Long> taskWeights = new HashMap<>();
+        Queue<Task> taskQueue = new PriorityQueue<>(Comparator.comparingLong(taskWeights::get));
+        for (Task task : tasks) {
+            taskWeights.put(task, getWeight(cpm, task));
+            taskQueue.add(task);
+        }
+
+        Task task = taskQueue.poll();
+
+        List<Scope> scopes = new ArrayList<>();
+
+        List<Task> nextTasks = new ArrayList<>(tasks);
+        nextTasks.remove(task);
+
+        List<Scope> nextResult = plan(allTasks, );
+        scopes.addAll(nextResult);
+
+        return scopes;
+    }
+
+    public long getWeight(CPM cpm, Task task) {
+        return cpm.getTaskData().get(task).getSlack().toMinutes();
     }
 
     public void computeCPM(List<Task> tasks) {
