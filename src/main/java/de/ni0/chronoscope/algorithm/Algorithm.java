@@ -39,6 +39,9 @@ public class Algorithm {
 
 
         List<Scope> scopes = algorithm.plan(tasks, slots);
+        if (scopes == null) {
+            throw new IllegalStateException("Did not find result");
+        }
         for (Scope scope : scopes) {
             System.out.println("Scope for " + scope.getTask().getId() + " from " + scope.getStart() + " -> " + scope.getDuration());
         }
@@ -57,16 +60,17 @@ public class Algorithm {
                 startTasks.add(k);
             }
         });
-        return this.plan(startTasks, dependencyCount,
+        return this.plan(0, startTasks, dependencyCount,
                 remainingTaskDurations, slots, 0,
                 Duration.ZERO);
     }
 
-    public List<Scope> plan(List<Task> tasks,
+    public List<Scope> plan(int depth, List<Task> tasks,
                             Map<Task, Integer> dependencyCount,
                             Map<Task, Duration> remainingTaskDurations,
                             List<OrganizationSlot> slots, int slotIndex,
                             Duration elapsedSlotTime) {
+        System.out.println("----- " + depth + " -----");
         OrganizationSlot slot = slots.get(slotIndex);
         Instant currentTime = slot.getStart().plus(elapsedSlotTime);
         System.out.println("Planning tasks " + tasks + " in slot " + slotIndex);
@@ -74,69 +78,77 @@ public class Algorithm {
         System.out.println(remainingSlotDuration + " time left in slot");
 
         CPM cpm = new CPM(tasks, currentTime);
-        HashMap<Task, Double> taskWeights = new HashMap<>();
-        Queue<Task> taskQueue = new PriorityQueue<>(Comparator.comparingDouble(taskWeights::get));
-        for (Task task : tasks) {
-            taskWeights.put(task, getWeight(cpm, task));
-            taskQueue.add(task);
-        }
+        tasks.sort((t1, t2) -> Double.compare(getWeight(cpm, t1), getWeight(cpm, t2)));
 
-        Task task = taskQueue.poll();
-        System.out.println("Chose Task: " + task);
+        for (Task task : new ArrayList<>(tasks)) {
+            int newSlotIndex = slotIndex;
+            System.out.println("Task Depth: ----- " + depth + " ----- Slot " + newSlotIndex);
 
-        List<Scope> scopes = new ArrayList<>();
+            System.out.println("Chose Task: " + task);
 
-        Duration remainingTaskDuration = remainingTaskDurations.get(task);
-        Duration scopeDuration = remainingTaskDuration.compareTo(remainingSlotDuration) <= 0
-                ? remainingTaskDuration
-                : remainingSlotDuration;
-        System.out.println("Scope Duration: " + scopeDuration);
-        Duration newRemainingTaskDuration = remainingTaskDurations.get(task).minus(scopeDuration);
-        remainingTaskDurations.put(task, newRemainingTaskDuration);
+            List<Scope> scopes = new ArrayList<>();
 
-        // Only calculate new possible tasks if current one has been completly planned
-        if (newRemainingTaskDuration.isZero()) {
-            tasks.remove(task);
-            for (Task successor : task.successors()) {
-                int newCount = dependencyCount.get(successor) - 1;
-                dependencyCount.put(successor, newCount);
-                if (newCount == 0) {
-                    tasks.add(successor);
+            Duration remainingTaskDuration = remainingTaskDurations.get(task);
+            Duration scopeDuration = remainingTaskDuration.compareTo(remainingSlotDuration) <= 0
+                    ? remainingTaskDuration
+                    : remainingSlotDuration;
+            System.out.println("Scope Duration: " + scopeDuration);
+            if (currentTime.plus(scopeDuration).isAfter(task.end())) {
+                System.out.println("Deadline not met");
+                continue;
+            }
+            Duration newRemainingTaskDuration = remainingTaskDurations.get(task).minus(scopeDuration);
+            remainingTaskDurations.put(task, newRemainingTaskDuration);
+
+            // Only calculate new possible tasks if current one has been completly planned
+            if (newRemainingTaskDuration.isZero()) {
+                tasks.remove(task);
+                for (Task successor : task.successors()) {
+                    int newCount = dependencyCount.get(successor) - 1;
+                    dependencyCount.put(successor, newCount);
+                    if (newCount == 0) {
+                        tasks.add(successor);
+                    }
+                }
+                System.out.println("Updated Tasks: " + tasks);
+            }
+
+            Duration newElapsedSlotTime = elapsedSlotTime.plus(scopeDuration);
+            System.out.println("Elapsed slot time: " + newElapsedSlotTime);
+            if (newElapsedSlotTime.equals(slot.getDuration())) {
+                System.out.println("Next slot: " + newSlotIndex);
+                newSlotIndex++;
+                newElapsedSlotTime = Duration.ZERO;
+            }
+
+            scopes.add(new Scope(new de.ni0.chronoscope.model.Task(), currentTime, scopeDuration));
+
+            if (!tasks.isEmpty()) {
+                List<Scope> nextResult = plan(depth + 1, tasks, dependencyCount, remainingTaskDurations,
+                        slots, newSlotIndex, newElapsedSlotTime);
+                if (nextResult != null) {
+                    scopes.addAll(nextResult);
+                    return scopes;
+                }
+                System.out.println("Path did not return result");
+            } else {
+                return scopes;
+            }
+
+            // Reset for backtracking
+            remainingTaskDurations.put(task, remainingTaskDurations.get(task).plus(scopeDuration));
+            if (newRemainingTaskDuration.isZero()) {
+                tasks.add(task);
+                for (Task successor : task.successors()) {
+                    int newCount = dependencyCount.get(successor) + 1;
+                    dependencyCount.put(successor, newCount);
+                    if (newCount == 0) {
+                        tasks.remove(successor);
+                    }
                 }
             }
-            System.out.println("Updated Tasks: " + tasks);
         }
-
-        Duration newElapsedSlotTime = elapsedSlotTime.plus(scopeDuration);
-        System.out.println("Elapsed slot time: " + newElapsedSlotTime);
-        if (newElapsedSlotTime.equals(slot.getDuration())) {
-            System.out.println("Next slot.");
-            slotIndex++;
-            newElapsedSlotTime = Duration.ZERO;
-        }
-
-        scopes.add(new Scope(new de.ni0.chronoscope.model.Task(), currentTime, scopeDuration));
-
-        if (!tasks.isEmpty()) {
-            List<Scope> nextResult = plan(tasks, dependencyCount, remainingTaskDurations,
-                    slots, slotIndex, newElapsedSlotTime);
-            scopes.addAll(nextResult);
-        }
-
-        // Reset for backtracking
-        remainingTaskDurations.put(task, remainingTaskDurations.get(task).plus(scopeDuration));
-        if (newRemainingTaskDuration.isZero()) {
-            tasks.add(task);
-            for (Task successor : task.successors()) {
-                int newCount = dependencyCount.get(successor) + 1;
-                dependencyCount.put(successor, newCount);
-                if (newCount == 0) {
-                    tasks.remove(successor);
-                }
-            }
-        }
-
-        return scopes;
+        return null;
     }
 
     public double getWeight(CPM cpm, Task task) {
