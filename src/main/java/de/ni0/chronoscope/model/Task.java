@@ -25,4 +25,11 @@ public class Task {
     public Task() {
 
     }
+
+    @Override
+    public String toString() {
+        return "Task{" +
+                "id=" + id +
+                '}';
+    }
 }

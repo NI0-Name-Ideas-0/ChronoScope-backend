@@ -31,4 +31,14 @@ public class Scope {
     public Scope() {
 
     }
+
+    @Override
+    public String toString() {
+        return "Scope{" +
+                "id=" + id +
+                ", task=" + task +
+                ", start=" + start +
+                ", duration=" + duration +
+                '}';
+    }
 }

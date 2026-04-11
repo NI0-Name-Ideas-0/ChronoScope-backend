@@ -19,60 +19,39 @@ public class CPM {
     @Getter
     private final Map<Task, TaskData> taskData = new HashMap<>();
 
-    public CPM(List<Task> tasks, Instant start) {
-        List<Task> sorted = this.sort(tasks);
-
-        for (Task task : sorted) {
-            Instant earliestStart = start;
-            for (Task dependency : task.dependencies()) {
-                Instant dependencyEF = this.taskData.get(dependency).earliestFinish;
-                if (dependencyEF.isAfter(earliestStart)) {
-                    earliestStart = dependencyEF;
-                }
-            }
-            Instant earliestFinish = earliestStart.plus(task.duration());
-            this.taskData.put(task, new TaskData(task, earliestStart, earliestFinish, null, null));
-        }
-
-        for (Task task : sorted.reversed()) {
-            Instant latestFinish = task.end();
-            for (Task successor : task.successors()) {
-                Instant dependencyLS = this.taskData.get(successor).latestStart;
-                if (dependencyLS.isBefore(latestFinish)) {
-                    latestFinish = dependencyLS;
-                }
-            }
-            Instant latestStart = latestFinish.minus(task.duration());
-            TaskData taskData = this.taskData.get(task);
-            this.taskData.put(task, new TaskData(task, taskData.earliestStart, taskData.earliestFinish, latestStart, latestFinish));
-        }
-    }
-
-    private List<Task> sort(List<Task> tasks) {
-        List<Task> sorted = new ArrayList<>();
-
-        List<Task> remainingTasks = new ArrayList<>(tasks);
-        while (!remainingTasks.isEmpty()) {
-            Task task = remainingTasks.getFirst();
-            visit(task, new ArrayList<>(), sorted);
-            remainingTasks.remove(task);
-        }
-
-        return sorted;
-    }
-
-    private void visit(Task task, List<Task> marked, List<Task> sorted) {
-        if (sorted.contains(task)) {
-            return;
-        }
-        if (marked.contains(task)) {
-            throw new IllegalStateException("Cycle detected");
-        }
-        marked.add(task);
-
+    private Instant calcFirstStart(Task task, Instant defaultStart) {
+        Instant firstStart = defaultStart;
         for (Task dependency : task.dependencies()) {
-            visit(dependency, marked, sorted);
+            Instant depEarliestStart = this.calcFirstStart(dependency, defaultStart);
+            Instant depEarliestEnd = depEarliestStart.plus(dependency.duration());
+            if (depEarliestEnd.isAfter(firstStart)) {
+                firstStart = depEarliestEnd;
+            }
         }
-        sorted.add(task);
+        return firstStart;
+    }
+    private Instant calcLatestFinish(Task task) {
+        Instant latestFinish = Instant.MAX;
+        if (task.end() != null) {
+            latestFinish = task.end();
+        }
+        for (Task successor : task.successors()) {
+            Instant sucLatestFinish = this.calcLatestFinish(successor);
+            Instant sucLatestStart = sucLatestFinish.minus(successor.duration());
+            if (sucLatestStart.isBefore(latestFinish)) {
+                latestFinish = sucLatestStart;
+            }
+        }
+        return latestFinish;
+    }
+
+    public CPM(List<Task> tasks, Instant start) {
+        for (Task task : tasks) {
+            Instant firstStart = calcFirstStart(task, start);
+            Instant firstFinish = firstStart.plus(task.duration());
+            Instant latestFinish = calcLatestFinish(task);
+            Instant latestStart = latestFinish.minus(task.duration());
+            this.taskData.put(task, new TaskData(task, firstStart, firstFinish, latestStart, latestFinish));
+        }
     }
 }
