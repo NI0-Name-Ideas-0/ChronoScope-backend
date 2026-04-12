@@ -1,29 +1,28 @@
 package de.ni0.chronoscope.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.Duration;
+import java.util.List;
+import java.util.Objects;
 
 @Data
 @Entity
+@Inheritance(strategy = InheritanceType.JOINED)
+@NoArgsConstructor
 public class Task {
     @Id
     @GeneratedValue
     private Long id;
 
     private String name;
-    private Duration duration;
+    private String description;
 
-    public Task(String name, Duration duration) {
+    public Task(String name, String description) {
         this.name = name;
-        this.duration = duration;
-    }
-
-    public Task() {
-
+        this.description = description;
     }
 
     @Override

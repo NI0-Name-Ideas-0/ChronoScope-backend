@@ -1,5 +1,6 @@
 package de.ni0.chronoscope.algorithm;
 
+import de.ni0.chronoscope.model.DynamicTask;
 import de.ni0.chronoscope.model.OrganizationSlot;
 import de.ni0.chronoscope.model.Scope;
 
@@ -12,19 +13,19 @@ public class Algorithm {
 
     static void main() {
         Algorithm algorithm = new Algorithm();
-        List<Task> tasks = new ArrayList<>();
-        Task task = new Task(0,0,
-                Duration.of(1, ChronoUnit.HOURS),
+        List<DynamicTask> tasks = new ArrayList<>();
+        DynamicTask task = new DynamicTask("test", "test",
                 Instant.MIN,
                 Instant.MIN.plus(5, ChronoUnit.HOURS),
-                new ArrayList<>(),
-                new ArrayList<>());
-        Task task2 = new Task(1, 0,
+                Duration.of(1, ChronoUnit.HOURS),
+                0);
+        task.setId(0L);
+        DynamicTask task2 = new DynamicTask("test2", "test",
+                Instant.MIN,
+                Instant.MIN.plus(9, ChronoUnit.HOURS),
                 Duration.of(8, ChronoUnit.HOURS),
-                Instant.now(),
-                Instant.now().plus(9, ChronoUnit.HOURS),
-                new ArrayList<>(),
-                new ArrayList<>());
+                0);
+        task2.setId(1L);
         tasks.add(task);
         tasks.add(task2);
         List<OrganizationSlot> slots = new ArrayList<>();
@@ -47,7 +48,26 @@ public class Algorithm {
         }
     }
 
-    public List<Scope> plan(List<Task> tasks, List<OrganizationSlot> slots) {
+    public List<Scope> plan(List<DynamicTask> tasks,
+                            List<OrganizationSlot> slots) {
+        Map<DynamicTask, Task> taskMap = new HashMap<>();
+        for (DynamicTask task : tasks) {
+            taskMap.put(task, new Task(task, new ArrayList<>(), new ArrayList<>()));
+        }
+        for (DynamicTask task : tasks) {
+            for (DynamicTask dependency : task.getDependencies()) {
+                Task algTask = taskMap.get(task);
+                Task algDependency = taskMap.get(dependency);
+                algTask.dependencies().add(algDependency);
+                algDependency.successors().add(algTask);
+            }
+        }
+        List<Task> algTasks = new ArrayList<>(taskMap.values());
+
+        return this.plan2(algTasks, slots);
+    }
+
+    private List<Scope> plan2(List<Task> tasks, List<OrganizationSlot> slots) {
         Map<Task, Integer> dependencyCount = new HashMap<>();
         Map<Task, Duration> remainingTaskDurations = new HashMap<>();
         for (Task task : tasks) {
@@ -152,7 +172,7 @@ public class Algorithm {
     }
 
     public double getWeight(CPM cpm, Task task) {
-        return 1.0d/ cpm.getTaskData().get(task).getSlack().toMinutes();
+        return cpm.getTaskData().get(task).getSlack().toMinutes();
     }
 
 }

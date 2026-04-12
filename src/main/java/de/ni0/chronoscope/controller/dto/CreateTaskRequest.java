@@ -14,5 +14,5 @@ public class CreateTaskRequest {
     @Length(min = 3, max = 32)
     private String name;
     @NotNull
-    private Duration duration;
+    private String description;
 }

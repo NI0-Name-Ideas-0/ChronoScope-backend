@@ -19,7 +19,7 @@ public class TaskController {
 
     @PostMapping
     public CreateTaskResponse create(@Valid @RequestBody CreateTaskRequest request) {
-        Task task = new Task(request.getName(), request.getDuration());
+        Task task = new Task(request.getName(), request.getDescription());
         task = this.taskService.createTask(task);
         return new CreateTaskResponse(task);
     }

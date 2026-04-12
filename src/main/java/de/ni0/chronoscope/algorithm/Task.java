@@ -5,22 +5,34 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 
-public record Task(int id, int complexity, Duration duration, Instant start, Instant end, List<Task> dependencies, List<Task> successors) {
+public record Task(de.ni0.chronoscope.model.DynamicTask task, List<Task> dependencies, List<Task> successors) {
 
     @Override
     public boolean equals(Object o) {
         if (o == null || getClass() != o.getClass()) return false;
         Task task = (Task) o;
-        return task.id == this.id;
+        return Objects.equals(task.task.getId(), this.task.getId());
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(id);
+        return Objects.hashCode(task.getId());
     }
 
     @Override
     public String toString() {
-        return Integer.toString(this.id);
+        return Long.toString(this.task.getId());
+    }
+
+    public Instant start() {
+        return this.task.getStart();
+    }
+
+    public Instant end() {
+        return this.task.getEnd();
+    }
+
+    public Duration duration() {
+        return this.task.getDuration();
     }
 }
