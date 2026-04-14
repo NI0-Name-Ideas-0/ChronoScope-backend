@@ -10,7 +10,7 @@ import java.util.Map;
 
 public class CPM {
     public record TaskData(Task task, Instant earliestStart, Instant earliestFinish, Instant latestStart, Instant latestFinish) {
-        Duration getSlack() {
+        public Duration getSlack() {
             return this.earliestStart.until(this.latestStart);
         }
     }
