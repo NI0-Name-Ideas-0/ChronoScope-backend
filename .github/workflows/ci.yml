@@ -16,6 +16,9 @@ jobs:
   tests:
     name: Run Tests
     runs-on: ubuntu-latest
+    permissions:
+      checks: write
+      pull-requests: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -33,6 +36,10 @@ jobs:
       - name: Run integration tests
         # skip unit tests to only run integration tests
         run: ./mvnw verify -Dsurefire.skip=true
+
+      - name: Test Summary
+        uses: scacap/action-surefire-report@v1
+        if: success() || failure()
 
   build-and-push-image:
     name: Build & Push Docker Image
