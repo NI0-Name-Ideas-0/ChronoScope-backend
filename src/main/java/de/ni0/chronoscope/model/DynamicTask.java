@@ -7,15 +7,14 @@ import java.time.Instant;
 
 @Data
 @Entity
-public class DynamicTask {
-
-    @Id
-    @GeneratedValue
-    private Long id;
+@DiscriminatorValue("dynamic")
+public class DynamicTask extends Task {
 
     private Integer difficulty;
     private Integer duration;
     private Integer elapsed;
     private Instant start;
     private Instant end;
+    private Integer minScopeDuration;
+    private Integer maxScopeDuration;
 }

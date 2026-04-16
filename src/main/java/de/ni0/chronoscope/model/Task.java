@@ -7,7 +7,9 @@ import java.util.List;
 
 @Data
 @Entity
-public class Task {
+@Inheritance(strategy = InheritanceType.JOINED)
+@DiscriminatorColumn(name = "dtype", discriminatorType = DiscriminatorType.STRING)
+public abstract class Task {
 
     @Id
     @GeneratedValue
@@ -20,12 +22,6 @@ public class Task {
     private String name;
     private String description;
     private String rrule;
-
-    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
-    private DynamicTask dynamicTask;
-
-    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
-    private StaticTask staticTask;
 
     @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Tag> tags;

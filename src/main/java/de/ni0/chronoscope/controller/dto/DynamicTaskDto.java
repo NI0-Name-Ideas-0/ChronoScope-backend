@@ -8,6 +8,8 @@ public record DynamicTaskDto(
     Integer duration,
     Integer elapsed,
     Instant start,
-    Instant end
+    Instant end,
+    Integer minScopeDuration,
+    Integer maxScopeDuration
 ) {
 }

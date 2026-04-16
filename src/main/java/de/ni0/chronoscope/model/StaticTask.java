@@ -5,11 +5,8 @@ import lombok.Data;
 
 @Data
 @Entity
-public class StaticTask {
-
-    @Id
-    @GeneratedValue
-    private Long id;
+@DiscriminatorValue("static")
+public class StaticTask extends Task {
 
     private Boolean blocker;
 }
