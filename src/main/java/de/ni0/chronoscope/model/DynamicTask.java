@@ -18,9 +18,9 @@ public class DynamicTask extends Task {
     private Integer minScopeDuration;
     private Integer maxScopeDuration;
 
-    @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "dynamicTask", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Scope> scopes;
 
-    @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "dynamicTask", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<TaskDependency> dependencies;
 }

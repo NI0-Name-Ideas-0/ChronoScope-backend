@@ -21,12 +21,12 @@ public class TaskDependency {
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "task_id")
+    @JoinColumn(name = "dynamic_task_id")
     @ToString.Exclude // bidirectional: DynamicTask.dependencies -> this TaskDependency, would recurse infinitely in toString
-    private Task task;
+    private DynamicTask dynamicTask;
 
     @ManyToOne
-    @JoinColumn(name = "predecessor_task_id")
+    @JoinColumn(name = "predecessor_dynamic_task_id")
     @ToString.Exclude // association excluded to keep toString safe and lightweight
-    private Task predecessor;
+    private DynamicTask predecessor;
 }

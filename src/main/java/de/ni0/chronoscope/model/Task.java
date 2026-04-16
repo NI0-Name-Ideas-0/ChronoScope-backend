@@ -27,7 +27,7 @@ public abstract class Task {
 
     @ManyToOne
     @JoinColumn(name = "account_id")
-    @ToString.Exclude // bidirectional: Account -> WorkSlots, would recurse infinitely in toString
+    @ToString.Exclude // bidirectional: Account -> Identity -> Account would recurse infinitely in toString
     private Account account;
 
     private String name;

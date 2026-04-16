@@ -23,9 +23,9 @@ public class Scope {
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "task_id")
+    @JoinColumn(name = "dynamic_task_id")
     @ToString.Exclude // association excluded to keep toString safe and lightweight
-    private Task task;
+    private DynamicTask dynamicTask;
 
     private Instant begin;
     private Instant end;
