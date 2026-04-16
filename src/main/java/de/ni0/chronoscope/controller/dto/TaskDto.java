@@ -1,5 +1,6 @@
 package de.ni0.chronoscope.controller.dto;
 
+import java.time.Instant;
 import java.util.List;
 
 public record TaskDto(
@@ -7,10 +8,12 @@ public record TaskDto(
     Long accountId,
     String name,
     String description,
+    Integer difficulty,
+    Instant start,
+    Instant end,
     String rrule,
     DynamicTaskDto dynamicTask,
     StaticTaskDto staticTask,
-    List<LabelDto> labels,
-    List<TaskDependencyDto> dependencies
+    List<LabelDto> labels
 ) {
 }

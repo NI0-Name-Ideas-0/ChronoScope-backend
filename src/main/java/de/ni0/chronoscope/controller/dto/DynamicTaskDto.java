@@ -1,15 +1,14 @@
 package de.ni0.chronoscope.controller.dto;
 
-import java.time.Instant;
+import java.util.List;
 
 public record DynamicTaskDto(
     Long id,
-    Integer difficulty,
     Integer duration,
     Integer elapsed,
-    Instant start,
-    Instant end,
     Integer minScopeDuration,
-    Integer maxScopeDuration
+    Integer maxScopeDuration,
+    List<ScopeDto> scopes,
+    List<TaskDependencyDto> dependencies
 ) {
 }

@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
+import java.time.Instant;
 import java.util.List;
 
 // @Getter/@Setter instead of @Data: @Data's generated toString/equals/hashCode are unsafe on JPA
@@ -31,13 +32,12 @@ public abstract class Task {
 
     private String name;
     private String description;
+    private Integer difficulty;
+    private Instant start;
+    private Instant end;
     private String rrule;
 
     @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
     @ToString.Exclude // bidirectional: Label.task -> this Task, would recurse infinitely in toString
     private List<Label> labels;
-
-    @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
-    @ToString.Exclude // bidirectional: TaskDependency.task -> this Task, would recurse infinitely in toString
-    private List<TaskDependency> dependencies;
 }
