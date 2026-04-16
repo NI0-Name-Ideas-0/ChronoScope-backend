@@ -11,6 +11,6 @@ public record TaskUpdateRequest(
     Integer elapsed,
     Instant start,
     Instant end,
-    Boolean blocker
+    Boolean isBlocker
 ) {
 }

@@ -22,7 +22,7 @@ public record TaskCreateRequest(
     Integer minScopeDuration,
     Integer maxScopeDuration,
     // static task fields
-    Boolean blocker,
+    Boolean isBlocker,
     List<TagCreateRequest> tags
 ) {
     public enum TaskType {
