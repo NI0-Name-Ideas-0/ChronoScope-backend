@@ -1,11 +1,14 @@
 package de.ni0.chronoscope.model;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.time.Instant;
 
-@Data
+// @Getter/@Setter only — equals/hashCode are inherited from Task (id-based, safe with Hibernate proxies)
+@Getter
+@Setter
 @Entity
 @DiscriminatorValue("dynamic")
 public class DynamicTask extends Task {
