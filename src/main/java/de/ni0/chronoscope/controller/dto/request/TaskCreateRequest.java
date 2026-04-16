@@ -23,7 +23,7 @@ public record TaskCreateRequest(
     Integer maxScopeDuration,
     // static task fields
     Boolean isBlocker,
-    List<TagCreateRequest> tags
+    List<LabelCreateRequest> labels
 ) {
     public enum TaskType {
         @JsonProperty("dynamic") DYNAMIC,

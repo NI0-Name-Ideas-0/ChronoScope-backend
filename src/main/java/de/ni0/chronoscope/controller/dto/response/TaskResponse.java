@@ -15,7 +15,7 @@ public record TaskResponse(
     String rrule,
     DynamicTaskDto dynamicTask,
     StaticTaskDto staticTask,
-    List<TagDto> tags,
+    List<LabelDto> labels,
     List<TaskDependencyDto> dependencies
 ) {
 }

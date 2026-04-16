@@ -13,7 +13,7 @@ import lombok.ToString;
 @Setter
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @Entity
-public class Tag {
+public class Label {
 
     @Id
     @GeneratedValue
@@ -22,7 +22,7 @@ public class Tag {
 
     @ManyToOne
     @JoinColumn(name = "task_id")
-    @ToString.Exclude // bidirectional: Task.tags -> this Tag, would recurse infinitely in toString
+    @ToString.Exclude // bidirectional: Task.labels -> this Label, would recurse infinitely in toString
     private Task task;
 
     private String name;

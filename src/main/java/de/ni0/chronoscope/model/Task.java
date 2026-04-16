@@ -34,8 +34,8 @@ public abstract class Task {
     private String rrule;
 
     @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
-    @ToString.Exclude // bidirectional: Tag.task -> this Task, would recurse infinitely in toString
-    private List<Tag> tags;
+    @ToString.Exclude // bidirectional: Label.task -> this Task, would recurse infinitely in toString
+    private List<Label> labels;
 
     @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
     @ToString.Exclude // bidirectional: TaskDependency.task -> this Task, would recurse infinitely in toString
