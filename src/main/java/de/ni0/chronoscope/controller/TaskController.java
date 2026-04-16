@@ -56,9 +56,9 @@ public class TaskController {
         throw new ApiNotImplementedException();
     }
 
-    @DeleteMapping("/{id}/dependencies/{linkid}")
+    @DeleteMapping("/{id}/dependencies/{linkId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteDependency(@PathVariable Long id, @PathVariable Long linkid) {
+    public void deleteDependency(@PathVariable Long id, @PathVariable Long linkId) {
         throw new ApiNotImplementedException();
     }
 }
