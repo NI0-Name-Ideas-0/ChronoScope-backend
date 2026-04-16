@@ -6,8 +6,6 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 
-import java.time.Instant;
-
 // @Getter/@Setter instead of @Data: @Data's generated toString/equals/hashCode are unsafe on JPA
 // entities — bidirectional associations cause StackOverflowError in toString, and field-based
 // hashCode becomes unstable when Hibernate assigns the id after persist.
@@ -15,7 +13,7 @@ import java.time.Instant;
 @Setter
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @Entity
-public class Scope {
+public class Label {
 
     @Id
     @GeneratedValue
@@ -23,10 +21,9 @@ public class Scope {
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "dynamic_task_id")
-    @ToString.Exclude // association excluded to keep toString safe and lightweight
-    private DynamicTask dynamicTask;
+    @JoinColumn(name = "task_id")
+    @ToString.Exclude // bidirectional: Task.labels -> this Label, would recurse infinitely in toString
+    private Task task;
 
-    private Instant begin;
-    private Instant end;
+    private String name;
 }

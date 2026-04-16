@@ -1,4 +1,4 @@
-package de.ni0.chronoscope;
+package de.ni0.chronoscope.controller;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

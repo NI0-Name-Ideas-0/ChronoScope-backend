@@ -15,7 +15,7 @@ import java.time.Instant;
 @Setter
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @Entity
-public class Scope {
+public class WorkSlot {
 
     @Id
     @GeneratedValue
@@ -23,10 +23,10 @@ public class Scope {
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "dynamic_task_id")
+    @JoinColumn(name = "account_id")
     @ToString.Exclude // association excluded to keep toString safe and lightweight
-    private DynamicTask dynamicTask;
+    private Account account;
 
-    private Instant begin;
+    private Instant start;
     private Instant end;
 }
