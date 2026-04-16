@@ -7,16 +7,15 @@ import java.time.Instant;
 
 @Data
 @Entity
-public class Scope {
+public class DynamicTask {
 
     @Id
     @GeneratedValue
     private Long id;
 
-    @ManyToOne
-    @JoinColumn(name = "task_id")
-    private Task task;
-
-    private Instant begin;
+    private Integer difficulty;
+    private Integer duration;
+    private Integer elapsed;
+    private Instant start;
     private Instant end;
 }

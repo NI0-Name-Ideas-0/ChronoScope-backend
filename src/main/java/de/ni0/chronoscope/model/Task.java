@@ -1,28 +1,35 @@
 package de.ni0.chronoscope.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.Data;
 
-import java.time.Duration;
+import java.util.List;
 
 @Data
 @Entity
 public class Task {
+
     @Id
     @GeneratedValue
     private Long id;
 
+    @ManyToOne
+    @JoinColumn(name = "account_id")
+    private Account account;
+
     private String name;
-    private Duration duration;
+    private String description;
+    private String rrule;
 
-    public Task(String name, Duration duration) {
-        this.name = name;
-        this.duration = duration;
-    }
+    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
+    private DynamicTask dynamicTask;
 
-    public Task() {
+    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
+    private StaticTask staticTask;
 
-    }
+    @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Tag> tags;
+
+    @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<TaskDependency> dependencies;
 }

@@ -3,11 +3,9 @@ package de.ni0.chronoscope.model;
 import jakarta.persistence.*;
 import lombok.Data;
 
-import java.time.Instant;
-
 @Data
 @Entity
-public class Scope {
+public class Tag {
 
     @Id
     @GeneratedValue
@@ -17,6 +15,5 @@ public class Scope {
     @JoinColumn(name = "task_id")
     private Task task;
 
-    private Instant begin;
-    private Instant end;
+    private String name;
 }

@@ -7,16 +7,16 @@ import java.time.Instant;
 
 @Data
 @Entity
-public class Scope {
+public class WorkSlot {
 
     @Id
     @GeneratedValue
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "task_id")
-    private Task task;
+    @JoinColumn(name = "account_id")
+    private Account account;
 
-    private Instant begin;
+    private Instant start;
     private Instant end;
 }
