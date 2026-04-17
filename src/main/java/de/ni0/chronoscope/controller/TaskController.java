@@ -21,13 +21,18 @@ import de.ni0.chronoscope.controller.dto.request.TaskCreateRequest;
 import de.ni0.chronoscope.controller.dto.request.TaskDependencyCreateRequest;
 import de.ni0.chronoscope.controller.dto.request.TaskUpdateRequest;
 import de.ni0.chronoscope.controller.dto.response.DynamicTaskResponse;
+import de.ni0.chronoscope.controller.dto.response.LabelResponse;
+import de.ni0.chronoscope.controller.dto.response.ScopeResponse;
 import de.ni0.chronoscope.controller.dto.response.StaticTaskResponse;
 import de.ni0.chronoscope.controller.dto.response.TaskDependencyResponse;
 import de.ni0.chronoscope.controller.dto.response.TaskResponse;
 import de.ni0.chronoscope.exception.ApiNotImplementedException;
 import de.ni0.chronoscope.model.DynamicTask;
+import de.ni0.chronoscope.model.Label;
 import de.ni0.chronoscope.model.StaticTask;
 import de.ni0.chronoscope.service.TaskService;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
@@ -38,6 +43,17 @@ import lombok.RequiredArgsConstructor;
 public class TaskController {
 
     private final TaskService taskService;
+
+    @PersistenceContext
+    private EntityManager entityManager;
+
+    @Operation(summary = "List tasks", description = "Return all tasks belonging to the current identity. Each task is either a StaticTask or a DynamicTask, discriminated by the \"type\" field.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Tasks retrieved successfully"),
+        @ApiResponse(responseCode = "401", description = "Missing or invalid token", content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    })
+    @PersistenceContext
+    private EntityManager entityManager;
 
     @Operation(summary = "List tasks", description = "Return all tasks belonging to the current identity. Each task is either a StaticTask or a DynamicTask, discriminated by the \"type\" field.")
     @ApiResponses({
@@ -57,64 +73,120 @@ public class TaskController {
     })
     @PostMapping
     public ResponseEntity<TaskResponse> createTask(@Valid @RequestBody TaskCreateRequest request) {
-        if (request instanceof StaticTaskCreateRequest staticRequest) {
-            StaticTask createdTask = new StaticTask();
-            createdTask.setAccountId(staticRequest.accountId());
-            createdTask.setName(staticRequest.name());
-            createdTask.setDescription(staticRequest.description());
-            createdTask.setRrule(staticRequest.rrule());
-            createdTask.setDifficulty(staticRequest.difficulty());
-            createdTask.setStartAt(staticRequest.startAt());
-            createdTask.setEndAt(staticRequest.endAt());
-            createdTask.setIsBlocker(staticRequest.isBlocker());
-            //createdTask.setLabels(staticRequest.labels()); //TODO: Label Many to Many relation
-            StaticTask savedTask = taskService.createStaticTask(createdTask);
-            StaticTaskResponse response = new StaticTaskResponse(
-                savedTask.getId(),
-                savedTask.getAccountId(),
-                savedTask.getName(),
-                savedTask.getDescription(),
-                savedTask.getDifficulty(),
-                savedTask.getStartAt(),
-                savedTask.getEndAt(),
-                savedTask.getRrule(),
-                List.of(), // TODO: map labels to LabelResponse
-                savedTask.getIsBlocker()
-            );
-            return ResponseEntity.status(HttpStatus.CREATED).body(response);
-        } else if (request instanceof DynamicTaskCreateRequest dynamicRequest) {
-            DynamicTask createdTask = new DynamicTask();
-            createdTask.setAccountId(dynamicRequest.accountId());
-            createdTask.setName(dynamicRequest.name());
-            createdTask.setRrule(dynamicRequest.rrule());
-            createdTask.setDifficulty(dynamicRequest.difficulty());
-            createdTask.setStartAt(dynamicRequest.startAt());
-            createdTask.setEndAt(dynamicRequest.endAt());
-            //createdTask.setLabels(dynamicRequest.labels()); //TODO: Label Many to Many relation
-            createdTask.setDuration(dynamicRequest.duration());
-            createdTask.setMinScopeDuration(dynamicRequest.minScopeDuration());
-            createdTask.setMaxScopeDuration(dynamicRequest.maxScopeDuration());
-            DynamicTask savedTask = taskService.createDynamicTask(createdTask);
-            DynamicTaskResponse response = new DynamicTaskResponse(
-                savedTask.getId(),
-                savedTask.getAccountId(),
-                savedTask.getName(),
-                savedTask.getDescription(),
-                savedTask.getDifficulty(),
-                savedTask.getStartAt(),
-                savedTask.getEndAt(),
-                savedTask.getRrule(),
-                List.of(), // TODO: map labels to LabelResponse
-                savedTask.getDuration(),
-                savedTask.getElapsed(),
-                savedTask.getMinScopeDuration(),
-                savedTask.getMaxScopeDuration(),
-                List.of(), // TODO: map scopes to ScopeResponse
-                List.of()  // TODO: map dependencies to TaskDependencyResponse
-            );
-            return ResponseEntity.status(HttpStatus.CREATED).body(response);
-        } else {
-            throw new IllegalArgumentException("Unknown task type");
+        switch (request) {
+            case StaticTaskCreateRequest staticRequest -> {
+                StaticTask createdTask = new StaticTask();
+
+                List<Label> labels = request.labels().stream()
+                    .map(label -> {
+                        Label newLabel = new Label();
+                        newLabel.setName(label.name());
+                        newLabel.setTask(createdTask);   // TODO: maybe rethink with many to many relation
+                        return newLabel;
+                    }).toList();
+
+                createdTask.setAccountId(staticRequest.accountId());
+                createdTask.setName(staticRequest.name());
+                createdTask.setDescription(staticRequest.description());
+                createdTask.setRrule(staticRequest.rrule());
+                createdTask.setDifficulty(staticRequest.difficulty());
+                createdTask.setStartAt(staticRequest.startAt());
+                createdTask.setEndAt(staticRequest.endAt());
+                createdTask.setIsBlocker(staticRequest.isBlocker());
+                createdTask.setLabels(labels);
+                StaticTask savedTask = taskService.createStaticTask(createdTask);
+                List<LabelResponse> labelResponses = savedTask.getLabels().stream()
+                    .map(label -> {
+                        LabelResponse newLabel = new LabelResponse(label.getId(), label.getName());
+                        return newLabel;
+                    }).toList();
+                StaticTaskResponse response = new StaticTaskResponse(
+                        savedTask.getId(),
+                        savedTask.getAccountId(),
+                        savedTask.getName(),
+                        savedTask.getDescription(),
+                        savedTask.getDifficulty(),
+                        savedTask.getStartAt(),
+                        savedTask.getEndAt(),
+                        savedTask.getRrule(),
+                        labelResponses,
+                        savedTask.getIsBlocker()
+                );
+                return ResponseEntity.status(HttpStatus.CREATED).body(response);
+            }
+            case DynamicTaskCreateRequest dynamicRequest -> {
+                DynamicTask createdTask = new DynamicTask();
+
+                List<Label> labels = request.labels().stream()
+                    .map(label -> {
+                        Label newLabel = new Label();
+                        newLabel.setName(label.name());
+                        newLabel.setTask(createdTask);   // TODO: maybe rethink with many to many relation
+                        return newLabel;
+                    }).toList();
+
+                createdTask.setAccountId(dynamicRequest.accountId());
+                createdTask.setName(dynamicRequest.name());
+                createdTask.setRrule(dynamicRequest.rrule());
+                createdTask.setDifficulty(dynamicRequest.difficulty());
+                createdTask.setStartAt(dynamicRequest.startAt());
+                createdTask.setEndAt(dynamicRequest.endAt());
+                createdTask.setLabels(labels);
+                createdTask.setDuration(dynamicRequest.duration());
+                createdTask.setMinScopeDuration(dynamicRequest.minScopeDuration());
+                createdTask.setMaxScopeDuration(dynamicRequest.maxScopeDuration());
+                createdTask.setDependencies(List.of());
+                DynamicTask savedTask = taskService.createDynamicTask(createdTask);
+                List<LabelResponse> labelResponses = savedTask.getLabels().stream()
+                    .map(label -> {
+                        LabelResponse newLabel = new LabelResponse(
+                            label.getId(),
+                            label.getName()
+                        );
+                        return newLabel;
+                    }).toList();
+
+                List<ScopeResponse> scopeResponses = savedTask.getScopes().stream()
+                    .map(scope -> {
+                        ScopeResponse newScope = new ScopeResponse(
+                            scope.getId(),
+                            scope.getDynamicTask().getId(),
+                            scope.getStartAt(),
+                            scope.getEndAt()
+                        );
+                        return newScope;
+                    }).toList();
+
+                List<TaskDependencyResponse> dependencyResponses = savedTask.getDependencies().stream()
+                    .map(dependency -> {
+                        TaskDependencyResponse newDependency = new TaskDependencyResponse(
+                            dependency.getId(),
+                            dependency.getDynamicTask().getId(),
+                            dependency.getPredecessor().getId()
+                        );
+                        return newDependency;
+                    }).toList();
+
+                DynamicTaskResponse response = new DynamicTaskResponse(
+                        savedTask.getId(),
+                        savedTask.getAccountId(),
+                        savedTask.getName(),
+                        savedTask.getDescription(),
+                        savedTask.getDifficulty(),
+                        savedTask.getStartAt(),
+                        savedTask.getEndAt(),
+                        savedTask.getRrule(),
+                        labelResponses,
+                        savedTask.getDuration(),
+                        savedTask.getElapsed(),
+                        savedTask.getMinScopeDuration(),
+                        savedTask.getMaxScopeDuration(),
+                        scopeResponses,
+                        dependencyResponses
+                );
+                return ResponseEntity.status(HttpStatus.CREATED).body(response);
+            }
+            default -> throw new IllegalArgumentException("Unknown task type");
         }
     }
 
