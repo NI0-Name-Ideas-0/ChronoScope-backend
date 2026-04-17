@@ -154,7 +154,7 @@
                             <goal>start</goal>
                         </goals>
                         <configuration>
-                            <jvmArguments>-Dserver.port=${springdoc.local.port}</jvmArguments>
+                            <jvmArguments>-Dserver.port=${springdoc.local.port} -Dspring.profiles.active=generate</jvmArguments>
                         </configuration>
                     </execution>
                     <execution>

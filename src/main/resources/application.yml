@@ -9,10 +9,9 @@ spring:
 
 springdoc:
   swagger-ui:
-    enabled: true # Must be false on PROD
-    url: /v3/api-docs.yaml
+    enabled: false
   api-docs:
-    enabled: true # Must be false on PROD
+    enabled: false
   writer-with-order-by-keys: true
 
 logging:
