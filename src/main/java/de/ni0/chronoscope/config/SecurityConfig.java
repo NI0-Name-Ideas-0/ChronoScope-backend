@@ -19,7 +19,8 @@ public class SecurityConfig {
                     "/v1/**",
                     "/swagger-ui/**",
                     "/swagger-ui.html",
-                    "/v3/api-docs/**").permitAll()
+                    "/v3/api-docs/**",
+                    "/v3/api-docs.yaml").permitAll()
             .anyRequest().authenticated()
         );
         http.csrf(AbstractHttpConfigurer::disable);

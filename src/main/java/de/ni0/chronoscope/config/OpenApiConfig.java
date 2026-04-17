@@ -8,8 +8,11 @@ import io.swagger.v3.oas.models.security.OAuthFlows;
 import io.swagger.v3.oas.models.security.Scopes;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
+import io.swagger.v3.oas.models.servers.Server;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.util.List;
 
 @Configuration
 public class OpenApiConfig {
@@ -19,6 +22,9 @@ public class OpenApiConfig {
     @Bean
     public OpenAPI chronoScopeOpenAPI() {
         return new OpenAPI()
+                .servers(List.of(new Server()
+                        .url("https://chronoscope.ni0.team/api")
+                        .description("Production")))
                 .info(new Info()
                         .title("ChronoScope API")
                         .description("Online task planning system — manage tasks, work slots, dependencies and generate optimized plans.")

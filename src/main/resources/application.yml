@@ -6,6 +6,15 @@ spring:
       resourceserver:
         jwt:
           issuer-uri: https://auth.ni0.team/realms/ni0
+
+springdoc:
+  swagger-ui:
+    enabled: true # Must be false on PROD
+    url: /v3/api-docs.yaml
+  api-docs:
+    enabled: true # Must be false on PROD
+  writer-with-order-by-keys: true
+
 logging:
   level:
     de.ni0.chronoscope: DEBUG
