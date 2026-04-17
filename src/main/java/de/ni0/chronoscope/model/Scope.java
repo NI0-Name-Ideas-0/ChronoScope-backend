@@ -27,6 +27,8 @@ public class Scope {
     @ToString.Exclude // association excluded to keep toString safe and lightweight
     private DynamicTask dynamicTask;
 
-    private Instant begin;
-    private Instant end;
+    @Column(name = "start_at")
+    private Instant startAt;
+    @Column(name = "end_at")
+    private Instant endAt;
 }

@@ -9,8 +9,8 @@ public record TaskUpdateRequest(
     Integer difficulty,
     Integer duration,
     Integer elapsed,
-    Instant start,
-    Instant end,
+    Instant startAt,
+    Instant endAt,
     Boolean isBlocker
 ) {
 }
