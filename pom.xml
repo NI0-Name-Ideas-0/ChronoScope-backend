@@ -28,7 +28,8 @@
     </scm>
     <properties>
         <java.version>25</java.version>
-        <springdoc.local.port>8080</springdoc.local.port>
+        <springdoc.local.port>6767</springdoc.local.port>
+        <springdoc.skip>false</springdoc.skip>
     </properties>
     <dependencies>
         <dependency>
@@ -154,6 +155,7 @@
                             <goal>start</goal>
                         </goals>
                         <configuration>
+                            <skip>${springdoc.skip}</skip>
                             <jvmArguments>-Dserver.port=${springdoc.local.port} -Dspring.profiles.active=generate</jvmArguments>
                         </configuration>
                     </execution>
@@ -162,6 +164,9 @@
                         <goals>
                             <goal>stop</goal>
                         </goals>
+                        <configuration>
+                            <skip>${springdoc.skip}</skip>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
@@ -173,6 +178,7 @@
                     <apiDocsUrl>http://localhost:${springdoc.local.port}/v3/api-docs.yaml</apiDocsUrl>
                     <outputFileName>openapi.yaml</outputFileName>
                     <outputDir>openapi</outputDir>
+                    <skip>${springdoc.skip}</skip>
                 </configuration>
                 <executions>
                     <execution>
