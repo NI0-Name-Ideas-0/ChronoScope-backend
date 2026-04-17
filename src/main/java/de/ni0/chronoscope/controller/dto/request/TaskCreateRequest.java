@@ -17,8 +17,8 @@ public record TaskCreateRequest(
     // dynamic task fields
     Integer difficulty,
     Integer duration,
-    Instant start,
-    Instant end,
+    Instant startAt,
+    Instant endAt,
     Integer minScopeDuration,
     Integer maxScopeDuration,
     // static task fields

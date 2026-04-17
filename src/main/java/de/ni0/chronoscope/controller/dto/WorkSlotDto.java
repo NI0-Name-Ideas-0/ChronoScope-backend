@@ -5,7 +5,7 @@ import java.time.Instant;
 public record WorkSlotDto(
     Long id,
     Long accountId,
-    Instant start,
-    Instant end
+    Instant startAt,
+    Instant endAt
 ) {
 }

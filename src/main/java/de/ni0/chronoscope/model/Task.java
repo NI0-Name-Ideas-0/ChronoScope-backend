@@ -33,8 +33,10 @@ public abstract class Task {
     private String name;
     private String description;
     private Integer difficulty;
-    private Instant start;
-    private Instant end;
+    @Column(name = "start_at")
+    private Instant startAt;
+    @Column(name = "end_at")
+    private Instant endAt;
     private String rrule;
 
     @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)

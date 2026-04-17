@@ -5,7 +5,7 @@ import java.time.Instant;
 public record ScopeDto(
     Long id,
     Long taskId,
-    Instant begin,
-    Instant end
+    Instant startAt,
+    Instant endAt
 ) {
 }
