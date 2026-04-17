@@ -1,8 +1,8 @@
-package de.ni0.chronoscope.controller.dto;
+package de.ni0.chronoscope.controller.dto.response;
 
 import java.time.Instant;
 
-public record WorkSlotDto(
+public record WorkSlotResponse(
     Long id,
     Long accountId,
     Instant startAt,

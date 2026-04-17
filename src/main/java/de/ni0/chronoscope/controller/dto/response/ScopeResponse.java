@@ -1,8 +1,11 @@
 package de.ni0.chronoscope.controller.dto.response;
 
-public record TaskDependencyResponse(
+import java.time.Instant;
+
+public record ScopeResponse(
     Long id,
     Long dynamicTaskId,
-    Long predecessorDynamicTaskId
+    Instant startAt,
+    Instant endAt
 ) {
 }

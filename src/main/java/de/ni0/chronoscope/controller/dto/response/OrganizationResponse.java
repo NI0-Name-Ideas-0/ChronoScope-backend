@@ -2,8 +2,8 @@ package de.ni0.chronoscope.controller.dto.response;
 
 import java.util.List;
 
-public record IdentityResponse(
+public record OrganizationResponse(
     Long id,
-    List<AccountResponse> accounts
+    String name
 ) {
 }

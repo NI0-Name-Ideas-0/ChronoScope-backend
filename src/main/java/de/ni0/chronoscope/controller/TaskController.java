@@ -1,6 +1,5 @@
 package de.ni0.chronoscope.controller;
 
-import de.ni0.chronoscope.controller.dto.TaskDto;
 import de.ni0.chronoscope.controller.dto.request.TaskCreateRequest;
 import de.ni0.chronoscope.controller.dto.request.TaskDependencyCreateRequest;
 import de.ni0.chronoscope.controller.dto.request.TaskUpdateRequest;
@@ -24,7 +23,7 @@ public class TaskController {
     private final TaskService taskService;
 
     @GetMapping
-    public List<TaskDto> getTasks() {
+    public List<TaskResponse> getTasks() {
         throw new ApiNotImplementedException();
     }
 
@@ -38,7 +37,7 @@ public class TaskController {
         throw new ApiNotImplementedException();
     }
 
-    @PutMapping("/{id}")
+    @PatchMapping("/{id}")
     public TaskResponse updateTask(@PathVariable Long id, @Valid @RequestBody TaskUpdateRequest request) {
         throw new ApiNotImplementedException();
     }

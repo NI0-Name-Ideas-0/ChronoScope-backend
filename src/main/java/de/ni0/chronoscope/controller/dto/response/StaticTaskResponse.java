@@ -1,9 +1,9 @@
-package de.ni0.chronoscope.controller.dto;
+package de.ni0.chronoscope.controller.dto.response;
 
 import java.time.Instant;
 import java.util.List;
 
-public record TaskDto(
+public record StaticTaskResponse(
     Long id,
     Long accountId,
     String name,
@@ -12,8 +12,7 @@ public record TaskDto(
     Instant startAt,
     Instant endAt,
     String rrule,
-    DynamicTaskDto dynamicTask,
-    StaticTaskDto staticTask,
-    List<LabelDto> labels
-) {
+    List<LabelResponse> labels,
+    Boolean isBlocker
+) implements TaskResponse {
 }
