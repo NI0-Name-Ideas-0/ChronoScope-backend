@@ -1,27 +1,35 @@
 package de.ni0.chronoscope.controller;
 
-import de.ni0.chronoscope.controller.dto.request.TaskCreateRequest;
-import de.ni0.chronoscope.controller.dto.request.TaskDependencyCreateRequest;
-import de.ni0.chronoscope.controller.dto.request.TaskUpdateRequest;
-import de.ni0.chronoscope.controller.dto.response.TaskDependencyResponse;
-import de.ni0.chronoscope.controller.dto.response.TaskResponse;
-import de.ni0.chronoscope.exception.ApiNotImplementedException;
-import de.ni0.chronoscope.service.TaskService;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
+import java.util.List;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
+import de.ni0.chronoscope.controller.dto.request.DynamicTaskCreateRequest;
+import de.ni0.chronoscope.controller.dto.request.StaticTaskCreateRequest;
+import de.ni0.chronoscope.controller.dto.request.TaskCreateRequest;
+import de.ni0.chronoscope.controller.dto.request.TaskDependencyCreateRequest;
+import de.ni0.chronoscope.controller.dto.request.TaskUpdateRequest;
+import de.ni0.chronoscope.controller.dto.response.DynamicTaskResponse;
+import de.ni0.chronoscope.controller.dto.response.StaticTaskResponse;
+import de.ni0.chronoscope.controller.dto.response.TaskDependencyResponse;
+import de.ni0.chronoscope.controller.dto.response.TaskResponse;
+import de.ni0.chronoscope.exception.ApiNotImplementedException;
+import de.ni0.chronoscope.model.DynamicTask;
+import de.ni0.chronoscope.model.StaticTask;
+import de.ni0.chronoscope.service.TaskService;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 
 @Tag(name = "Tasks", description = "Create, read, update and delete tasks and their dependencies")
 @RestController
@@ -49,7 +57,65 @@ public class TaskController {
     })
     @PostMapping
     public ResponseEntity<TaskResponse> createTask(@Valid @RequestBody TaskCreateRequest request) {
-        throw new ApiNotImplementedException();
+        if (request instanceof StaticTaskCreateRequest staticRequest) {
+            StaticTask createdTask = new StaticTask();
+            createdTask.setAccountId(staticRequest.accountId());
+            createdTask.setName(staticRequest.name());
+            createdTask.setDescription(staticRequest.description());
+            createdTask.setRrule(staticRequest.rrule());
+            createdTask.setDifficulty(staticRequest.difficulty());
+            createdTask.setStartAt(staticRequest.startAt());
+            createdTask.setEndAt(staticRequest.endAt());
+            createdTask.setIsBlocker(staticRequest.isBlocker());
+            //createdTask.setLabels(staticRequest.labels()); //TODO: Label Many to Many relation
+            StaticTask savedTask = taskService.createStaticTask(createdTask);
+            StaticTaskResponse response = new StaticTaskResponse(
+                savedTask.getId(),
+                savedTask.getAccountId(),
+                savedTask.getName(),
+                savedTask.getDescription(),
+                savedTask.getDifficulty(),
+                savedTask.getStartAt(),
+                savedTask.getEndAt(),
+                savedTask.getRrule(),
+                List.of(), // TODO: map labels to LabelResponse
+                savedTask.getIsBlocker()
+            );
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } else if (request instanceof DynamicTaskCreateRequest dynamicRequest) {
+            DynamicTask createdTask = new DynamicTask();
+            createdTask.setAccountId(dynamicRequest.accountId());
+            createdTask.setName(dynamicRequest.name());
+            createdTask.setRrule(dynamicRequest.rrule());
+            createdTask.setDifficulty(dynamicRequest.difficulty());
+            createdTask.setStartAt(dynamicRequest.startAt());
+            createdTask.setEndAt(dynamicRequest.endAt());
+            //createdTask.setLabels(dynamicRequest.labels()); //TODO: Label Many to Many relation
+            createdTask.setDuration(dynamicRequest.duration());
+            createdTask.setMinScopeDuration(dynamicRequest.minScopeDuration());
+            createdTask.setMaxScopeDuration(dynamicRequest.maxScopeDuration());
+            DynamicTask savedTask = taskService.createDynamicTask(createdTask);
+            DynamicTaskResponse response = new DynamicTaskResponse(
+                savedTask.getId(),
+                savedTask.getAccountId(),
+                savedTask.getName(),
+                savedTask.getDescription(),
+                savedTask.getDifficulty(),
+                savedTask.getStartAt(),
+                savedTask.getEndAt(),
+                savedTask.getRrule(),
+                List.of(), // TODO: map labels to LabelResponse
+                savedTask.getDuration(),
+                savedTask.getElapsed(),
+                savedTask.getMinScopeDuration(),
+                savedTask.getMaxScopeDuration(),
+                List.of(), // TODO: map scopes to ScopeResponse
+                List.of()  // TODO: map dependencies to TaskDependencyResponse
+            );
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } else {
+            throw new IllegalArgumentException("Unknown task type");
+        }
     }
 
     @Operation(summary = "Get task", description = "Retrieve a single task by ID, including its labels, scopes (dynamic tasks) and dependencies.")
