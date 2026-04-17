@@ -997,9 +997,6 @@ components:
         startAt:
           type: string
           format: date-time
-      required:
-      - endAt
-      - startAt
   securitySchemes:
     oauth2:
       description: Keycloak OAuth2 (Authorization Code flow)
