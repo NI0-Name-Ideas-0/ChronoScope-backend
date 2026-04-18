@@ -13,9 +13,13 @@ import java.util.List;
 @DiscriminatorValue("dynamic")
 public class DynamicTask extends Task {
 
+    @Column(nullable = false)
     private Integer duration;
+    @Column(nullable = false)
     private Integer elapsed;
+    @Column(nullable = false)
     private Integer minScopeDuration;
+    @Column(nullable = false)
     private Integer maxScopeDuration;
 
     @OneToMany(mappedBy = "dynamicTask", cascade = CascadeType.ALL, orphanRemoval = true)

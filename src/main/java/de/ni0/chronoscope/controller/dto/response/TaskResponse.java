@@ -1,23 +1,25 @@
 package de.ni0.chronoscope.controller.dto.response;
 
-import de.ni0.chronoscope.controller.dto.DynamicTaskDto;
-import de.ni0.chronoscope.controller.dto.LabelDto;
-import de.ni0.chronoscope.controller.dto.StaticTaskDto;
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 import java.time.Instant;
 import java.util.List;
 
-public record TaskResponse(
-    Long id,
-    Long accountId,
-    String name,
-    String description,
-    Integer difficulty,
-    Instant startAt,
-    Instant endAt,
-    String rrule,
-    DynamicTaskDto dynamicTask,
-    StaticTaskDto staticTask,
-    List<LabelDto> labels
-) {
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
+@JsonSubTypes({
+    @JsonSubTypes.Type(value = StaticTaskResponse.class, name = "static"),
+    @JsonSubTypes.Type(value = DynamicTaskResponse.class, name = "dynamic")
+})
+public sealed interface TaskResponse permits StaticTaskResponse, DynamicTaskResponse {
+
+    Long id();
+    Long accountId();
+    String name();
+    String description();
+    Integer difficulty();
+    Instant startAt();
+    Instant endAt();
+    String rrule();
+    List<LabelResponse> labels();
 }

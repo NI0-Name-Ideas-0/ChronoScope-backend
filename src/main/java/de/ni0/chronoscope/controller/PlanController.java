@@ -1,7 +1,7 @@
 package de.ni0.chronoscope.controller;
 
-import de.ni0.chronoscope.controller.dto.WorkSlotDto;
 import de.ni0.chronoscope.controller.dto.request.PlanRequest;
+import de.ni0.chronoscope.controller.dto.response.WorkSlotResponse;
 import de.ni0.chronoscope.exception.ApiNotImplementedException;
 import de.ni0.chronoscope.service.PlanningService;
 import jakarta.validation.Valid;
@@ -21,7 +21,7 @@ public class PlanController {
     private final PlanningService planningService;
 
     @PostMapping
-    public List<WorkSlotDto> plan(@Valid @RequestBody PlanRequest request) {
+    public List<WorkSlotResponse> plan(@Valid @RequestBody PlanRequest request) {
         throw new ApiNotImplementedException();
     }
 }

@@ -19,5 +19,6 @@ public class Organization {
     @EqualsAndHashCode.Include // id-only: stable before and after persist, works correctly with Hibernate proxies
     private Long id;
 
+    @Column(nullable = false)
     private String name;
 }
