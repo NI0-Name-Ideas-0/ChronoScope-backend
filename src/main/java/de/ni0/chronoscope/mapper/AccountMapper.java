@@ -11,5 +11,5 @@ import org.mapstruct.MappingConstants;
 public interface AccountMapper {
 
     @Mapping(target = "identityId", source = "identity.id")
-    AccountResponse toAccountResponse(Account account);
+    AccountResponse toResponse(Account account);
 }

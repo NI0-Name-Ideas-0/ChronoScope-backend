@@ -11,7 +11,7 @@ import org.mapstruct.MappingConstants;
 public interface TaskDependencyMapper {
 
     @Mapping(target = "id", ignore = true) // will be filled in by database
-    @Mapping(target = "dynamicTask", ignore = true) // will be filled in by database
+    @Mapping(target = "dynamicTask", ignore = true) // will have to be filled manually
     @Mapping(target = "predecessor", source = "predecessorDynamicTaskId", qualifiedByName = "predecessorProxy")
     TaskDependency fromCreateRequest(TaskDependencyCreateRequest request);
 

@@ -4,9 +4,10 @@ import de.ni0.chronoscope.controller.dto.request.LabelCreateRequest;
 import de.ni0.chronoscope.controller.dto.response.LabelResponse;
 import de.ni0.chronoscope.model.Label;
 import org.mapstruct.Mapper;
+import org.mapstruct.MappingConstants;
 import org.mapstruct.Mapping;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = MappingConstants.ComponentModel.SPRING)  
 public interface LabelMapper {
 
     @Mapping(target = "id", ignore = true)

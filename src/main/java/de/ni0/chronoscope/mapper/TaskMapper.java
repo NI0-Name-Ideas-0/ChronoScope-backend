@@ -37,6 +37,7 @@ public interface TaskMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "account", ignore = true)
     @Mapping(target = "labels", ignore = true)
+    @Deprecated
     void fromUpdateRequest(StaticTaskUpdateRequest request, @MappingTarget StaticTask task);
 
     //! DO NOT USE YET
@@ -47,6 +48,7 @@ public interface TaskMapper {
     @Mapping(target = "labels", ignore = true)
     @Mapping(target = "scopes", ignore = true)
     @Mapping(target = "dependencies", ignore = true)
+    @Deprecated
     void fromUpdateRequest(DynamicTaskUpdateRequest request, @MappingTarget DynamicTask task);
 
     // --- Response mapping ---
