@@ -20,4 +20,14 @@ public class TaskService {
     public DynamicTask createDynamicTask(DynamicTask task) {
         return this.taskRepository.save(task);
     }
+
+    public DynamicTask updateDynamicTask(Long id, DynamicTask task) {
+        //TODO: validate task (e.g. duration > 0, minScopeDuration <= maxScopeDuration, etc.)
+        return this.taskRepository.save(task);
+    }
+
+    public StaticTask updateStaticTask(Long id, StaticTask task) {
+        //TODO: validate task (e.g. startAt < endAt, etc.)
+        return this.taskRepository.save(task);
+    }
 }
