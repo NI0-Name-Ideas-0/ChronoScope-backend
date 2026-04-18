@@ -1,8 +1,11 @@
 package de.ni0.chronoscope.controller.dto.response;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 import java.time.Instant;
 import java.util.List;
 
+@Schema(description = "Response for a dynamic (schedulable) task, including its scopes and dependencies")
 public record DynamicTaskResponse(
     Long id,
     Long accountId,

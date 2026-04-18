@@ -16,7 +16,11 @@ public class SecurityConfig {
             .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
             .requestMatchers(
                     "/test",
-                    "/v1/**").permitAll()
+                    "/v1/**",
+                    "/swagger-ui/**",
+                    "/swagger-ui.html",
+                    "/v3/api-docs/**",
+                    "/v3/api-docs.yaml").permitAll()
             .anyRequest().authenticated()
         );
         http.csrf(AbstractHttpConfigurer::disable);

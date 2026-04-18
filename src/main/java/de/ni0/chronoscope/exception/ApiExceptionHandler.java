@@ -72,7 +72,7 @@ public class ApiExceptionHandler {
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 ApiErrorCode.INTERNAL_SERVER_ERROR,
                 "Internal Server Error",
-                "An unexpected error occurred",
+                exception.getMessage(),
                 request
         );
     }
