@@ -30,13 +30,17 @@ public abstract class Task {
     @ToString.Exclude // bidirectional: Account -> Identity -> Account would recurse infinitely in toString
     private Account account;
 
+    @Column(nullable = false)
     private String name;
+    @Column(nullable = false)
     private String description;
+    @Column(nullable = false)
     private Integer difficulty;
-    @Column(name = "start_at")
+    @Column(name = "start_at", nullable = false)
     private Instant startAt;
-    @Column(name = "end_at")
+    @Column(name = "end_at", nullable = false)
     private Instant endAt;
+    @Column(nullable = false)
     private String rrule;
 
     @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)

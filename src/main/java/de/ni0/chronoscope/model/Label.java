@@ -25,5 +25,6 @@ public class Label {
     @ToString.Exclude // bidirectional: Task.labels -> this Label, would recurse infinitely in toString
     private Task task;
 
+    @Column(nullable = false)
     private String name;
 }

@@ -31,8 +31,8 @@ public class WorkSlot {
     @JoinColumn(name = "organization_id")
     private Organization organization;
 
-    @Column(name = "start_at")
+    @Column(name = "start_at", nullable = false)
     private Instant startAt;
-    @Column(name = "end_at")
+    @Column(name = "end_at", nullable = false)
     private Instant endAt;
 }

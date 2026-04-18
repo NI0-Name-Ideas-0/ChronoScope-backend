@@ -11,5 +11,6 @@ import lombok.Setter;
 @DiscriminatorValue("static")
 public class StaticTask extends Task {
 
+    @Column(nullable = false)
     private Boolean isBlocker;
 }
