@@ -97,7 +97,10 @@ public class TaskController {
                 StaticTask savedTask = taskService.createStaticTask(createdTask);
                 List<LabelResponse> labelResponses = savedTask.getLabels().stream()
                     .map(label -> {
-                        LabelResponse newLabel = new LabelResponse(label.getId(), label.getName());
+                        LabelResponse newLabel = new LabelResponse(
+                            label.getId(),
+                            label.getTask().getId(),
+                            label.getName());
                         return newLabel;
                     }).toList();
                 StaticTaskResponse response = new StaticTaskResponse(
@@ -141,6 +144,7 @@ public class TaskController {
                     .map(label -> {
                         LabelResponse newLabel = new LabelResponse(
                             label.getId(),
+                            label.getTask().getId(),
                             label.getName()
                         );
                         return newLabel;
