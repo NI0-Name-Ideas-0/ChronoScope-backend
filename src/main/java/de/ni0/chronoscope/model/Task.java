@@ -12,6 +12,8 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.Inheritance;
 import jakarta.persistence.InheritanceType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -34,8 +36,11 @@ public abstract class Task {
     @EqualsAndHashCode.Include // id-only: stable before and after persist, works correctly with Hibernate proxies
     private Long id;
 
-    @Column(nullable = false)
-    private Long accountId;
+    @ManyToOne
+    @JoinColumn(name = "account_id")
+    @ToString.Exclude // bidirectional: Account -> Identity -> Account would recurse infinitely in toString
+    private Account account;
+
     @Column(nullable = false)
     private String name;
     @Column(nullable = false)
