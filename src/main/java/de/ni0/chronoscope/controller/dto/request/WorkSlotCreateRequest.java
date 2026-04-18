@@ -6,6 +6,7 @@ import java.time.Instant;
 
 public record WorkSlotCreateRequest(
     @NotNull Long accountId,
+    @NotNull Long organizationId,
     @NotNull Instant startAt,
     @NotNull Instant endAt
 ) {
