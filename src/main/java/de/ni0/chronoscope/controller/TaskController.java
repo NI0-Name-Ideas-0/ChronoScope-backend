@@ -31,8 +31,13 @@ import de.ni0.chronoscope.model.DynamicTask;
 import de.ni0.chronoscope.model.Label;
 import de.ni0.chronoscope.model.StaticTask;
 import de.ni0.chronoscope.service.TaskService;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
@@ -44,22 +49,12 @@ public class TaskController {
 
     private final TaskService taskService;
 
-    @PersistenceContext
-    private EntityManager entityManager;
-
     @Operation(summary = "List tasks", description = "Return all tasks belonging to the current identity. Each task is either a StaticTask or a DynamicTask, discriminated by the \"type\" field.")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Tasks retrieved successfully"),
         @ApiResponse(responseCode = "401", description = "Missing or invalid token", content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     })
-    @PersistenceContext
-    private EntityManager entityManager;
 
-    @Operation(summary = "List tasks", description = "Return all tasks belonging to the current identity. Each task is either a StaticTask or a DynamicTask, discriminated by the \"type\" field.")
-    @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Tasks retrieved successfully"),
-        @ApiResponse(responseCode = "401", description = "Missing or invalid token", content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
-    })
     @GetMapping
     public List<TaskResponse> getTasks() {
         throw new ApiNotImplementedException();
