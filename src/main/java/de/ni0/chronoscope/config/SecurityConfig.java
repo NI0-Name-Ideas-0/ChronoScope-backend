@@ -15,7 +15,7 @@ public class SecurityConfig {
         http.authorizeHttpRequests(auth -> auth
             .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
             .requestMatchers(
-                    "/test",
+                    "/test/**",
                     "/v1/**").permitAll()
             .anyRequest().authenticated()
         );
