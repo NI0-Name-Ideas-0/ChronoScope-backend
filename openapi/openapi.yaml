@@ -33,6 +33,54 @@ paths:
           description: OK
       tags:
       - test-controller
+  /test/createIdentity:
+    get:
+      operationId: testEndpoint2
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                type: string
+          description: OK
+      tags:
+      - test-controller
+  /test/labels:
+    get:
+      operationId: testEndpoint3
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LabelResponse"
+          description: OK
+      tags:
+      - test-controller
+  /test/tasks:
+    post:
+      operationId: testCreateTask
+      requestBody:
+        content:
+          application/json:
+            schema:
+              oneOf:
+              - $ref: "#/components/schemas/DynamicTaskCreateRequest"
+              - $ref: "#/components/schemas/StaticTaskCreateRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                oneOf:
+                - $ref: "#/components/schemas/DynamicTaskResponse"
+                - $ref: "#/components/schemas/StaticTaskResponse"
+          description: OK
+      tags:
+      - test-controller
   /v1/identity:
     get:
       description: "Retrieve information about the identity contained in the access\
@@ -653,7 +701,16 @@ components:
         scope constraints
       required:
       - accountId
+      - description
+      - difficulty
+      - duration
+      - endAt
+      - labels
+      - maxScopeDuration
+      - minScopeDuration
       - name
+      - rrule
+      - startAt
     DynamicTaskResponse:
       allOf:
       - $ref: "#/components/schemas/TaskResponse"
@@ -769,6 +826,9 @@ components:
           format: int64
         name:
           type: string
+        taskId:
+          type: integer
+          format: int64
     OrganizationResponse:
       type: object
       properties:
@@ -966,12 +1026,16 @@ components:
         endAt:
           type: string
           format: date-time
+        organizationId:
+          type: integer
+          format: int64
         startAt:
           type: string
           format: date-time
       required:
       - accountId
       - endAt
+      - organizationId
       - startAt
     WorkSlotResponse:
       type: object
@@ -983,6 +1047,9 @@ components:
           type: string
           format: date-time
         id:
+          type: integer
+          format: int64
+        organizationId:
           type: integer
           format: int64
         startAt:
