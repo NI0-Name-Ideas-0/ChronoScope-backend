@@ -27,6 +27,7 @@ import de.ni0.chronoscope.exception.ApiNotImplementedException;
 import de.ni0.chronoscope.mapper.TaskMapper;
 import de.ni0.chronoscope.model.DynamicTask;
 import de.ni0.chronoscope.model.StaticTask;
+import de.ni0.chronoscope.model.Task;
 import de.ni0.chronoscope.service.TaskService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -48,7 +49,7 @@ public class TaskController {
     private final TaskMapper taskMapper;
     private final RequestContext requestContext;
 
-    @Operation(summary = "List tasks", description = "Return all tasks belonging to the current identity. Each task is either a StaticTask or a DynamicTask, discriminated by the \"type\" field.")
+    @Operation(summary = "List tasks", description = "Return all tasks belonging to the current identity, including tasks from linked accounts. Each task is either a StaticTask or a DynamicTask, discriminated by the \"type\" field.")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Tasks retrieved successfully"),
         @ApiResponse(responseCode = "401", description = "Missing or invalid token", content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
@@ -56,7 +57,19 @@ public class TaskController {
 
     @GetMapping
     public List<TaskResponse> getTasks() {
-        throw new ApiNotImplementedException();
+        return taskService.getTasksForIdentity(requestContext.getIdentityId()).stream()
+            .map(this::mapTask)
+            .toList();
+    }
+
+    private TaskResponse mapTask(Task task) {
+        if (task instanceof StaticTask staticTask) {
+            return taskMapper.toResponse(staticTask);
+        }
+        if (task instanceof DynamicTask dynamicTask) {
+            return taskMapper.toResponse(dynamicTask);
+        }
+        throw new IllegalArgumentException("Unknown task type");
     }
 
     @Operation(summary = "Create task", description = "Create a new task. Set \"type\" to \"static\" for a StaticTask or \"dynamic\" for a DynamicTask with scheduling metadata.")

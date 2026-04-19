@@ -1,11 +1,13 @@
 package de.ni0.chronoscope.service;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import org.springframework.stereotype.Service;
 
 import de.ni0.chronoscope.model.DynamicTask;
 import de.ni0.chronoscope.model.StaticTask;
+import de.ni0.chronoscope.model.Task;
 import de.ni0.chronoscope.repository.TaskRepository;
 import lombok.RequiredArgsConstructor;
 
@@ -28,6 +30,10 @@ public class TaskService {
             }
         }
         return this.taskRepository.save(task);
+    }
+
+    public List<Task> getTasksForIdentity(long identityId) {
+        return this.taskRepository.findByAccountIdentityId(identityId);
     }
 
     public DynamicTask updateDynamicTask(Long id, DynamicTask task) {
