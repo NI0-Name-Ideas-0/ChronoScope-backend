@@ -51,17 +51,20 @@ class IdentityMiddlewareTest {
         Authentication authentication = new JwtAuthenticationToken(jwt, AuthorityUtils.NO_AUTHORITIES);
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        when(accountService.syncAccount("subject-123", List.of("private"))).thenReturn(11L);
-        when(identityService.syncIdentity("subject-123")).thenReturn(22L);
+        try {
+            when(accountService.syncAccount("subject-123", List.of("private"))).thenReturn(11L);
+            when(identityService.syncIdentity("subject-123")).thenReturn(22L);
 
-        middleware.doFilterInternal(new MockHttpServletRequest(), new MockHttpServletResponse(), filterChain);
+            middleware.doFilterInternal(new MockHttpServletRequest(), new MockHttpServletResponse(), filterChain);
 
-        assertEquals(11L, requestContext.getAccountId());
-        assertEquals(22L, requestContext.getIdentityId());
-        verify(accountService).syncAccount(eq("subject-123"), eq(List.of("private")));
-        verify(identityService).syncIdentity("subject-123");
-        verify(filterChain).doFilter(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
-        verifyNoMoreInteractions(accountService, identityService, filterChain);
-        SecurityContextHolder.clearContext();
+            assertEquals(11L, requestContext.getAccountId());
+            assertEquals(22L, requestContext.getIdentityId());
+            verify(accountService).syncAccount(eq("subject-123"), eq(List.of("private")));
+            verify(identityService).syncIdentity("subject-123");
+            verify(filterChain).doFilter(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
+            verifyNoMoreInteractions(accountService, identityService, filterChain);
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
     }
 }
