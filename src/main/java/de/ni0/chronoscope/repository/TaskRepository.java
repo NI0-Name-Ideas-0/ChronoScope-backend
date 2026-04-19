@@ -7,5 +7,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import de.ni0.chronoscope.model.Task;
 
 public interface TaskRepository extends JpaRepository<Task, Long> {
-	List<Task> findByAccountIdentityId(Long identityId);
+    List<Task> findByAccountIdentityId(long identityId);
 }
