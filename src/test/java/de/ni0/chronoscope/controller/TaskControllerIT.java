@@ -148,8 +148,8 @@ class TaskControllerIT {
             .andExpect(jsonPath("$[*].name", hasItem(dynamicTaskName)))
             .andExpect(jsonPath("$[*].name", hasItem(linkedStaticTaskName)))
             .andExpect(jsonPath("$[*].name", not(hasItem(foreignTaskName))))
-            .andExpect(jsonPath("$[*].accountId", hasItem((int) primaryAccountId)))
-            .andExpect(jsonPath("$[*].accountId", hasItem((int) linkedAccountId)))
+            .andExpect(jsonPath("$[*].accountId", hasItem(primaryAccountId)))
+            .andExpect(jsonPath("$[*].accountId", hasItem(linkedAccountId)))
             .andExpect(jsonPath("$[*].type", hasItem("dynamic")))
             .andExpect(jsonPath("$[*].type", hasItem("static")));
     }

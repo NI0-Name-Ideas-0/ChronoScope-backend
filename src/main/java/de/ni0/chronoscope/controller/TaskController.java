@@ -75,7 +75,9 @@ public class TaskController {
         if (task instanceof DynamicTask dynamicTask) {
             return taskMapper.toResponse(dynamicTask);
         }
-        throw new IllegalArgumentException("Unknown task type");
+        String taskType = task == null ? "null" : task.getClass().getName();
+        String taskId = task == null ? "null" : String.valueOf(task.getId());
+        throw new IllegalStateException("Unexpected task subtype in TaskController.mapTask: type=" + taskType + ", taskId=" + taskId);
     }
 
     @Operation(summary = "Create task", description = "Create a new task. Set \"type\" to \"static\" for a StaticTask or \"dynamic\" for a DynamicTask with scheduling metadata.")

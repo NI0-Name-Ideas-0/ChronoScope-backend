@@ -1,7 +1,6 @@
 package de.ni0.chronoscope.controller;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -84,8 +83,8 @@ class TaskControllerTest {
         List<TaskResponse> result = controller.getTasks();
 
         assertEquals(2, result.size());
-        assertSame(staticResponse, result.get(0));
-        assertSame(dynamicResponse, result.get(1));
+        assertEquals(staticResponse, result.get(0));
+        assertEquals(dynamicResponse, result.get(1));
         verify(taskService).getTasksForIdentity(99L);
         verify(taskMapper).toResponse(staticTask);
         verify(taskMapper).toResponse(dynamicTask);
