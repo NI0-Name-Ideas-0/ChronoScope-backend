@@ -15,6 +15,7 @@ import de.ni0.chronoscope.controller.dto.request.AccountLinkRequest;
 import de.ni0.chronoscope.controller.dto.response.AccountLinkConfirmResponse;
 import de.ni0.chronoscope.controller.dto.response.IdentityResponse;
 import de.ni0.chronoscope.exception.ApiNotImplementedException;
+import de.ni0.chronoscope.exception.InvalidRequestException;
 import de.ni0.chronoscope.mapper.IdentityMapper;
 import de.ni0.chronoscope.service.AccountService;
 import de.ni0.chronoscope.service.IdentityService;
@@ -45,9 +46,11 @@ public class IdentityController {
     })
     @GetMapping
     public IdentityResponse getIdentity() {
-        return this.identityMapper.toResponse(
-            this.identityService.getIdentity(this.requestContext.getIdentityId())
-        );
+        long identityId = this.requestContext.getIdentityId();
+        if (identityId == 0) {
+            throw new InvalidRequestException("Missing authenticated identity");
+        }
+        return this.identityMapper.toResponse(this.identityService.getIdentity(identityId));
     }
 
     @Operation(summary = "Request account linking", description = "Send a confirmation link to the target e-mail address. If the target accepts, the two accounts' identities are merged.")
