@@ -30,7 +30,7 @@ public class Account {
     private Long id;
 
     // unique subject from Keycloak
-    @Column(unique = true)
+    @Column(unique = true, nullable = false)
     private String subject;
 
     @ManyToOne
