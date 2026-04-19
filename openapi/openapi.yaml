@@ -668,6 +668,10 @@ components:
           accountId:
             type: integer
             format: int64
+          dependencies:
+            type: array
+            items:
+              $ref: "#/components/schemas/TaskDependencyCreateRequest"
           description:
             type: string
           difficulty:
@@ -676,10 +680,6 @@ components:
           duration:
             type: integer
             format: int32
-          dependencies:
-            type: array
-            items:
-              $ref: "#/components/schemas/TaskDependencyCreateRequest"
           endAt:
             type: string
             format: date-time
@@ -705,10 +705,10 @@ components:
         scope constraints
       required:
       - accountId
+      - dependencies
       - description
       - difficulty
       - duration
-      - dependencies
       - endAt
       - labels
       - maxScopeDuration
@@ -917,7 +917,14 @@ components:
       description: Create request for a static (fixed-time) task
       required:
       - accountId
+      - description
+      - difficulty
+      - endAt
+      - isBlocker
+      - labels
       - name
+      - rrule
+      - startAt
     StaticTaskResponse:
       allOf:
       - $ref: "#/components/schemas/TaskResponse"
