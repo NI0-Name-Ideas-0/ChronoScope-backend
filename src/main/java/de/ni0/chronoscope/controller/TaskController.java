@@ -1,5 +1,21 @@
 package de.ni0.chronoscope.controller;
 
+import java.util.List;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
+
+import de.ni0.chronoscope.config.RequestContext;
 import de.ni0.chronoscope.controller.dto.request.TaskCreateRequest;
 import de.ni0.chronoscope.controller.dto.request.TaskDependencyCreateRequest;
 import de.ni0.chronoscope.controller.dto.request.TaskUpdateRequest;
@@ -16,12 +32,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ProblemDetail;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @Tag(name = "Tasks", description = "Create, read, update and delete tasks and their dependencies")
 @RestController
@@ -30,6 +40,7 @@ import java.util.List;
 public class TaskController {
 
     private final TaskService taskService;
+    private final RequestContext requestContext;
 
     @Operation(summary = "List tasks", description = "Return all tasks belonging to the current identity. Each task is either a StaticTask or a DynamicTask, discriminated by the \"type\" field.")
     @ApiResponses({
@@ -49,6 +60,8 @@ public class TaskController {
     })
     @PostMapping
     public ResponseEntity<TaskResponse> createTask(@Valid @RequestBody TaskCreateRequest request) {
+        System.out.println("Identity ID in TaskController: " + requestContext.getIdentityId());
+        System.out.println("Account ID in TaskController: " + requestContext.getAccountId());
         throw new ApiNotImplementedException();
     }
 
