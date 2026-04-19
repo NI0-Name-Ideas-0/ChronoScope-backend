@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import de.ni0.chronoscope.config.RequestContext;
 import de.ni0.chronoscope.controller.dto.request.DynamicTaskCreateRequest;
 import de.ni0.chronoscope.controller.dto.request.StaticTaskCreateRequest;
 import de.ni0.chronoscope.controller.dto.request.TaskCreateRequest;
@@ -45,6 +46,7 @@ public class TaskController {
 
     private final TaskService taskService;
     private final TaskMapper taskMapper;
+    private final RequestContext requestContext;
 
     @Operation(summary = "List tasks", description = "Return all tasks belonging to the current identity. Each task is either a StaticTask or a DynamicTask, discriminated by the \"type\" field.")
     @ApiResponses({

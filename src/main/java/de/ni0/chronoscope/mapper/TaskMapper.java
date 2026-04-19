@@ -1,19 +1,19 @@
 package de.ni0.chronoscope.mapper;
 
-import de.ni0.chronoscope.controller.dto.request.StaticTaskCreateRequest;
-import de.ni0.chronoscope.controller.dto.request.DynamicTaskCreateRequest;
-import de.ni0.chronoscope.controller.dto.request.StaticTaskUpdateRequest;
-import de.ni0.chronoscope.controller.dto.request.DynamicTaskUpdateRequest;
-import de.ni0.chronoscope.controller.dto.response.StaticTaskResponse;
-import de.ni0.chronoscope.controller.dto.response.DynamicTaskResponse;
-import de.ni0.chronoscope.model.StaticTask;
-import de.ni0.chronoscope.model.DynamicTask;
-
 import org.mapstruct.AfterMapping;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
-import org.mapstruct.MappingTarget;
 import org.mapstruct.MappingConstants;
+import org.mapstruct.MappingTarget;
+
+import de.ni0.chronoscope.controller.dto.request.DynamicTaskCreateRequest;
+import de.ni0.chronoscope.controller.dto.request.DynamicTaskUpdateRequest;
+import de.ni0.chronoscope.controller.dto.request.StaticTaskCreateRequest;
+import de.ni0.chronoscope.controller.dto.request.StaticTaskUpdateRequest;
+import de.ni0.chronoscope.controller.dto.response.DynamicTaskResponse;
+import de.ni0.chronoscope.controller.dto.response.StaticTaskResponse;
+import de.ni0.chronoscope.model.DynamicTask;
+import de.ni0.chronoscope.model.StaticTask;
 
 @Mapper(componentModel = MappingConstants.ComponentModel.SPRING, uses = {LabelMapper.class, ScopeMapper.class, TaskDependencyMapper.class, AccountProxyProvider.class})
 public interface TaskMapper {

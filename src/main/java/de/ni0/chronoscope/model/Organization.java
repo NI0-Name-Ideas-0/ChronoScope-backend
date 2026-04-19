@@ -1,6 +1,9 @@
 package de.ni0.chronoscope.model;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.Id;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
@@ -19,6 +22,6 @@ public class Organization {
     @EqualsAndHashCode.Include // id-only: stable before and after persist, works correctly with Hibernate proxies
     private Long id;
 
-    @Column(nullable = false)
+    @Column(nullable = false, unique = true)
     private String name;
 }
