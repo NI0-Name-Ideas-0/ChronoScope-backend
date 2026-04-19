@@ -69,15 +69,15 @@ public class TaskController {
     }
 
     private TaskResponse mapTask(Task task) {
-        if (task instanceof StaticTask staticTask) {
-            return taskMapper.toResponse(staticTask);
-        }
-        if (task instanceof DynamicTask dynamicTask) {
-            return taskMapper.toResponse(dynamicTask);
-        }
-        String taskType = task == null ? "null" : task.getClass().getName();
-        String taskId = task == null ? "null" : String.valueOf(task.getId());
-        throw new IllegalStateException("Unexpected task subtype in TaskController.mapTask: type=" + taskType + ", taskId=" + taskId);
+        return switch (task) {
+            case StaticTask staticTask -> taskMapper.toResponse(staticTask);
+            case DynamicTask dynamicTask -> taskMapper.toResponse(dynamicTask);
+            default -> {
+                String taskType = task == null ? "null" : task.getClass().getName();
+                String taskId = task == null ? "null" : String.valueOf(task.getId());
+                throw new IllegalStateException("Unexpected task subtype in TaskController.mapTask: type=" + taskType + ", taskId=" + taskId);
+            }
+        };
     }
 
     @Operation(summary = "Create task", description = "Create a new task. Set \"type\" to \"static\" for a StaticTask or \"dynamic\" for a DynamicTask with scheduling metadata.")
