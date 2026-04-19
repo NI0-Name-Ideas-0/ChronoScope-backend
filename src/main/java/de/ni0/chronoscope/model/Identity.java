@@ -1,12 +1,15 @@
 package de.ni0.chronoscope.model;
 
-import jakarta.persistence.*;
+import java.util.Set;
+
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.Id;
+import jakarta.persistence.OneToMany;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
-
-import java.util.List;
 
 // @Getter/@Setter instead of @Data: @Data's generated toString/equals/hashCode are unsafe on JPA
 // entities — bidirectional associations cause StackOverflowError in toString, and field-based
@@ -24,5 +27,5 @@ public class Identity {
 
     @OneToMany(mappedBy = "identity")
     @ToString.Exclude // bidirectional: Account.identity -> this Identity, would recurse infinitely in toString
-    private List<Account> accounts;
+    private Set<Account> accounts;
 }

@@ -1,19 +1,18 @@
 package de.ni0.chronoscope.controller;
 
 import static org.hamcrest.Matchers.hasItem;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import org.springframework.test.web.servlet.MockMvc;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -53,7 +52,10 @@ class TestControllerIT {
 
     @Test
     void accountLinkValidation_ReturnsProblemDetail() throws Exception {
+        String subject = "it-subject-" + System.nanoTime();
+
         mockMvc.perform(post("/v1/identity/accounts")
+                        .with(jwt().jwt(jwt -> jwt.subject(subject)))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"targetEmail\":\"not-an-email\"}"))
                 .andExpect(status().isBadRequest())
@@ -69,7 +71,10 @@ class TestControllerIT {
 
     @Test
     void unknownPublicApiRoute_ReturnsNotFound() throws Exception {
-        mockMvc.perform(get("/v1/does-not-exist"))
+        String subject = "it-subject-" + System.nanoTime();
+
+        mockMvc.perform(get("/v1/does-not-exist")
+                        .with(jwt().jwt(jwt -> jwt.subject(subject))))
                 .andExpect(status().isNotFound())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.type").value("urn:chronoscope:error:resource-not-found"))

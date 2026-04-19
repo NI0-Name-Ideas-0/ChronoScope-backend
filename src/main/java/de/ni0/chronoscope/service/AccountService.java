@@ -1,6 +1,8 @@
 package de.ni0.chronoscope.service;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
@@ -25,7 +27,7 @@ public class AccountService {
         Account account = findOrCreateAccount(subject);
 
         // Sync organizations
-        List<Organization> organizations = new java.util.ArrayList<>(organizationNames.stream()
+        Set<Organization> organizations = new HashSet<>(organizationNames.stream()
             .map(this::findOrCreateOrganization)
             .toList());
 

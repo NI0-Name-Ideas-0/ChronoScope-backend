@@ -1,6 +1,6 @@
 package de.ni0.chronoscope.model;
 
-import java.util.List;
+import java.util.Set;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -45,5 +45,5 @@ public class Account {
         inverseJoinColumns = @JoinColumn(name = "organization_id")
     )
     @ToString.Exclude // association excluded to keep toString safe and lightweight
-    private List<Organization> organizations;
+    private Set<Organization> organizations;
 }
