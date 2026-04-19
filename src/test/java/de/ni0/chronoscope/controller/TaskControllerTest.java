@@ -20,6 +20,7 @@ import de.ni0.chronoscope.controller.dto.response.TaskResponse;
 import de.ni0.chronoscope.mapper.TaskMapper;
 import de.ni0.chronoscope.model.DynamicTask;
 import de.ni0.chronoscope.model.StaticTask;
+import de.ni0.chronoscope.repository.AccountRepository;
 import de.ni0.chronoscope.service.TaskService;
 
 @ExtendWith(MockitoExtension.class)
@@ -31,11 +32,14 @@ class TaskControllerTest {
     @Mock
     private TaskMapper taskMapper;
 
+    @Mock
+    private AccountRepository accountRepository;
+
     @Test
     void getTasks_UsesCurrentIdentityAndMapsPolymorphicResponses() {
         RequestContext requestContext = new RequestContext();
         requestContext.setIdentityId(99L);
-        TaskController controller = new TaskController(taskService, taskMapper, requestContext);
+        TaskController controller = new TaskController(taskService, taskMapper, accountRepository, requestContext);
 
         StaticTask staticTask = new StaticTask();
         staticTask.setName("Static task");

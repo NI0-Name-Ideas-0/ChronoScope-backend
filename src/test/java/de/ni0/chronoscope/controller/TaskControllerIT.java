@@ -51,12 +51,12 @@ class TaskControllerIT {
 
     private long createAccount(String subject) {
         Identity identity = identityRepository.saveAndFlush(new Identity());
-        return createAccount(identity.getId(), "it-subject-" + System.nanoTime());
+        return createAccount(identity.getId(), subject);
     }
 
     private long createAccount(long identityId, String subject) {
         Account account = new Account();
-        account.setIdentity(identity);
+        account.setIdentity(identityRepository.getReferenceById(identityId));
         account.setSubject(subject);
         return accountRepository.saveAndFlush(account).getId();
     }
