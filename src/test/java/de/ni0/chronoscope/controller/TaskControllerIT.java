@@ -2,8 +2,10 @@ package de.ni0.chronoscope.controller;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.List;
 
 import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.not;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -21,6 +23,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import de.ni0.chronoscope.model.Account;
 import de.ni0.chronoscope.model.DynamicTask;
 import de.ni0.chronoscope.model.Identity;
+import de.ni0.chronoscope.model.StaticTask;
 import de.ni0.chronoscope.repository.AccountRepository;
 import de.ni0.chronoscope.repository.IdentityRepository;
 import de.ni0.chronoscope.repository.TaskRepository;
@@ -48,8 +51,12 @@ class TaskControllerIT {
 
     private long createAccount(String subject) {
         Identity identity = identityRepository.saveAndFlush(new Identity());
+        return createAccount(identity.getId(), subject);
+    }
+
+    private long createAccount(long identityId, String subject) {
         Account account = new Account();
-        account.setIdentity(identity);
+        account.setIdentity(identityRepository.getReferenceById(identityId));
         account.setSubject(subject);
         return accountRepository.saveAndFlush(account).getId();
     }
@@ -78,16 +85,73 @@ class TaskControllerIT {
     }
 
     @Test
-    void getTasks_ReturnsNotImplemented() throws Exception {
-        mockMvc.perform(get("/v1/tasks"))
-            .andExpect(status().isNotImplemented())
-            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
-            .andExpect(jsonPath("$.type").value("urn:chronoscope:error:api-not-implemented"))
-            .andExpect(jsonPath("$.title").value("Not Implemented"))
-            .andExpect(jsonPath("$.status").value(501))
-            .andExpect(jsonPath("$.detail").value("Not implemented yet"))
-            .andExpect(jsonPath("$.instance").value("/v1/tasks"))
-            .andExpect(jsonPath("$.errorCode").value("API_NOT_IMPLEMENTED"));
+    void getTasks_ReturnsTasksFromCurrentIdentityAndLinkedAccountsOnly() throws Exception {
+        Identity identity = identityRepository.saveAndFlush(new Identity());
+        String subject = "it-get-tasks-subject-" + System.nanoTime();
+
+        long primaryAccountId = createAccount(identity.getId(), subject);
+        long linkedAccountId = createAccount(identity.getId(), "it-linked-subject-" + System.nanoTime());
+
+        Identity otherIdentity = identityRepository.saveAndFlush(new Identity());
+        long otherAccountId = createAccount(otherIdentity.getId(), "it-other-subject-" + System.nanoTime());
+
+        String dynamicTaskName = "it-dynamic-task-" + System.nanoTime();
+        String linkedStaticTaskName = "it-linked-static-task-" + System.nanoTime();
+        String foreignTaskName = "it-foreign-task-" + System.nanoTime();
+
+        DynamicTask ownTask = new DynamicTask();
+        ownTask.setAccount(accountRepository.getReferenceById(primaryAccountId));
+        ownTask.setName(dynamicTaskName);
+        ownTask.setDescription("Dynamic task in current identity");
+        ownTask.setDifficulty(2);
+        ownTask.setStartAt(Instant.parse("2026-04-20T08:00:00Z"));
+        ownTask.setEndAt(Instant.parse("2026-04-22T18:00:00Z"));
+        ownTask.setRrule("FREQ=DAILY");
+        ownTask.setDuration(120);
+        ownTask.setElapsed(0);
+        ownTask.setMinScopeDuration(30);
+        ownTask.setMaxScopeDuration(60);
+        ownTask.setLabels(new ArrayList<>());
+        ownTask.setScopes(new ArrayList<>());
+        ownTask.setDependencies(new ArrayList<>());
+        taskRepository.saveAndFlush(ownTask);
+
+        StaticTask linkedTask = new StaticTask();
+        linkedTask.setAccount(accountRepository.getReferenceById(linkedAccountId));
+        linkedTask.setName(linkedStaticTaskName);
+        linkedTask.setDescription("Static task in linked account");
+        linkedTask.setDifficulty(1);
+        linkedTask.setStartAt(Instant.parse("2026-04-20T09:00:00Z"));
+        linkedTask.setEndAt(Instant.parse("2026-04-20T10:00:00Z"));
+        linkedTask.setRrule("FREQ=DAILY");
+        linkedTask.setLabels(new ArrayList<>());
+        linkedTask.setIsBlocker(false);
+        taskRepository.saveAndFlush(linkedTask);
+
+        StaticTask foreignTask = new StaticTask();
+        foreignTask.setAccount(accountRepository.getReferenceById(otherAccountId));
+        foreignTask.setName(foreignTaskName);
+        foreignTask.setDescription("Task from another identity");
+        foreignTask.setDifficulty(1);
+        foreignTask.setStartAt(Instant.parse("2026-04-20T11:00:00Z"));
+        foreignTask.setEndAt(Instant.parse("2026-04-20T12:00:00Z"));
+        foreignTask.setRrule("FREQ=DAILY");
+        foreignTask.setLabels(new ArrayList<>());
+        foreignTask.setIsBlocker(false);
+        taskRepository.saveAndFlush(foreignTask);
+
+        mockMvc.perform(get("/v1/tasks")
+                .with(jwt().jwt(jwt -> jwt
+                    .subject(subject)
+                    .claim("organization", List.of("private")))))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[*].name", hasItem(dynamicTaskName)))
+            .andExpect(jsonPath("$[*].name", hasItem(linkedStaticTaskName)))
+            .andExpect(jsonPath("$[*].name", not(hasItem(foreignTaskName))))
+            .andExpect(jsonPath("$[*].accountId", hasItem(Integer.valueOf((int) primaryAccountId))))
+            .andExpect(jsonPath("$[*].accountId", hasItem(Integer.valueOf((int) linkedAccountId))))
+            .andExpect(jsonPath("$[*].type", hasItem("dynamic")))
+            .andExpect(jsonPath("$[*].type", hasItem("static")));
     }
 
     @Test

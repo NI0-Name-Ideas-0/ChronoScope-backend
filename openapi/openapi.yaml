@@ -230,8 +230,9 @@ paths:
       - Scopes
   /v1/tasks:
     get:
-      description: "Return all tasks belonging to the current identity. Each task\
-        \ is either a StaticTask or a DynamicTask, discriminated by the \"type\" field."
+      description: "Return all tasks belonging to the current identity, including\
+        \ tasks from linked accounts. Each task is either a StaticTask or a DynamicTask,\
+        \ discriminated by the \"type\" field."
       operationId: getTasks
       responses:
         "200":
