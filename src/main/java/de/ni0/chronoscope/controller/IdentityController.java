@@ -27,6 +27,11 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
+/**
+ * REST controller for identity operations.
+ *
+ * <p>Exposes the current authenticated identity and account linking endpoints.
+ */
 @Tag(name = "Identity", description = "Retrieve the current identity and manage account linking")
 @RestController
 @RequestMapping("/v1/identity")
@@ -38,6 +43,11 @@ public class IdentityController {
     private final RequestContext requestContext;
     private final IdentityMapper identityMapper;
 
+    /**
+     * Retrieves the authenticated identity.
+     *
+     * @return the identity response including linked accounts
+     */
     @Operation(summary = "Get current identity", description = "Retrieve information about the identity contained in the access token, including all linked accounts.")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Identity retrieved successfully"),
@@ -49,6 +59,11 @@ public class IdentityController {
         return this.identityMapper.toResponse(this.identityService.getIdentity(identityId));
     }
 
+    /**
+     * Requests an account link for the authenticated identity.
+     *
+     * @param request the account link request payload
+     */
     @Operation(summary = "Request account linking", description = "Send a confirmation link to the target e-mail address. If the target accepts, the two accounts' identities are merged.")
     @ApiResponses({
         @ApiResponse(responseCode = "202", description = "Link e-mail sent"),

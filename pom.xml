@@ -114,7 +114,10 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.14.1</version>
                 <configuration>
+                    <release>${java.version}</release>
+                    <generatedSourcesDirectory>${project.build.directory}/generated-sources/annotations</generatedSourcesDirectory>
                     <annotationProcessorPaths>
                         <path>
                             <groupId>org.projectlombok</groupId>
