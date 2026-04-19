@@ -1,0 +1,1077 @@
+openapi: 3.1.0
+info:
+  description: "Online task planning system — manage tasks, work slots, dependencies\
+    \ and generate optimized plans."
+  title: ChronoScope API
+  version: 1.1.0
+servers:
+- description: Production
+  url: https://chronoscope.ni0.team/api
+security:
+- oauth2: []
+tags:
+- description: "Create, read, update and delete tasks and their dependencies"
+  name: Tasks
+- description: Manage available work slots used by the planning algorithm
+  name: Work Slots
+- description: Retrieve the current identity and manage account linking
+  name: Identity
+- description: Read planned scopes for dynamic tasks
+  name: Scopes
+- description: Generate optimized task plans from available work slots
+  name: Planning
+paths:
+  /test:
+    get:
+      operationId: testEndpoint
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                type: string
+          description: OK
+      tags:
+      - test-controller
+  /test/createIdentity:
+    get:
+      operationId: testEndpoint2
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                type: string
+          description: OK
+      tags:
+      - test-controller
+  /test/labels:
+    get:
+      operationId: testEndpoint3
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/LabelResponse"
+          description: OK
+      tags:
+      - test-controller
+  /test/tasks:
+    post:
+      operationId: testCreateTask
+      requestBody:
+        content:
+          application/json:
+            schema:
+              oneOf:
+              - $ref: "#/components/schemas/DynamicTaskCreateRequest"
+              - $ref: "#/components/schemas/StaticTaskCreateRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                oneOf:
+                - $ref: "#/components/schemas/DynamicTaskResponse"
+                - $ref: "#/components/schemas/StaticTaskResponse"
+          description: OK
+      tags:
+      - test-controller
+  /v1/identity:
+    get:
+      description: "Retrieve information about the identity contained in the access\
+        \ token, including all linked accounts."
+      operationId: getIdentity
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/IdentityResponse"
+          description: Identity retrieved successfully
+        "401":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Missing or invalid token
+      summary: Get current identity
+      tags:
+      - Identity
+  /v1/identity/accounts:
+    post:
+      description: "Send a confirmation link to the target e-mail address. If the\
+        \ target accepts, the two accounts' identities are merged."
+      operationId: requestAccountLink
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AccountLinkRequest"
+        required: true
+      responses:
+        "202":
+          description: Link e-mail sent
+        "400":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Validation error
+        "401":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Missing or invalid token
+      summary: Request account linking
+      tags:
+      - Identity
+  /v1/identity/accounts/confirm:
+    post:
+      description: Confirm a pending account link using the token received via e-mail.
+        Returns the IDs of both linked accounts.
+      operationId: confirmAccountLink
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AccountLinkConfirmRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/AccountLinkConfirmResponse"
+          description: Account link confirmed
+        "400":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Validation error or invalid/expired token
+        "401":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Missing or invalid token
+      summary: Confirm account linking
+      tags:
+      - Identity
+  /v1/plan:
+    post:
+      description: Run the planning algorithm for the given account. Returns the updated
+        work slots with planned task assignments.
+      operationId: plan
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PlanRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WorkSlotResponse"
+          description: Plan generated successfully
+        "400":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Validation error
+        "401":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Missing or invalid token
+        "409":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Not enough work slots to accommodate all tasks
+      summary: Generate plan
+      tags:
+      - Planning
+  /v1/scopes:
+    get:
+      description: List all scopes assigned to dynamic tasks belonging to the current
+        identity.
+      operationId: getScopes
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ScopeResponse"
+          description: Scopes retrieved successfully
+        "401":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Missing or invalid token
+      summary: List scopes
+      tags:
+      - Scopes
+  /v1/tasks:
+    get:
+      description: "Return all tasks belonging to the current identity. Each task\
+        \ is either a StaticTask or a DynamicTask, discriminated by the \"type\" field."
+      operationId: getTasks
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  oneOf:
+                  - $ref: "#/components/schemas/DynamicTaskResponse"
+                  - $ref: "#/components/schemas/StaticTaskResponse"
+          description: Tasks retrieved successfully
+        "401":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Missing or invalid token
+      summary: List tasks
+      tags:
+      - Tasks
+    post:
+      description: Create a new task. Set "type" to "static" for a StaticTask or "dynamic"
+        for a DynamicTask with scheduling metadata.
+      operationId: createTask
+      requestBody:
+        content:
+          application/json:
+            schema:
+              oneOf:
+              - $ref: "#/components/schemas/DynamicTaskCreateRequest"
+              - $ref: "#/components/schemas/StaticTaskCreateRequest"
+        required: true
+      responses:
+        "201":
+          content:
+            '*/*':
+              schema:
+                oneOf:
+                - $ref: "#/components/schemas/DynamicTaskResponse"
+                - $ref: "#/components/schemas/StaticTaskResponse"
+          description: Task created
+        "400":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Validation error
+        "401":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Missing or invalid token
+      summary: Create task
+      tags:
+      - Tasks
+  /v1/tasks/{id}:
+    delete:
+      description: "Delete a task and all its associated labels, scopes and dependencies."
+      operationId: deleteTask
+      parameters:
+      - description: Task ID
+        in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "204":
+          description: Task deleted
+        "401":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Missing or invalid token
+        "404":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Task not found
+      summary: Delete task
+      tags:
+      - Tasks
+    get:
+      description: "Retrieve a single task by ID, including its labels, scopes (dynamic\
+        \ tasks) and dependencies."
+      operationId: getTask
+      parameters:
+      - description: Task ID
+        in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                oneOf:
+                - $ref: "#/components/schemas/DynamicTaskResponse"
+                - $ref: "#/components/schemas/StaticTaskResponse"
+          description: Task retrieved successfully
+        "401":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Missing or invalid token
+        "404":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Task not found
+      summary: Get task
+      tags:
+      - Tasks
+    patch:
+      description: Partially update a task (PATCH semantics — omitted fields are left
+        unchanged). The "type" discriminator must match the existing task type.
+      operationId: updateTask
+      parameters:
+      - description: Task ID
+        in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+          format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              oneOf:
+              - $ref: "#/components/schemas/DynamicTaskUpdateRequest"
+              - $ref: "#/components/schemas/StaticTaskUpdateRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                oneOf:
+                - $ref: "#/components/schemas/DynamicTaskResponse"
+                - $ref: "#/components/schemas/StaticTaskResponse"
+          description: Task updated successfully
+        "400":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Validation error
+        "401":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Missing or invalid token
+        "404":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Task not found
+      summary: Update task
+      tags:
+      - Tasks
+  /v1/tasks/{id}/dependencies:
+    post:
+      description: "Add a predecessor dependency to a dynamic task. The task identified\
+        \ by {id} will depend on predecessorDynamicTaskId."
+      operationId: createDependency
+      parameters:
+      - description: Dynamic task ID that gains the dependency
+        in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+          format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TaskDependencyCreateRequest"
+        required: true
+      responses:
+        "201":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/TaskDependencyResponse"
+          description: Dependency created
+        "400":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Validation error or cycle detected
+        "401":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Missing or invalid token
+        "404":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Task not found
+      summary: Create dependency
+      tags:
+      - Tasks
+  /v1/tasks/{id}/dependencies/{linkId}:
+    delete:
+      description: Remove a dependency link from a dynamic task.
+      operationId: deleteDependency
+      parameters:
+      - description: Dynamic task ID
+        in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+          format: int64
+      - description: Dependency link ID
+        in: path
+        name: linkId
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "204":
+          description: Dependency deleted
+        "401":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Missing or invalid token
+        "404":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Task or dependency not found
+      summary: Delete dependency
+      tags:
+      - Tasks
+  /v1/workslots:
+    get:
+      description: Return all work slots belonging to the current identity.
+      operationId: getWorkSlots
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WorkSlotResponse"
+          description: Work slots retrieved successfully
+        "401":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Missing or invalid token
+      summary: List work slots
+      tags:
+      - Work Slots
+    post:
+      description: Create a new available work slot for the given account.
+      operationId: createWorkSlot
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkSlotCreateRequest"
+        required: true
+      responses:
+        "201":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/WorkSlotResponse"
+          description: Work slot created
+        "400":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Validation error
+        "401":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Missing or invalid token
+      summary: Create work slot
+      tags:
+      - Work Slots
+  /v1/workslots/{id}:
+    delete:
+      description: Delete a work slot.
+      operationId: deleteWorkSlot
+      parameters:
+      - description: Work slot ID
+        in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+          format: int64
+      responses:
+        "204":
+          description: Work slot deleted
+        "401":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Missing or invalid token
+        "404":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Work slot not found
+      summary: Delete work slot
+      tags:
+      - Work Slots
+    patch:
+      description: Update the start/end times of an existing work slot (PATCH semantics).
+      operationId: updateWorkSlot
+      parameters:
+      - description: Work slot ID
+        in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+          format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkSlotUpdateRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/WorkSlotResponse"
+          description: Work slot updated
+        "400":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Validation error
+        "401":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Missing or invalid token
+        "404":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Work slot not found
+      summary: Update work slot
+      tags:
+      - Work Slots
+components:
+  schemas:
+    AccountLinkConfirmRequest:
+      type: object
+      properties:
+        token:
+          type: string
+          minLength: 1
+      required:
+      - token
+    AccountLinkConfirmResponse:
+      type: object
+      properties:
+        sourceAccountId:
+          type: integer
+          format: int64
+        status:
+          type: string
+        targetAccountId:
+          type: integer
+          format: int64
+    AccountLinkRequest:
+      type: object
+      properties:
+        targetEmail:
+          type: string
+          format: email
+          minLength: 1
+      required:
+      - targetEmail
+    AccountResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        identityId:
+          type: integer
+          format: int64
+        organizations:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrganizationResponse"
+    DynamicTaskCreateRequest:
+      allOf:
+      - $ref: "#/components/schemas/TaskCreateRequest"
+      - type: object
+        properties:
+          accountId:
+            type: integer
+            format: int64
+          description:
+            type: string
+          difficulty:
+            type: integer
+            format: int32
+          duration:
+            type: integer
+            format: int32
+          endAt:
+            type: string
+            format: date-time
+          labels:
+            type: array
+            items:
+              $ref: "#/components/schemas/LabelCreateRequest"
+          maxScopeDuration:
+            type: integer
+            format: int32
+          minScopeDuration:
+            type: integer
+            format: int32
+          name:
+            type: string
+            minLength: 1
+          rrule:
+            type: string
+          startAt:
+            type: string
+            format: date-time
+      description: Create request for a dynamic (schedulable) task with duration and
+        scope constraints
+      required:
+      - accountId
+      - description
+      - difficulty
+      - duration
+      - endAt
+      - labels
+      - maxScopeDuration
+      - minScopeDuration
+      - name
+      - rrule
+      - startAt
+    DynamicTaskResponse:
+      allOf:
+      - $ref: "#/components/schemas/TaskResponse"
+      - type: object
+        properties:
+          accountId:
+            type: integer
+            format: int64
+          dependencies:
+            type: array
+            items:
+              $ref: "#/components/schemas/TaskDependencyResponse"
+          description:
+            type: string
+          difficulty:
+            type: integer
+            format: int32
+          duration:
+            type: integer
+            format: int32
+          elapsed:
+            type: integer
+            format: int32
+          endAt:
+            type: string
+            format: date-time
+          id:
+            type: integer
+            format: int64
+          labels:
+            type: array
+            items:
+              $ref: "#/components/schemas/LabelResponse"
+          maxScopeDuration:
+            type: integer
+            format: int32
+          minScopeDuration:
+            type: integer
+            format: int32
+          name:
+            type: string
+          rrule:
+            type: string
+          scopes:
+            type: array
+            items:
+              $ref: "#/components/schemas/ScopeResponse"
+          startAt:
+            type: string
+            format: date-time
+      description: "Response for a dynamic (schedulable) task, including its scopes\
+        \ and dependencies"
+    DynamicTaskUpdateRequest:
+      allOf:
+      - $ref: "#/components/schemas/TaskUpdateRequest"
+      - type: object
+        properties:
+          description:
+            type: string
+          difficulty:
+            type: integer
+            format: int32
+          duration:
+            type: integer
+            format: int32
+          elapsed:
+            type: integer
+            format: int32
+          endAt:
+            type: string
+            format: date-time
+          labels:
+            type: array
+            items:
+              $ref: "#/components/schemas/LabelCreateRequest"
+          maxScopeDuration:
+            type: integer
+            format: int32
+          minScopeDuration:
+            type: integer
+            format: int32
+          name:
+            type: string
+          rrule:
+            type: string
+          startAt:
+            type: string
+            format: date-time
+      description: Update request for a dynamic (schedulable) task
+    IdentityResponse:
+      type: object
+      properties:
+        accounts:
+          type: array
+          items:
+            $ref: "#/components/schemas/AccountResponse"
+        id:
+          type: integer
+          format: int64
+    LabelCreateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+      required:
+      - name
+    LabelResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        taskId:
+          type: integer
+          format: int64
+    OrganizationResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+    PlanRequest:
+      type: object
+      properties:
+        accountId:
+          type: integer
+          format: int64
+      required:
+      - accountId
+    ProblemDetail:
+      type: object
+      properties:
+        detail:
+          type: string
+        instance:
+          type: string
+          format: uri
+        properties:
+          type: object
+          additionalProperties: {}
+        status:
+          type: integer
+          format: int32
+        title:
+          type: string
+        type:
+          type: string
+          format: uri
+    ScopeResponse:
+      type: object
+      properties:
+        dynamicTaskId:
+          type: integer
+          format: int64
+        endAt:
+          type: string
+          format: date-time
+        id:
+          type: integer
+          format: int64
+        startAt:
+          type: string
+          format: date-time
+    StaticTaskCreateRequest:
+      allOf:
+      - $ref: "#/components/schemas/TaskCreateRequest"
+      - type: object
+        properties:
+          accountId:
+            type: integer
+            format: int64
+          description:
+            type: string
+          difficulty:
+            type: integer
+            format: int32
+          endAt:
+            type: string
+            format: date-time
+          isBlocker:
+            type: boolean
+          labels:
+            type: array
+            items:
+              $ref: "#/components/schemas/LabelCreateRequest"
+          name:
+            type: string
+            minLength: 1
+          rrule:
+            type: string
+          startAt:
+            type: string
+            format: date-time
+      description: Create request for a static (fixed-time) task
+      required:
+      - accountId
+      - name
+    StaticTaskResponse:
+      allOf:
+      - $ref: "#/components/schemas/TaskResponse"
+      - type: object
+        properties:
+          accountId:
+            type: integer
+            format: int64
+          description:
+            type: string
+          difficulty:
+            type: integer
+            format: int32
+          endAt:
+            type: string
+            format: date-time
+          id:
+            type: integer
+            format: int64
+          isBlocker:
+            type: boolean
+          labels:
+            type: array
+            items:
+              $ref: "#/components/schemas/LabelResponse"
+          name:
+            type: string
+          rrule:
+            type: string
+          startAt:
+            type: string
+            format: date-time
+      description: Response for a static (fixed-time) task
+    StaticTaskUpdateRequest:
+      allOf:
+      - $ref: "#/components/schemas/TaskUpdateRequest"
+      - type: object
+        properties:
+          description:
+            type: string
+          difficulty:
+            type: integer
+            format: int32
+          endAt:
+            type: string
+            format: date-time
+          isBlocker:
+            type: boolean
+          labels:
+            type: array
+            items:
+              $ref: "#/components/schemas/LabelCreateRequest"
+          name:
+            type: string
+          rrule:
+            type: string
+          startAt:
+            type: string
+            format: date-time
+      description: Update request for a static (fixed-time) task
+    TaskCreateRequest:
+      discriminator:
+        propertyName: type
+      properties:
+        type:
+          type: string
+      required:
+      - type
+    TaskDependencyCreateRequest:
+      type: object
+      properties:
+        predecessorDynamicTaskId:
+          type: integer
+          format: int64
+      required:
+      - predecessorDynamicTaskId
+    TaskDependencyResponse:
+      type: object
+      properties:
+        dynamicTaskId:
+          type: integer
+          format: int64
+        id:
+          type: integer
+          format: int64
+        predecessorDynamicTaskId:
+          type: integer
+          format: int64
+    TaskResponse:
+      discriminator:
+        propertyName: type
+      properties:
+        type:
+          type: string
+      required:
+      - type
+    TaskUpdateRequest:
+      discriminator:
+        propertyName: type
+      properties:
+        type:
+          type: string
+      required:
+      - type
+    WorkSlotCreateRequest:
+      type: object
+      properties:
+        accountId:
+          type: integer
+          format: int64
+        endAt:
+          type: string
+          format: date-time
+        organizationId:
+          type: integer
+          format: int64
+        startAt:
+          type: string
+          format: date-time
+      required:
+      - accountId
+      - endAt
+      - organizationId
+      - startAt
+    WorkSlotResponse:
+      type: object
+      properties:
+        accountId:
+          type: integer
+          format: int64
+        endAt:
+          type: string
+          format: date-time
+        id:
+          type: integer
+          format: int64
+        organizationId:
+          type: integer
+          format: int64
+        startAt:
+          type: string
+          format: date-time
+    WorkSlotUpdateRequest:
+      type: object
+      properties:
+        endAt:
+          type: string
+          format: date-time
+        startAt:
+          type: string
+          format: date-time
+  securitySchemes:
+    oauth2:
+      description: Keycloak OAuth2 (Authorization Code flow)
+      flows:
+        authorizationCode:
+          authorizationUrl: https://auth.ni0.team/realms/ni0/protocol/openid-connect/auth
+          scopes:
+            read: Read access
+            write: Write access
+          tokenUrl: https://auth.ni0.team/realms/ni0/protocol/openid-connect/token
+      type: oauth2

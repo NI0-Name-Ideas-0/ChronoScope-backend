@@ -16,6 +16,9 @@ jobs:
   tests:
     name: Run Tests
     runs-on: ubuntu-latest
+    permissions:
+      checks: write
+      pull-requests: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -31,8 +34,49 @@ jobs:
         run: ./mvnw test
 
       - name: Run integration tests
-        # skip unit tests to only run integration tests
-        run: ./mvnw verify -Dsurefire.skip=true
+        # skip unit tests to only run integration tests; skip openapi generation (handled by dedicated job)
+        run: ./mvnw verify -Dsurefire.skip=true -Dspringdoc.skip=true
+
+      - name: Test Summary
+        uses: scacap/action-surefire-report@v1
+        if: success() || failure()
+
+  generate-openapi:
+    name: Generate & Sync OpenAPI Spec
+    needs: tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v5
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Generate OpenAPI spec
+        # skip unit and integration tests; spring-boot starts with the generate profile (see pom.xml)
+        run: ./mvnw verify -DskipTests -Dspringdoc.skip=false
+
+      - name: Commit updated OpenAPI spec
+        run: |
+          if git diff --quiet openapi/openapi.yaml; then
+            echo "OpenAPI spec is up to date."
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add openapi/openapi.yaml
+            git commit -m "chore: sync generated openapi.yaml [skip ci]"
+            git push
+          fi
 
   build-and-push-image:
     name: Build & Push Docker Image
