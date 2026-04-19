@@ -9,6 +9,8 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.NoHandlerFoundException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import jakarta.servlet.http.HttpServletRequest;
 
@@ -55,6 +57,17 @@ public class ApiExceptionHandler {
                 ApiErrorCode.RESOURCE_NOT_FOUND,
                 "Not Found",
                 exception.getMessage(),
+                request
+        );
+    }
+
+    @ExceptionHandler({NoResourceFoundException.class, NoHandlerFoundException.class})
+    public ProblemDetail handleMissingResource(Exception exception, HttpServletRequest request) {
+        return createProblemDetail(
+                HttpStatus.NOT_FOUND,
+                ApiErrorCode.RESOURCE_NOT_FOUND,
+                "Not Found",
+                "The requested resource was not found",
                 request
         );
     }
