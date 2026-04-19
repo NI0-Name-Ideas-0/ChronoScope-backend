@@ -1,13 +1,24 @@
 package de.ni0.chronoscope.model;
 
-import jakarta.persistence.*;
+import java.time.Instant;
+import java.util.List;
+
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
+import jakarta.persistence.DiscriminatorColumn;
+import jakarta.persistence.DiscriminatorType;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.Id;
+import jakarta.persistence.Inheritance;
+import jakarta.persistence.InheritanceType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
-
-import java.time.Instant;
-import java.util.List;
 
 // @Getter/@Setter instead of @Data: @Data's generated toString/equals/hashCode are unsafe on JPA
 // entities — bidirectional associations cause StackOverflowError in toString, and field-based

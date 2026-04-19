@@ -1,6 +1,7 @@
 package de.ni0.chronoscope.controller;
 
 import java.util.List;
+import java.util.Objects;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -16,12 +17,21 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import de.ni0.chronoscope.config.RequestContext;
+import de.ni0.chronoscope.controller.dto.request.DynamicTaskCreateRequest;
+import de.ni0.chronoscope.controller.dto.request.StaticTaskCreateRequest;
 import de.ni0.chronoscope.controller.dto.request.TaskCreateRequest;
 import de.ni0.chronoscope.controller.dto.request.TaskDependencyCreateRequest;
 import de.ni0.chronoscope.controller.dto.request.TaskUpdateRequest;
 import de.ni0.chronoscope.controller.dto.response.TaskDependencyResponse;
 import de.ni0.chronoscope.controller.dto.response.TaskResponse;
+import de.ni0.chronoscope.exception.AccountAccessDeniedException;
+import de.ni0.chronoscope.exception.AccountNotFoundException;
 import de.ni0.chronoscope.exception.ApiNotImplementedException;
+import de.ni0.chronoscope.mapper.TaskMapper;
+import de.ni0.chronoscope.model.Account;
+import de.ni0.chronoscope.model.DynamicTask;
+import de.ni0.chronoscope.model.StaticTask;
+import de.ni0.chronoscope.repository.AccountRepository;
 import de.ni0.chronoscope.service.TaskService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -40,6 +50,8 @@ import lombok.RequiredArgsConstructor;
 public class TaskController {
 
     private final TaskService taskService;
+    private final TaskMapper taskMapper;
+    private final AccountRepository accountRepository;
     private final RequestContext requestContext;
 
     @Operation(summary = "List tasks", description = "Return all tasks belonging to the current identity. Each task is either a StaticTask or a DynamicTask, discriminated by the \"type\" field.")
@@ -47,6 +59,7 @@ public class TaskController {
         @ApiResponse(responseCode = "200", description = "Tasks retrieved successfully"),
         @ApiResponse(responseCode = "401", description = "Missing or invalid token", content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     })
+
     @GetMapping
     public List<TaskResponse> getTasks() {
         throw new ApiNotImplementedException();
@@ -60,7 +73,32 @@ public class TaskController {
     })
     @PostMapping
     public ResponseEntity<TaskResponse> createTask(@Valid @RequestBody TaskCreateRequest request) {
-        throw new ApiNotImplementedException();
+        TaskResponse response = switch (request) {
+            case StaticTaskCreateRequest staticRequest -> {
+                Account account = validateAccountOwnership(staticRequest.accountId());
+                StaticTask newTask = taskMapper.fromCreateRequest(staticRequest);
+                newTask.setAccount(account);
+                yield taskMapper.toResponse(taskService.createStaticTask(newTask));
+            }
+            case DynamicTaskCreateRequest dynamicRequest -> {
+                Account account = validateAccountOwnership(dynamicRequest.accountId());
+                DynamicTask newTask = taskMapper.fromCreateRequest(dynamicRequest);
+                newTask.setAccount(account);
+                yield taskMapper.toResponse(taskService.createDynamicTask(newTask));
+            }
+        };
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    private Account validateAccountOwnership(Long requestedAccountId) {
+        return accountRepository.findById(requestedAccountId)
+                .map(account -> {
+                    if (!Objects.equals(account.getIdentity().getId(), requestContext.getIdentityId())) {
+                        throw new AccountAccessDeniedException("accountId is not linked to authenticated identity");
+                    }
+                    return account;
+                })
+                .orElseThrow(AccountNotFoundException::new);
     }
 
     @Operation(summary = "Get task", description = "Retrieve a single task by ID, including its labels, scopes (dynamic tasks) and dependencies.")

@@ -8,6 +8,8 @@ public enum ApiErrorCode {
     INSUFFICIENT_SLOTS,
     RESOURCE_NOT_FOUND,
     VALIDATION_ERROR,
+    ACCESS_DENIED,
+    ACCOUNT_NOT_FOUND,
     INTERNAL_SERVER_ERROR;
 
     public URI type() {
