@@ -127,8 +127,8 @@ class TaskControllerIT {
               "labels": [],
               "duration": 240,
               "minScopeDuration": 30,
-                            "maxScopeDuration": 120,
-                            "dependencies": []
+              "maxScopeDuration": 120,
+              "dependencies": []
             }
             """.formatted(accountId);
 
@@ -149,42 +149,42 @@ class TaskControllerIT {
             .andExpect(jsonPath("$.dependencies").isEmpty());
     }
 
-        @Test
-        void createTask_Dynamic_WithDependencies_ReturnsCreatedWithDependencyLinks() throws Exception {
-                long accountId = createAccount();
-                long predecessorId = createDynamicPredecessorTask(accountId);
+    @Test
+    void createTask_Dynamic_WithDependencies_ReturnsCreatedWithDependencyLinks() throws Exception {
+        long accountId = createAccount();
+        long predecessorId = createDynamicPredecessorTask(accountId);
 
-                String payload = """
-                        {
-                            "type": "dynamic",
-                            "accountId": %d,
-                            "name": "Task with dependencies",
-                            "description": "Should link predecessor",
-                            "rrule": "FREQ=DAILY",
-                            "difficulty": 4,
-                            "startAt": "2026-04-20T08:00:00Z",
-                            "endAt": "2026-04-25T18:00:00Z",
-                            "labels": [],
-                            "duration": 240,
-                            "minScopeDuration": 30,
-                            "maxScopeDuration": 120,
-                            "dependencies": [
-                                {
-                                    "predecessorDynamicTaskId": %d
-                                }
-                            ]
-                        }
-                        """.formatted(accountId, predecessorId);
+        String payload = """
+            {
+              "type": "dynamic",
+              "accountId": %d,
+              "name": "Task with dependencies",
+              "description": "Should link predecessor",
+              "rrule": "FREQ=DAILY",
+              "difficulty": 4,
+              "startAt": "2026-04-20T08:00:00Z",
+              "endAt": "2026-04-25T18:00:00Z",
+              "labels": [],
+              "duration": 240,
+              "minScopeDuration": 30,
+              "maxScopeDuration": 120,
+              "dependencies": [
+                {
+                  "predecessorDynamicTaskId": %d
+                }
+              ]
+            }
+            """.formatted(accountId, predecessorId);
 
-                mockMvc.perform(post("/v1/tasks")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(payload))
-                        .andExpect(status().isCreated())
-                        .andExpect(jsonPath("$.dependencies").isArray())
-                        .andExpect(jsonPath("$.dependencies.length()").value(1))
-                        .andExpect(jsonPath("$.dependencies[0].dynamicTaskId").isNumber())
-                        .andExpect(jsonPath("$.dependencies[0].predecessorDynamicTaskId").value(predecessorId));
-        }
+        mockMvc.perform(post("/v1/tasks")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.dependencies").isArray())
+            .andExpect(jsonPath("$.dependencies.length()").value(1))
+            .andExpect(jsonPath("$.dependencies[0].dynamicTaskId").isNumber())
+            .andExpect(jsonPath("$.dependencies[0].predecessorDynamicTaskId").value(predecessorId));
+    }
 
     @Test
     void createTask_Dynamic_MissingDependencies_ReturnsValidationError() throws Exception {

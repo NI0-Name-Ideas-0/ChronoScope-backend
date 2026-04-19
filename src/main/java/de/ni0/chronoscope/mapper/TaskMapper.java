@@ -20,14 +20,15 @@ import de.ni0.chronoscope.model.StaticTask;
 
 @Mapper(
     componentModel = MappingConstants.ComponentModel.SPRING,
-    uses = {LabelMapper.class, ScopeMapper.class, TaskDependencyMapper.class, AccountProxyProvider.class},
+    uses = {LabelMapper.class, ScopeMapper.class, TaskDependencyMapper.class},
     unmappedTargetPolicy = ReportingPolicy.ERROR
 )
 public interface TaskMapper {
 
     // --- Static task: create ---
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "account", source = "accountId", qualifiedByName = "accountProxy")
+    // Account is validated and assigned by controller logic after request parsing.
+    @Mapping(target = "account", ignore = true)
     @Mapping(target = "name", source = "name")
     @Mapping(target = "description", source = "description")
     @Mapping(target = "difficulty", source = "difficulty")
@@ -40,7 +41,8 @@ public interface TaskMapper {
 
     // --- Dynamic task: create ---
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "account", source = "accountId", qualifiedByName = "accountProxy")
+    // Account is validated and assigned by controller logic after request parsing.
+    @Mapping(target = "account", ignore = true)
     @Mapping(target = "name", source = "name")
     @Mapping(target = "description", source = "description")
     @Mapping(target = "difficulty", source = "difficulty")
