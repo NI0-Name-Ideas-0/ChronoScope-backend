@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.http.MediaType;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import org.springframework.test.web.servlet.MockMvc;
@@ -29,6 +30,7 @@ import de.ni0.chronoscope.repository.TaskRepository;
 
 @SpringBootTest
 @AutoConfigureMockMvc
+@ComponentScan(basePackages = "de.ni0.chronoscope.mapper")
 class TaskControllerIT {
 
     @Autowired
@@ -44,15 +46,23 @@ class TaskControllerIT {
     private TaskRepository taskRepository;
 
     private long createAccount() {
+        return createAccount("it-subject-" + System.nanoTime());
+    }
+
+    private long createAccount(String subject) {
         Identity identity = identityRepository.saveAndFlush(new Identity());
         return createAccount(identity.getId(), "it-subject-" + System.nanoTime());
     }
 
     private long createAccount(long identityId, String subject) {
         Account account = new Account();
-        account.setIdentity(identityRepository.getReferenceById(identityId));
+        account.setIdentity(identity);
         account.setSubject(subject);
         return accountRepository.saveAndFlush(account).getId();
+    }
+
+    private String createAccountSubject() {
+        return "it-subject-" + System.nanoTime();
     }
 
     private long createDynamicPredecessorTask(long accountId) {
@@ -146,7 +156,8 @@ class TaskControllerIT {
 
     @Test
     void createTask_Static_ReturnsCreated() throws Exception {
-        long accountId = createAccount();
+        String subject = createAccountSubject();
+        long accountId = createAccount(subject);
 
         String payload = """
             {
@@ -164,6 +175,7 @@ class TaskControllerIT {
             """.formatted(accountId);
 
         mockMvc.perform(post("/v1/tasks")
+                .with(jwt().jwt(jwt -> jwt.subject(subject)))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(payload))
             .andExpect(status().isCreated())
@@ -177,7 +189,8 @@ class TaskControllerIT {
 
     @Test
     void createTask_Dynamic_ReturnsCreatedWithDefaults() throws Exception {
-        long accountId = createAccount();
+        String subject = createAccountSubject();
+        long accountId = createAccount(subject);
 
         String payload = """
             {
@@ -192,12 +205,13 @@ class TaskControllerIT {
               "labels": [],
               "duration": 240,
               "minScopeDuration": 30,
-                            "maxScopeDuration": 120,
-                            "dependencies": []
+              "maxScopeDuration": 120,
+              "dependencies": []
             }
             """.formatted(accountId);
 
         mockMvc.perform(post("/v1/tasks")
+                .with(jwt().jwt(jwt -> jwt.subject(subject)))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(payload))
             .andExpect(status().isCreated())
@@ -214,46 +228,49 @@ class TaskControllerIT {
             .andExpect(jsonPath("$.dependencies").isEmpty());
     }
 
-        @Test
-        void createTask_Dynamic_WithDependencies_ReturnsCreatedWithDependencyLinks() throws Exception {
-                long accountId = createAccount();
-                long predecessorId = createDynamicPredecessorTask(accountId);
+    @Test
+    void createTask_Dynamic_WithDependencies_ReturnsCreatedWithDependencyLinks() throws Exception {
+        String subject = createAccountSubject();
+        long accountId = createAccount(subject);
+        long predecessorId = createDynamicPredecessorTask(accountId);
 
-                String payload = """
-                        {
-                            "type": "dynamic",
-                            "accountId": %d,
-                            "name": "Task with dependencies",
-                            "description": "Should link predecessor",
-                            "rrule": "FREQ=DAILY",
-                            "difficulty": 4,
-                            "startAt": "2026-04-20T08:00:00Z",
-                            "endAt": "2026-04-25T18:00:00Z",
-                            "labels": [],
-                            "duration": 240,
-                            "minScopeDuration": 30,
-                            "maxScopeDuration": 120,
-                            "dependencies": [
-                                {
-                                    "predecessorDynamicTaskId": %d
-                                }
-                            ]
-                        }
-                        """.formatted(accountId, predecessorId);
+        String payload = """
+            {
+              "type": "dynamic",
+              "accountId": %d,
+              "name": "Task with dependencies",
+              "description": "Should link predecessor",
+              "rrule": "FREQ=DAILY",
+              "difficulty": 4,
+              "startAt": "2026-04-20T08:00:00Z",
+              "endAt": "2026-04-25T18:00:00Z",
+              "labels": [],
+              "duration": 240,
+              "minScopeDuration": 30,
+              "maxScopeDuration": 120,
+              "dependencies": [
+                {
+                  "predecessorDynamicTaskId": %d
+                }
+              ]
+            }
+            """.formatted(accountId, predecessorId);
 
-                mockMvc.perform(post("/v1/tasks")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(payload))
-                        .andExpect(status().isCreated())
-                        .andExpect(jsonPath("$.dependencies").isArray())
-                        .andExpect(jsonPath("$.dependencies.length()").value(1))
-                        .andExpect(jsonPath("$.dependencies[0].dynamicTaskId").isNumber())
-                        .andExpect(jsonPath("$.dependencies[0].predecessorDynamicTaskId").value(predecessorId));
-        }
+        mockMvc.perform(post("/v1/tasks")
+                .with(jwt().jwt(jwt -> jwt.subject(subject)))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.dependencies").isArray())
+            .andExpect(jsonPath("$.dependencies.length()").value(1))
+            .andExpect(jsonPath("$.dependencies[0].dynamicTaskId").isNumber())
+            .andExpect(jsonPath("$.dependencies[0].predecessorDynamicTaskId").value(predecessorId));
+    }
 
     @Test
     void createTask_Dynamic_MissingDependencies_ReturnsValidationError() throws Exception {
-        long accountId = createAccount();
+        String subject = createAccountSubject();
+        long accountId = createAccount(subject);
 
         String payload = """
             {
@@ -273,6 +290,7 @@ class TaskControllerIT {
             """.formatted(accountId);
 
         mockMvc.perform(post("/v1/tasks")
+                .with(jwt().jwt(jwt -> jwt.subject(subject)))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(payload))
             .andExpect(status().isBadRequest())
@@ -283,7 +301,8 @@ class TaskControllerIT {
 
     @Test
     void createTask_Static_MissingStartAndEndAt_ReturnsValidationError() throws Exception {
-        long accountId = createAccount();
+        String subject = createAccountSubject();
+        long accountId = createAccount(subject);
 
         String payload = """
             {
@@ -299,6 +318,7 @@ class TaskControllerIT {
             """.formatted(accountId);
 
         mockMvc.perform(post("/v1/tasks")
+                .with(jwt().jwt(jwt -> jwt.subject(subject)))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(payload))
             .andExpect(status().isBadRequest())
@@ -315,7 +335,8 @@ class TaskControllerIT {
 
     @Test
     void createTask_Static_MissingDescriptionRruleAndLabels_ReturnsValidationError() throws Exception {
-        long accountId = createAccount();
+        String subject = createAccountSubject();
+        long accountId = createAccount(subject);
 
         String payload = """
             {
@@ -330,6 +351,7 @@ class TaskControllerIT {
             """.formatted(accountId);
 
         mockMvc.perform(post("/v1/tasks")
+                .with(jwt().jwt(jwt -> jwt.subject(subject)))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(payload))
             .andExpect(status().isBadRequest())

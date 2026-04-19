@@ -1,6 +1,5 @@
 package de.ni0.chronoscope.service;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
@@ -22,13 +21,6 @@ public class TaskService {
     }
 
     public DynamicTask createDynamicTask(DynamicTask task) {
-        if (task.getDependencies() == null) {
-            task.setDependencies(new ArrayList<>());
-        } else {
-            for (var dependency : task.getDependencies()) {
-                dependency.setDynamicTask(task);
-            }
-        }
         return this.taskRepository.save(task);
     }
 
