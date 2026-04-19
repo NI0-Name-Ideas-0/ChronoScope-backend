@@ -30,4 +30,14 @@ public class IdentityService {
             })
             .orElseThrow(() -> new IllegalStateException("Account not found for subject: " + subject));
     }
+
+    @Transactional(readOnly = true)
+    public Identity getIdentity(long identityId) {
+        Identity identity = this.identityRepository.findById(identityId)
+            .orElseThrow(() -> new IllegalStateException("Identity not found: " + identityId));
+        if (identity.getAccounts() != null) {
+            identity.getAccounts().size();
+        }
+        return identity;
+    }
 }

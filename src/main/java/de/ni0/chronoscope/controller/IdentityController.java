@@ -1,10 +1,21 @@
 package de.ni0.chronoscope.controller;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
+
+import de.ni0.chronoscope.config.RequestContext;
 import de.ni0.chronoscope.controller.dto.request.AccountLinkConfirmRequest;
 import de.ni0.chronoscope.controller.dto.request.AccountLinkRequest;
 import de.ni0.chronoscope.controller.dto.response.AccountLinkConfirmResponse;
 import de.ni0.chronoscope.controller.dto.response.IdentityResponse;
 import de.ni0.chronoscope.exception.ApiNotImplementedException;
+import de.ni0.chronoscope.mapper.IdentityMapper;
 import de.ni0.chronoscope.service.AccountService;
 import de.ni0.chronoscope.service.IdentityService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -15,9 +26,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ProblemDetail;
-import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "Identity", description = "Retrieve the current identity and manage account linking")
 @RestController
@@ -27,6 +35,8 @@ public class IdentityController {
 
     private final IdentityService identityService;
     private final AccountService accountService;
+    private final RequestContext requestContext;
+    private final IdentityMapper identityMapper;
 
     @Operation(summary = "Get current identity", description = "Retrieve information about the identity contained in the access token, including all linked accounts.")
     @ApiResponses({
@@ -35,7 +45,9 @@ public class IdentityController {
     })
     @GetMapping
     public IdentityResponse getIdentity() {
-        throw new ApiNotImplementedException();
+        return this.identityMapper.toResponse(
+            this.identityService.getIdentity(this.requestContext.getIdentityId())
+        );
     }
 
     @Operation(summary = "Request account linking", description = "Send a confirmation link to the target e-mail address. If the target accepts, the two accounts' identities are merged.")

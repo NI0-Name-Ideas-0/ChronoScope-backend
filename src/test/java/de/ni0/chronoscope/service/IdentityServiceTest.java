@@ -69,4 +69,19 @@ class IdentityServiceTest {
         verify(accountRepository, never()).save(any(Account.class));
         verifyNoMoreInteractions(accountRepository, identityRepository);
     }
+
+    @Test
+    void getIdentity_ReturnsIdentityForExistingId() {
+        IdentityService identityService = new IdentityService(accountRepository, identityRepository);
+
+        Identity identity = new Identity();
+        identity.setId(99L);
+        when(identityRepository.findById(99L)).thenReturn(Optional.of(identity));
+
+        Identity result = identityService.getIdentity(99L);
+
+        assertEquals(identity, result);
+        verify(identityRepository).findById(99L);
+        verifyNoMoreInteractions(accountRepository, identityRepository);
+    }
 }
