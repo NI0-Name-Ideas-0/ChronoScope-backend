@@ -2,7 +2,6 @@ package de.ni0.chronoscope.repository;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -29,8 +28,11 @@ class RepositoryMappingsIT {
 
     @Test
     void accountRepository_FindsAccountBySubject() {
+        Identity identity = identityRepository.saveAndFlush(new Identity());
+
         Account account = new Account();
         account.setSubject("subject-123");
+        account.setIdentity(identity);
         accountRepository.saveAndFlush(account);
 
         assertTrue(accountRepository.findBySubject("subject-123").isPresent());
