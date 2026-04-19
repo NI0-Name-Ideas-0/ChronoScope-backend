@@ -1,5 +1,8 @@
 package de.ni0.chronoscope.controller;
 
+import java.time.Instant;
+import java.util.ArrayList;
+
 import static org.hamcrest.Matchers.hasItem;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,8 +16,12 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import de.ni0.chronoscope.model.Account;
+import de.ni0.chronoscope.model.DynamicTask;
 import de.ni0.chronoscope.model.Identity;
 import de.ni0.chronoscope.repository.AccountRepository;
+import de.ni0.chronoscope.repository.IdentityRepository;
+import de.ni0.chronoscope.repository.TaskRepository;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -29,12 +36,34 @@ class TaskControllerIT {
     @Autowired
     private AccountRepository accountRepository;
 
+    @Autowired
+    private TaskRepository taskRepository;
+
     private long createAccount() {
         Identity identity = identityRepository.saveAndFlush(new Identity());
         Account account = new Account();
         account.setIdentity(identity);
         account.setSubject("it-subject-" + System.nanoTime());
         return accountRepository.saveAndFlush(account).getId();
+    }
+
+    private long createDynamicPredecessorTask(long accountId) {
+        DynamicTask predecessor = new DynamicTask();
+        predecessor.setAccount(accountRepository.getReferenceById(accountId));
+        predecessor.setName("Predecessor task");
+        predecessor.setDescription("Predecessor task for dependency test");
+        predecessor.setDifficulty(2);
+        predecessor.setStartAt(Instant.parse("2026-04-20T08:00:00Z"));
+        predecessor.setEndAt(Instant.parse("2026-04-22T18:00:00Z"));
+        predecessor.setRrule("FREQ=DAILY");
+        predecessor.setDuration(120);
+        predecessor.setElapsed(0);
+        predecessor.setMinScopeDuration(30);
+        predecessor.setMaxScopeDuration(60);
+        predecessor.setLabels(new ArrayList<>());
+        predecessor.setScopes(new ArrayList<>());
+        predecessor.setDependencies(new ArrayList<>());
+        return taskRepository.saveAndFlush(predecessor).getId();
     }
 
     @Test
@@ -98,7 +127,8 @@ class TaskControllerIT {
               "labels": [],
               "duration": 240,
               "minScopeDuration": 30,
-              "maxScopeDuration": 120
+                            "maxScopeDuration": 120,
+                            "dependencies": []
             }
             """.formatted(accountId);
 
@@ -117,6 +147,73 @@ class TaskControllerIT {
             .andExpect(jsonPath("$.scopes").isEmpty())
             .andExpect(jsonPath("$.dependencies").isArray())
             .andExpect(jsonPath("$.dependencies").isEmpty());
+    }
+
+        @Test
+        void createTask_Dynamic_WithDependencies_ReturnsCreatedWithDependencyLinks() throws Exception {
+                long accountId = createAccount();
+                long predecessorId = createDynamicPredecessorTask(accountId);
+
+                String payload = """
+                        {
+                            "type": "dynamic",
+                            "accountId": %d,
+                            "name": "Task with dependencies",
+                            "description": "Should link predecessor",
+                            "rrule": "FREQ=DAILY",
+                            "difficulty": 4,
+                            "startAt": "2026-04-20T08:00:00Z",
+                            "endAt": "2026-04-25T18:00:00Z",
+                            "labels": [],
+                            "duration": 240,
+                            "minScopeDuration": 30,
+                            "maxScopeDuration": 120,
+                            "dependencies": [
+                                {
+                                    "predecessorDynamicTaskId": %d
+                                }
+                            ]
+                        }
+                        """.formatted(accountId, predecessorId);
+
+                mockMvc.perform(post("/v1/tasks")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(payload))
+                        .andExpect(status().isCreated())
+                        .andExpect(jsonPath("$.dependencies").isArray())
+                        .andExpect(jsonPath("$.dependencies.length()").value(1))
+                        .andExpect(jsonPath("$.dependencies[0].dynamicTaskId").isNumber())
+                        .andExpect(jsonPath("$.dependencies[0].predecessorDynamicTaskId").value(predecessorId));
+        }
+
+    @Test
+    void createTask_Dynamic_MissingDependencies_ReturnsValidationError() throws Exception {
+        long accountId = createAccount();
+
+        String payload = """
+            {
+              "type": "dynamic",
+              "accountId": %d,
+              "name": "Implement API endpoint",
+              "description": "Create and test endpoint",
+              "rrule": "FREQ=DAILY",
+              "difficulty": 4,
+              "startAt": "2026-04-20T08:00:00Z",
+              "endAt": "2026-04-25T18:00:00Z",
+              "labels": [],
+              "duration": 240,
+              "minScopeDuration": 30,
+              "maxScopeDuration": 120
+            }
+            """.formatted(accountId);
+
+        mockMvc.perform(post("/v1/tasks")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload))
+            .andExpect(status().isBadRequest())
+            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+            .andExpect(jsonPath("$.type").value("urn:chronoscope:error:validation-error"))
+            .andExpect(jsonPath("$.fieldErrors[*].field", hasItem("dependencies")));
     }
 
     @Test

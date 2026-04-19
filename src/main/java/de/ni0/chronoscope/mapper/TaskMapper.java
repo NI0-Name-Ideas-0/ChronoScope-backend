@@ -1,5 +1,7 @@
 package de.ni0.chronoscope.mapper;
 
+import java.util.ArrayList;
+
 import org.mapstruct.AfterMapping;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -50,7 +52,7 @@ public interface TaskMapper {
     @Mapping(target = "minScopeDuration", source = "minScopeDuration")
     @Mapping(target = "maxScopeDuration", source = "maxScopeDuration")
     @Mapping(target = "scopes", expression = "java(new java.util.ArrayList<>())") // default to empty list because it's not provided by request
-    @Mapping(target = "dependencies", expression = "java(new java.util.ArrayList<>())") // default to empty list because it's not provided by request
+    @Mapping(target = "dependencies", source = "dependencies")
     @Mapping(target = "elapsed", constant = "0") // default to 0 because it's not provided by request
     DynamicTask fromCreateRequest(DynamicTaskCreateRequest request);
 
@@ -138,6 +140,17 @@ public interface TaskMapper {
         if (task.getLabels() == null) return;
         for (var label : task.getLabels()) {
             label.setTask(task);
+        }
+    }
+
+    @AfterMapping
+    default void wireDependencies(@MappingTarget DynamicTask task) {
+        if (task.getDependencies() == null) {
+            task.setDependencies(new ArrayList<>());
+            return;
+        }
+        for (var dependency : task.getDependencies()) {
+            dependency.setDynamicTask(task);
         }
     }
 }

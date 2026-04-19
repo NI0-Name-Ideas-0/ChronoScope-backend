@@ -21,6 +21,7 @@ public record DynamicTaskCreateRequest(
     @NotNull List<@Valid @NotNull LabelCreateRequest> labels,
     @NotNull @Positive Integer duration,
     @NotNull @Positive Integer minScopeDuration,
-    @NotNull @Positive Integer maxScopeDuration
+    @NotNull @Positive Integer maxScopeDuration,
+    @NotNull List<@Valid @NotNull TaskDependencyCreateRequest> dependencies
 ) implements TaskCreateRequest {
 }

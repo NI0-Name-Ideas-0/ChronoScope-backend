@@ -676,6 +676,10 @@ components:
           duration:
             type: integer
             format: int32
+          dependencies:
+            type: array
+            items:
+              $ref: "#/components/schemas/TaskDependencyCreateRequest"
           endAt:
             type: string
             format: date-time
@@ -704,6 +708,7 @@ components:
       - description
       - difficulty
       - duration
+      - dependencies
       - endAt
       - labels
       - maxScopeDuration
