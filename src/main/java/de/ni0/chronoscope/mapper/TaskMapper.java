@@ -5,6 +5,7 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingConstants;
 import org.mapstruct.MappingTarget;
+import org.mapstruct.ReportingPolicy;
 
 import de.ni0.chronoscope.controller.dto.request.DynamicTaskCreateRequest;
 import de.ni0.chronoscope.controller.dto.request.DynamicTaskUpdateRequest;
@@ -15,17 +16,39 @@ import de.ni0.chronoscope.controller.dto.response.StaticTaskResponse;
 import de.ni0.chronoscope.model.DynamicTask;
 import de.ni0.chronoscope.model.StaticTask;
 
-@Mapper(componentModel = MappingConstants.ComponentModel.SPRING, uses = {LabelMapper.class, ScopeMapper.class, TaskDependencyMapper.class, AccountProxyProvider.class})
+@Mapper(
+    componentModel = MappingConstants.ComponentModel.SPRING,
+    uses = {LabelMapper.class, ScopeMapper.class, TaskDependencyMapper.class, AccountProxyProvider.class},
+    unmappedTargetPolicy = ReportingPolicy.ERROR
+)
 public interface TaskMapper {
 
     // --- Static task: create ---
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "account", source = "accountId", qualifiedByName = "accountProxy")
+    @Mapping(target = "name", source = "name")
+    @Mapping(target = "description", source = "description")
+    @Mapping(target = "difficulty", source = "difficulty")
+    @Mapping(target = "startAt", source = "startAt")
+    @Mapping(target = "endAt", source = "endAt")
+    @Mapping(target = "rrule", source = "rrule")
+    @Mapping(target = "labels", source = "labels")
+    @Mapping(target = "isBlocker", source = "isBlocker")
     StaticTask fromCreateRequest(StaticTaskCreateRequest request);
 
     // --- Dynamic task: create ---
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "account", source = "accountId", qualifiedByName = "accountProxy")
+    @Mapping(target = "name", source = "name")
+    @Mapping(target = "description", source = "description")
+    @Mapping(target = "difficulty", source = "difficulty")
+    @Mapping(target = "startAt", source = "startAt")
+    @Mapping(target = "endAt", source = "endAt")
+    @Mapping(target = "rrule", source = "rrule")
+    @Mapping(target = "labels", source = "labels")
+    @Mapping(target = "duration", source = "duration")
+    @Mapping(target = "minScopeDuration", source = "minScopeDuration")
+    @Mapping(target = "maxScopeDuration", source = "maxScopeDuration")
     @Mapping(target = "scopes", expression = "java(new java.util.ArrayList<>())") // default to empty list because it's not provided by request
     @Mapping(target = "dependencies", expression = "java(new java.util.ArrayList<>())") // default to empty list because it's not provided by request
     @Mapping(target = "elapsed", constant = "0") // default to 0 because it's not provided by request
@@ -37,6 +60,13 @@ public interface TaskMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "account", ignore = true)
     @Mapping(target = "labels", ignore = true)
+    @Mapping(target = "name", source = "name")
+    @Mapping(target = "description", source = "description")
+    @Mapping(target = "difficulty", source = "difficulty")
+    @Mapping(target = "startAt", source = "startAt")
+    @Mapping(target = "endAt", source = "endAt")
+    @Mapping(target = "rrule", source = "rrule")
+    @Mapping(target = "isBlocker", source = "isBlocker")
     @Deprecated
     void fromUpdateRequest(StaticTaskUpdateRequest request, @MappingTarget StaticTask task);
 
@@ -48,14 +78,47 @@ public interface TaskMapper {
     @Mapping(target = "labels", ignore = true)
     @Mapping(target = "scopes", ignore = true)
     @Mapping(target = "dependencies", ignore = true)
+    @Mapping(target = "name", source = "name")
+    @Mapping(target = "description", source = "description")
+    @Mapping(target = "difficulty", source = "difficulty")
+    @Mapping(target = "startAt", source = "startAt")
+    @Mapping(target = "endAt", source = "endAt")
+    @Mapping(target = "rrule", source = "rrule")
+    @Mapping(target = "duration", source = "duration")
+    @Mapping(target = "elapsed", source = "elapsed")
+    @Mapping(target = "minScopeDuration", source = "minScopeDuration")
+    @Mapping(target = "maxScopeDuration", source = "maxScopeDuration")
     @Deprecated
     void fromUpdateRequest(DynamicTaskUpdateRequest request, @MappingTarget DynamicTask task);
 
     // --- Response mapping ---
     @Mapping(target = "accountId", source = "account.id")
+    @Mapping(target = "id", source = "id")
+    @Mapping(target = "name", source = "name")
+    @Mapping(target = "description", source = "description")
+    @Mapping(target = "difficulty", source = "difficulty")
+    @Mapping(target = "startAt", source = "startAt")
+    @Mapping(target = "endAt", source = "endAt")
+    @Mapping(target = "rrule", source = "rrule")
+    @Mapping(target = "labels", source = "labels")
+    @Mapping(target = "isBlocker", source = "isBlocker")
     StaticTaskResponse toResponse(StaticTask task);
 
     @Mapping(target = "accountId", source = "account.id")
+    @Mapping(target = "id", source = "id")
+    @Mapping(target = "name", source = "name")
+    @Mapping(target = "description", source = "description")
+    @Mapping(target = "difficulty", source = "difficulty")
+    @Mapping(target = "startAt", source = "startAt")
+    @Mapping(target = "endAt", source = "endAt")
+    @Mapping(target = "rrule", source = "rrule")
+    @Mapping(target = "labels", source = "labels")
+    @Mapping(target = "duration", source = "duration")
+    @Mapping(target = "elapsed", source = "elapsed")
+    @Mapping(target = "minScopeDuration", source = "minScopeDuration")
+    @Mapping(target = "maxScopeDuration", source = "maxScopeDuration")
+    @Mapping(target = "scopes", source = "scopes")
+    @Mapping(target = "dependencies", source = "dependencies")
     DynamicTaskResponse toResponse(DynamicTask task);
 
     // --- After-mapping: wire bidirectional Label -> Task ---
