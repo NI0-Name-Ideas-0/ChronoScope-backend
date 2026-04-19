@@ -1,7 +1,5 @@
 package de.ni0.chronoscope.service;
 
-import java.util.List;
-
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,10 +25,9 @@ public class IdentityService {
                 Identity identity = this.identityRepository.save(new Identity());
                 account.setIdentity(identity);
                 this.accountRepository.save(account);
-                identity.setAccounts(List.of(account));
 
                 return identity.getId();
             })
-            .orElse(0L);
+            .orElseThrow(() -> new IllegalStateException("Account not found for subject: " + subject));
     }
 }

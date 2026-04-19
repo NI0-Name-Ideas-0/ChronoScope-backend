@@ -1,0 +1,7 @@
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          # Use direct JWK Set URI in tests to avoid issuer discovery network calls.
+          jwk-set-uri: http://127.0.0.1:65535/test-jwks

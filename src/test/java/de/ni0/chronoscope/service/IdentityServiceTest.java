@@ -3,10 +3,12 @@ package de.ni0.chronoscope.service;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import static org.mockito.ArgumentMatchers.any;
 import org.mockito.Mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -50,5 +52,21 @@ class IdentityServiceTest {
         verify(identityRepository).save(any(Identity.class));
         verify(accountRepository).save(account);
         verifyNoMoreInteractions(identityRepository, accountRepository);
+    }
+
+    @Test
+    void syncIdentity_ThrowsWhenAccountIsMissing() {
+        IdentityService identityService = new IdentityService(accountRepository, identityRepository);
+
+        when(accountRepository.findBySubject("unknown-subject")).thenReturn(Optional.empty());
+
+        IllegalStateException exception = assertThrows(IllegalStateException.class,
+            () -> identityService.syncIdentity("unknown-subject"));
+
+        assertEquals("Account not found for subject: unknown-subject", exception.getMessage());
+        verify(accountRepository).findBySubject("unknown-subject");
+        verify(identityRepository, never()).save(any(Identity.class));
+        verify(accountRepository, never()).save(any(Account.class));
+        verifyNoMoreInteractions(accountRepository, identityRepository);
     }
 }

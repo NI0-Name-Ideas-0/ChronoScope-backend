@@ -30,16 +30,13 @@ public class IdentityMiddleware extends OncePerRequestFilter {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth instanceof JwtAuthenticationToken token) {
             Jwt jwt = token.getToken();
-            System.out.println(jwt.getClaims());
             List<String> organizations = jwt.getClaimAsStringList("organization");
             if (organizations == null || organizations.isEmpty()) {
                 organizations = List.of("private");
             } else {
                 organizations = List.copyOf(organizations);
             }
-            System.out.println(organizations);
             String subject = jwt.getSubject();
-            System.out.println(subject);
             long accountId = this.accountService.syncAccount(subject, organizations);
             long identityId = this.identityService.syncIdentity(subject);
             this.requestContext.setIdentityId(identityId);

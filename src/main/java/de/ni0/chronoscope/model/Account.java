@@ -33,8 +33,8 @@ public class Account {
     @Column(unique = true)
     private String subject;
 
-    @ManyToOne
-    @JoinColumn(name = "identity_id")
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "identity_id", nullable = false)
     @ToString.Exclude // bidirectional: Identity.accounts -> this Account, would recurse infinitely in toString
     private Identity identity;
 

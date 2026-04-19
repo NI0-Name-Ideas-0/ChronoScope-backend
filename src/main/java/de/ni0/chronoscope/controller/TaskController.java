@@ -60,8 +60,6 @@ public class TaskController {
     })
     @PostMapping
     public ResponseEntity<TaskResponse> createTask(@Valid @RequestBody TaskCreateRequest request) {
-        System.out.println("Identity ID in TaskController: " + requestContext.getIdentityId());
-        System.out.println("Account ID in TaskController: " + requestContext.getAccountId());
         throw new ApiNotImplementedException();
     }
 
