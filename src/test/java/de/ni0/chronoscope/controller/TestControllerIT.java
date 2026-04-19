@@ -12,13 +12,11 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 @SpringBootTest
 @AutoConfigureMockMvc
-@ComponentScan(basePackages = "de.ni0.chronoscope.mapper")
 class TestControllerIT {
 
     @Autowired
@@ -45,6 +43,12 @@ class TestControllerIT {
                 .andExpect(jsonPath("$.accounts[0].id").isNumber())
                 .andExpect(jsonPath("$.accounts[0].identityId").isNumber())
                 .andExpect(jsonPath("$.accounts[0].organizations").isArray());
+    }
+
+    @Test
+    void identityEndpoint_UnauthenticatedReturnsUnauthorized() throws Exception {
+        mockMvc.perform(get("/v1/identity"))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test

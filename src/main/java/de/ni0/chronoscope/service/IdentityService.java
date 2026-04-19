@@ -3,6 +3,7 @@ package de.ni0.chronoscope.service;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import de.ni0.chronoscope.exception.ResourceNotFoundException;
 import de.ni0.chronoscope.model.Identity;
 import de.ni0.chronoscope.repository.AccountRepository;
 import de.ni0.chronoscope.repository.IdentityRepository;
@@ -33,11 +34,7 @@ public class IdentityService {
 
     @Transactional(readOnly = true)
     public Identity getIdentity(long identityId) {
-        Identity identity = this.identityRepository.findById(identityId)
-            .orElseThrow(() -> new IllegalStateException("Identity not found: " + identityId));
-        if (identity.getAccounts() != null) {
-            identity.getAccounts().size();
-        }
-        return identity;
+        return this.identityRepository.findByIdWithAccountsAndOrganizations(identityId)
+            .orElseThrow(() -> new ResourceNotFoundException("Identity not found: " + identityId));
     }
 }
