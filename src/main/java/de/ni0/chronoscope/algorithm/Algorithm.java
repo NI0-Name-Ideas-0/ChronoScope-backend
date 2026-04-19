@@ -13,14 +13,25 @@ public class Algorithm {
 
     private final List<WeightDataProvider> providers;
 
+    /**
+     * @param tasks All next tasks
+     * @param dependencyCount
+     * @param remainingTaskDurations All the remaining task durations. Only contains non-completed tasks
+     * @param slots Iterator which always returns the next slot to implement
+     * @param elapsedSlotTime The time elapsed in the current slot
+     * @return The planned scopes in the current path after this node
+     */
     public List<Scope> plan(List<Task> tasks,
                             Map<Task, Integer> dependencyCount,
                             Map<Task, Duration> remainingTaskDurations,
-                            List<OrganizationSlot> slots, int slotIndex,
+                            Iterator<OrganizationSlot> slots,
                             Duration elapsedSlotTime) {
-        OrganizationSlot slot = slots.get(slotIndex);
+        if (!slots.hasNext()) {
+            return null;
+        }
+        OrganizationSlot slot = slots.next();
         Instant currentTime = slot.getStart().plus(elapsedSlotTime);
-        System.out.println("Planning tasks " + tasks + " in slot " + slotIndex);
+        System.out.println("Planning tasks " + tasks + " in slot");
         Duration remainingSlotDuration = slot.getDuration().minus(elapsedSlotTime);
         System.out.println(remainingSlotDuration + " time left in slot");
 
@@ -37,8 +48,6 @@ public class Algorithm {
         tasks.sort((t1, t2) -> -1*Double.compare(getWeight(t1), getWeight(t2)));
 
         for (Task task : new ArrayList<>(tasks)) {
-            int newSlotIndex = slotIndex;
-
             System.out.println("Chose Task: " + task);
 
             List<Scope> scopes = new ArrayList<>();
@@ -67,8 +76,6 @@ public class Algorithm {
             Duration newElapsedSlotTime = elapsedSlotTime.plus(scopeDuration);
             System.out.println("Elapsed slot time: " + newElapsedSlotTime);
             if (newElapsedSlotTime.equals(slot.getDuration())) {
-                System.out.println("Next slot: " + newSlotIndex);
-                newSlotIndex++;
                 newElapsedSlotTime = Duration.ZERO;
             }
 
@@ -76,7 +83,7 @@ public class Algorithm {
 
             if (!tasks.isEmpty()) {
                 List<Scope> nextResult = plan(tasks, dependencyCount, remainingTaskDurations,
-                        slots, newSlotIndex, newElapsedSlotTime);
+                        slots, newElapsedSlotTime);
                 if (nextResult != null) {
                     scopes.addAll(nextResult);
                     return scopes;

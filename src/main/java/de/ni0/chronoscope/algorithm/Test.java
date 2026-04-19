@@ -88,7 +88,7 @@ public class Test {
         );
         Algorithm algorithm = new Algorithm(providers);
         return algorithm.plan(startTasks, dependencyCount,
-                remainingTaskDurations, slots, 0,
+                remainingTaskDurations, slots.iterator(), 0,
                 Duration.ZERO);
     }
 
