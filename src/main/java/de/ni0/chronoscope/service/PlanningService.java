@@ -52,6 +52,9 @@ public class PlanningService {
                 startTasks.add(k);
             }
         });
+        if (slots == null || slots.isEmpty()) {
+            throw new IllegalArgumentException("slots must not be null or empty");
+        }
         List<WeightDataProvider> providers = List.of(
                 new CPMDataProvider()
         );

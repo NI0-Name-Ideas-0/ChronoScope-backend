@@ -12,9 +12,9 @@ import java.util.List;
  * DataProvider for CPM
  */
 public class CPMDataProvider implements WeightDataProvider {
-    CPM cpm;
-    long minSlack;
-    long maxSlack;
+    private CPM cpm;
+    private long minSlack;
+    private long maxSlack;
 
     /**
      * Calculates the min and max slack of all tasks.
@@ -24,6 +24,8 @@ public class CPMDataProvider implements WeightDataProvider {
     @Override
     public void calculate(DataProviderContext ctx, List<Task> tasks) {
         this.cpm = new CPM(tasks, ctx.getCurrentTime());
+        this.minSlack = Long.MAX_VALUE;
+        this.maxSlack = Long.MIN_VALUE;
         for (CPM.TaskData data : this.cpm.getTaskData().values()) {
             this.minSlack = Math.min(this.minSlack, data.getSlack().toMinutes());
             this.maxSlack = Math.max(this.maxSlack, data.getSlack().toMinutes());

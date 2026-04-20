@@ -3,6 +3,8 @@ package de.ni0.chronoscope.algorithm;
 import de.ni0.chronoscope.model.Scope;
 import de.ni0.chronoscope.model.WorkSlot;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -10,6 +12,8 @@ import java.util.*;
 
 @RequiredArgsConstructor
 public class Algorithm {
+
+    private static final Logger log = LoggerFactory.getLogger(Algorithm.class);
 
     private final List<WeightDataProvider> providers;
 
@@ -28,13 +32,13 @@ public class Algorithm {
                             WorkSlotProvider slots,
                             WorkSlot slot,
                             Instant currentTime) {
-        System.out.println("Planning tasks " + tasks + " in slot");
+        log.debug("Planning tasks {} in slot", tasks);
         Duration remainingSlotDuration = currentTime.until(slot.getEndAt());
-        System.out.println(remainingSlotDuration + " time left in slot");
+        log.debug("{} time left in slot", remainingSlotDuration);
 
         for (Task task : tasks) {
             if (currentTime.plus(remainingTaskDurations.get(task)).isAfter(task.end())) {
-                System.out.println("Deadline not met");
+                log.debug("Deadline not met");
                 return null;
             }
         }
@@ -45,7 +49,7 @@ public class Algorithm {
         tasks.sort((t1, t2) -> -1*Double.compare(getWeight(t1), getWeight(t2)));
 
         for (Task task : new ArrayList<>(tasks)) {
-            System.out.println("Chose Task: " + task);
+            log.debug("Chose Task: {}", task);
 
             List<Scope> scopes = new ArrayList<>();
 
@@ -76,6 +80,9 @@ public class Algorithm {
             if (newCurrentTime.equals(slot.getEndAt())) {
                 System.out.println("Using next slot");
                 newWorkSlot = slots.getNextSlot(slot);
+                if (newWorkSlot == null) {
+                    return null;
+                }
                 newCurrentTime = newWorkSlot.getStartAt();
             }
 
@@ -106,7 +113,7 @@ public class Algorithm {
                 }
             }
         }
-        System.out.println("Path did not found result");
+        log.debug("Path did not found result");
         return null;
     }
 
