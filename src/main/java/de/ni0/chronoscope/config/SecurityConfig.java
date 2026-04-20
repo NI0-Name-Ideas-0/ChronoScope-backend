@@ -15,7 +15,8 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, IdentityMiddleware identityMiddleware) {
-        http.authorizeHttpRequests(auth -> auth
+        http.cors(Customizer.withDefaults())
+            .authorizeHttpRequests(auth -> auth
             .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
             .requestMatchers(
                     "/test/**",
