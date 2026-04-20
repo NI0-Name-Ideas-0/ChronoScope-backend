@@ -12,7 +12,6 @@ import java.time.Instant;
 @Setter
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @Entity
-@NoArgsConstructor
 public class WorkSlot {
 
     @Id
@@ -33,9 +32,4 @@ public class WorkSlot {
     private Instant startAt;
     @Column(name = "end_at", nullable = false)
     private Instant endAt;
-
-    public WorkSlot(Instant startAt, Instant endAt) {
-        this.startAt = startAt;
-        this.endAt = endAt;
-    }
 }

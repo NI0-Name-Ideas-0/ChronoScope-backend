@@ -26,8 +26,6 @@ import lombok.*;
 @Entity
 @Inheritance(strategy = InheritanceType.JOINED)
 @DiscriminatorColumn(name = "dtype", discriminatorType = DiscriminatorType.STRING)
-@NoArgsConstructor
-@AllArgsConstructor
 public abstract class Task {
 
     @Id
@@ -56,11 +54,4 @@ public abstract class Task {
     @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
     @ToString.Exclude // bidirectional: Label.task -> this Task, would recurse infinitely in toString
     private List<Label> labels;
-
-    public Task(String name, Integer difficulty, Instant startAt, Instant endAt) {
-        this.name = name;
-        this.difficulty = difficulty;
-        this.startAt = startAt;
-        this.endAt = endAt;
-    }
 }
