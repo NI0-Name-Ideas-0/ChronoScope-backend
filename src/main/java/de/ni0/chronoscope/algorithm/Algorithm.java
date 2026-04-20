@@ -1,7 +1,7 @@
 package de.ni0.chronoscope.algorithm;
 
-import de.ni0.chronoscope.model.OrganizationSlot;
 import de.ni0.chronoscope.model.Scope;
+import de.ni0.chronoscope.model.WorkSlot;
 import lombok.RequiredArgsConstructor;
 
 import java.time.Duration;
@@ -15,24 +15,21 @@ public class Algorithm {
 
     /**
      * @param tasks All next tasks
-     * @param dependencyCount
+     * @param dependencyCount Dependency Count
      * @param remainingTaskDurations All the remaining task durations. Only contains non-completed tasks
      * @param slots Iterator which always returns the next slot to implement
-     * @param elapsedSlotTime The time elapsed in the current slot
+     * @param slot The current processed slot
+     * @param currentTime The current time
      * @return The planned scopes in the current path after this node
      */
     public List<Scope> plan(List<Task> tasks,
                             Map<Task, Integer> dependencyCount,
                             Map<Task, Duration> remainingTaskDurations,
-                            Iterator<OrganizationSlot> slots,
-                            Duration elapsedSlotTime) {
-        if (!slots.hasNext()) {
-            return null;
-        }
-        OrganizationSlot slot = slots.next();
-        Instant currentTime = slot.getStart().plus(elapsedSlotTime);
+                            WorkSlotProvider slots,
+                            WorkSlot slot,
+                            Instant currentTime) {
         System.out.println("Planning tasks " + tasks + " in slot");
-        Duration remainingSlotDuration = slot.getDuration().minus(elapsedSlotTime);
+        Duration remainingSlotDuration = currentTime.until(slot.getEndAt());
         System.out.println(remainingSlotDuration + " time left in slot");
 
         for (Task task : tasks) {
@@ -53,6 +50,7 @@ public class Algorithm {
             List<Scope> scopes = new ArrayList<>();
 
             Duration remainingTaskDuration = remainingTaskDurations.get(task);
+            System.out.println("Remaining Task Duration: " + remainingTaskDuration);
             Duration scopeDuration = remainingTaskDuration.compareTo(remainingSlotDuration) <= 0
                     ? remainingTaskDuration
                     : remainingSlotDuration;
@@ -73,17 +71,19 @@ public class Algorithm {
                 System.out.println("Updated Tasks: " + tasks);
             }
 
-            Duration newElapsedSlotTime = elapsedSlotTime.plus(scopeDuration);
-            System.out.println("Elapsed slot time: " + newElapsedSlotTime);
-            if (newElapsedSlotTime.equals(slot.getDuration())) {
-                newElapsedSlotTime = Duration.ZERO;
+            Instant newCurrentTime = currentTime.plus(scopeDuration);
+            WorkSlot newWorkSlot = slot;
+            if (newCurrentTime.equals(slot.getEndAt())) {
+                System.out.println("Using next slot");
+                newWorkSlot = slots.getNextSlot(slot);
+                newCurrentTime = newWorkSlot.getStartAt();
             }
 
-            scopes.add(new Scope(new de.ni0.chronoscope.model.Task(), currentTime, scopeDuration));
+            scopes.add(new Scope(null, task.task(), currentTime, currentTime.plus(scopeDuration)));
 
             if (!tasks.isEmpty()) {
                 List<Scope> nextResult = plan(tasks, dependencyCount, remainingTaskDurations,
-                        slots, newElapsedSlotTime);
+                        slots, newWorkSlot, newCurrentTime);
                 if (nextResult != null) {
                     scopes.addAll(nextResult);
                     return scopes;
@@ -106,6 +106,7 @@ public class Algorithm {
                 }
             }
         }
+        System.out.println("Path did not found result");
         return null;
     }
 

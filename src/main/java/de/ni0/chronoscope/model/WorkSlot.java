@@ -1,10 +1,7 @@
 package de.ni0.chronoscope.model;
 
 import jakarta.persistence.*;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.*;
 
 import java.time.Instant;
 
@@ -15,6 +12,7 @@ import java.time.Instant;
 @Setter
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @Entity
+@NoArgsConstructor
 public class WorkSlot {
 
     @Id
@@ -35,4 +33,9 @@ public class WorkSlot {
     private Instant startAt;
     @Column(name = "end_at", nullable = false)
     private Instant endAt;
+
+    public WorkSlot(Instant startAt, Instant endAt) {
+        this.startAt = startAt;
+        this.endAt = endAt;
+    }
 }

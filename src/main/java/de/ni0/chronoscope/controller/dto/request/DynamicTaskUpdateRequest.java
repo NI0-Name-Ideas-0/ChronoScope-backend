@@ -2,6 +2,7 @@ package de.ni0.chronoscope.controller.dto.request;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
@@ -14,9 +15,9 @@ public record DynamicTaskUpdateRequest(
     Instant startAt,
     Instant endAt,
     List<LabelCreateRequest> labels,
-    Integer duration,
-    Integer elapsed,
-    Integer minScopeDuration,
-    Integer maxScopeDuration
+    Duration duration,
+    Duration elapsed,
+    Duration minScopeDuration,
+    Duration maxScopeDuration
 ) implements TaskUpdateRequest {
 }

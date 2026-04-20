@@ -2,8 +2,9 @@ package de.ni0.chronoscope.algorithm;
 
 import de.ni0.chronoscope.algorithm.dataprovider.CPMDataProvider;
 import de.ni0.chronoscope.model.DynamicTask;
-import de.ni0.chronoscope.model.OrganizationSlot;
 import de.ni0.chronoscope.model.Scope;
+import de.ni0.chronoscope.model.TaskDependency;
+import de.ni0.chronoscope.model.WorkSlot;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -17,26 +18,30 @@ public class Test {
 
     static void main() {
         List<DynamicTask> tasks = new ArrayList<>();
-        DynamicTask task = new DynamicTask("test", "test",
+        DynamicTask task = new DynamicTask("test", 0,
                 Instant.MIN,
                 Instant.MIN.plus(5, ChronoUnit.HOURS),
                 Duration.of(1, ChronoUnit.HOURS),
-                0);
+                Duration.of(0, ChronoUnit.HOURS),
+                Duration.of(1, ChronoUnit.HOURS),
+                Duration.of(10, ChronoUnit.HOURS));
         task.setId(0L);
-        DynamicTask task2 = new DynamicTask("test2", "test",
+        DynamicTask task2 = new DynamicTask("test2", 0,
                 Instant.MIN,
                 Instant.MIN.plus(9, ChronoUnit.HOURS),
                 Duration.of(8, ChronoUnit.HOURS),
-                0);
+                Duration.of(0, ChronoUnit.HOURS),
+                Duration.of(1, ChronoUnit.HOURS),
+                Duration.of(10, ChronoUnit.HOURS));
         task2.setId(1L);
         tasks.add(task);
         tasks.add(task2);
-        List<OrganizationSlot> slots = new ArrayList<>();
-        OrganizationSlot slot = new OrganizationSlot(
-                Instant.MIN, Duration.of(2, ChronoUnit.HOURS)
+        List<WorkSlot> slots = new ArrayList<>();
+        WorkSlot slot = new WorkSlot(
+                Instant.MIN, Instant.MIN.plus(Duration.of(2, ChronoUnit.HOURS))
         );
-        OrganizationSlot slot2 = new OrganizationSlot(
-                Instant.MIN.plus(Duration.of(2, ChronoUnit.HOURS)), Duration.of(7, ChronoUnit.HOURS)
+        WorkSlot slot2 = new WorkSlot(
+                Instant.MIN.plus(Duration.of(2, ChronoUnit.HOURS)), Instant.MIN.plus(Duration.of(9, ChronoUnit.HOURS))
         );
         slots.add(slot);
         slots.add(slot2);
@@ -46,21 +51,21 @@ public class Test {
             if (scopes == null) {
             throw new IllegalStateException("Did not find result");
         }
-            for (Scope scope : scopes) {
-            System.out.println("Scope for " + scope.getTask().getId() + " from " + scope.getStart() + " -> " + scope.getDuration());
+        for (Scope scope : scopes) {
+            System.out.println("Scope for " + scope.getDynamicTask().getId() + " from " + scope.getStartAt() + " -> " + scope.getEndAt());
         }
     }
 
     public List<Scope> plan(List<DynamicTask> tasks,
-                            List<OrganizationSlot> slots) {
+                            List<WorkSlot> slots) {
         Map<DynamicTask, Task> taskMap = new HashMap<>();
         for (DynamicTask task : tasks) {
             taskMap.put(task, new Task(task, new ArrayList<>(), new ArrayList<>()));
         }
         for (DynamicTask task : tasks) {
-            for (DynamicTask dependency : task.getDependencies()) {
+            for (TaskDependency dependency : task.getDependencies()) {
                 Task algTask = taskMap.get(task);
-                Task algDependency = taskMap.get(dependency);
+                Task algDependency = taskMap.get(dependency.getPredecessor());
                 algTask.dependencies().add(algDependency);
                 algDependency.successors().add(algTask);
             }
@@ -70,7 +75,7 @@ public class Test {
         return this.plan2(algTasks, slots);
     }
 
-    private List<Scope> plan2(List<Task> tasks, List<OrganizationSlot> slots) {
+    private List<Scope> plan2(List<Task> tasks, List<WorkSlot> slots) {
         Map<Task, Integer> dependencyCount = new HashMap<>();
         Map<Task, Duration> remainingTaskDurations = new HashMap<>();
         for (Task task : tasks) {
@@ -87,9 +92,11 @@ public class Test {
                 new CPMDataProvider()
         );
         Algorithm algorithm = new Algorithm(providers);
+        WorkSlotProvider workSlotProvider = new WorkSlotProvider(slots);
+        WorkSlot startSlot = workSlotProvider.getNextSlot(null);
         return algorithm.plan(startTasks, dependencyCount,
-                remainingTaskDurations, slots.iterator(), 0,
-                Duration.ZERO);
+                remainingTaskDurations, workSlotProvider, startSlot,
+                startSlot.getStartAt());
     }
 
 }

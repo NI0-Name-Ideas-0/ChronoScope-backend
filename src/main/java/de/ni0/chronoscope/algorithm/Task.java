@@ -25,11 +25,11 @@ public record Task(de.ni0.chronoscope.model.DynamicTask task, List<Task> depende
     }
 
     public Instant start() {
-        return this.task.getStart();
+        return this.task.getStartAt();
     }
 
     public Instant end() {
-        return this.task.getEnd();
+        return this.task.getEndAt();
     }
 
     public Duration duration() {

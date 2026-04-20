@@ -15,10 +15,7 @@ import jakarta.persistence.InheritanceType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
-import lombok.EqualsAndHashCode;
-import lombok.Getter;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.*;
 
 // @Getter/@Setter instead of @Data: @Data's generated toString/equals/hashCode are unsafe on JPA
 // entities — bidirectional associations cause StackOverflowError in toString, and field-based
@@ -29,6 +26,8 @@ import lombok.ToString;
 @Entity
 @Inheritance(strategy = InheritanceType.JOINED)
 @DiscriminatorColumn(name = "dtype", discriminatorType = DiscriminatorType.STRING)
+@NoArgsConstructor
+@AllArgsConstructor
 public abstract class Task {
 
     @Id
@@ -57,4 +56,11 @@ public abstract class Task {
     @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
     @ToString.Exclude // bidirectional: Label.task -> this Task, would recurse infinitely in toString
     private List<Label> labels;
+
+    public Task(String name, Integer difficulty, Instant startAt, Instant endAt) {
+        this.name = name;
+        this.difficulty = difficulty;
+        this.startAt = startAt;
+        this.endAt = endAt;
+    }
 }
