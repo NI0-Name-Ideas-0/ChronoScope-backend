@@ -32,4 +32,17 @@ class TaskServiceTest {
         assertEquals(expectedTasks, result);
         verify(taskRepository).findByAccountIdentityId(identityId);
     }
+
+    @Test
+    void getTasksForIdentity_ReturnsEmptyListWhenRepositoryReturnsNull() {
+        TaskService taskService = new TaskService(taskRepository);
+        long identityId = 42L;
+
+        when(taskRepository.findByAccountIdentityId(identityId)).thenReturn(null);
+
+        List<Task> result = taskService.getTasksForIdentity(identityId);
+
+        assertEquals(List.of(), result);
+        verify(taskRepository).findByAccountIdentityId(identityId);
+    }
 }

@@ -155,6 +155,19 @@ class TaskControllerIT {
     }
 
     @Test
+    void getTasks_ReturnsEmptyListWhenNoTasksExist() throws Exception {
+        String subject = createAccountSubject();
+        createAccount(subject);
+
+        mockMvc.perform(get("/v1/tasks")
+                .with(jwt().jwt(jwt -> jwt.subject(subject))))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andExpect(jsonPath("$").isArray())
+            .andExpect(jsonPath("$").isEmpty());
+    }
+
+    @Test
     void createTask_Static_ReturnsCreated() throws Exception {
         String subject = createAccountSubject();
         long accountId = createAccount(subject);

@@ -1,6 +1,8 @@
 package de.ni0.chronoscope.service;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.stereotype.Service;
 
@@ -25,7 +27,8 @@ public class TaskService {
     }
 
     public List<Task> getTasksForIdentity(long identityId) {
-        return this.taskRepository.findByAccountIdentityId(identityId);
+        return Optional.ofNullable(this.taskRepository.findByAccountIdentityId(identityId))
+                .orElse(Collections.emptyList());
     }
 
     public DynamicTask updateDynamicTask(Long id, DynamicTask task) {
