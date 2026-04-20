@@ -1,33 +1,30 @@
 package de.ni0.chronoscope.model;
 
-import jakarta.persistence.Entity;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
+import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
 
-import java.time.Duration;
-import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
 
-@Data
+// @Getter/@Setter only — equals/hashCode are inherited from Task (id-based, safe with Hibernate proxies)
+@Getter
+@Setter
 @Entity
-@EqualsAndHashCode(callSuper = true)
-@NoArgsConstructor
+@DiscriminatorValue("dynamic")
 public class DynamicTask extends Task {
-    private Instant start;
-    private Instant end;
-    private Duration duration;
-    private int complexity;
-    private List<DynamicTask> dependencies = new ArrayList<>();
 
-    public DynamicTask(String name, String description,
-                       Instant start, Instant end, Duration duration,
-                       int complexity) {
-        super(name, description);
-        this.start = start;
-        this.end = end;
-        this.duration = duration;
-        this.complexity = complexity;
-    }
+    @Column(nullable = false)
+    private Integer duration;
+    @Column(nullable = false)
+    private Integer elapsed;
+    @Column(nullable = false)
+    private Integer minScopeDuration;
+    @Column(nullable = false)
+    private Integer maxScopeDuration;
+
+    @OneToMany(mappedBy = "dynamicTask", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Scope> scopes;
+
+    @OneToMany(mappedBy = "dynamicTask", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<TaskDependency> dependencies;
 }

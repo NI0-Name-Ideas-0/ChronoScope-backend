@@ -1,7 +1,12 @@
 package de.ni0.chronoscope.repository;
 
-import de.ni0.chronoscope.model.Task;
+import java.util.List;
+
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface TaskRepository extends JpaRepository<Task, Long> {
+import de.ni0.chronoscope.model.Task;
+ public interface TaskRepository extends JpaRepository<Task, Long> {
+ 	@EntityGraph(attributePaths = { "labels" })
+    List<Task> findByAccountIdentityId(long identityId);
 }

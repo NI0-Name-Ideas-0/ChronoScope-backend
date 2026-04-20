@@ -1,44 +1,34 @@
 package de.ni0.chronoscope.model;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.Id;
-import jakarta.persistence.ManyToOne;
-import lombok.AllArgsConstructor;
-import lombok.Data;
+import jakarta.persistence.*;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
 
-import java.time.Duration;
 import java.time.Instant;
 
+// @Getter/@Setter instead of @Data: @Data's generated toString/equals/hashCode are unsafe on JPA
+// entities — bidirectional associations cause StackOverflowError in toString, and field-based
+// hashCode becomes unstable when Hibernate assigns the id after persist.
+@Getter
+@Setter
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @Entity
-@Data
 public class Scope {
+
     @Id
     @GeneratedValue
+    @EqualsAndHashCode.Include // id-only: stable before and after persist, works correctly with Hibernate proxies
     private Long id;
 
     @ManyToOne
-    private Task task;
-    private Instant start;
-    private Duration duration;
+    @JoinColumn(name = "dynamic_task_id")
+    @ToString.Exclude // association excluded to keep toString safe and lightweight
+    private DynamicTask dynamicTask;
 
-    public Scope(Task task, Instant start, Duration duration) {
-        this.task = task;
-        this.start = start;
-        this.duration = duration;
-    }
-
-    public Scope() {
-
-    }
-
-    @Override
-    public String toString() {
-        return "Scope{" +
-                "id=" + id +
-                ", task=" + task +
-                ", start=" + start +
-                ", duration=" + duration +
-                '}';
-    }
+    @Column(name = "start_at", nullable = false)
+    private Instant startAt;
+    @Column(name = "end_at", nullable = false)
+    private Instant endAt;
 }
