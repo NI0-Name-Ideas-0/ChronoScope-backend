@@ -1,0 +1,2 @@
+cors:
+  allowed-origins: "https://chronoscope.ni0.team"
