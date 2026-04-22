@@ -16,6 +16,7 @@ import de.ni0.chronoscope.model.Task;
 
 	Optional<Task> findByIdAndAccountIdentityId(Long id, Long identityId);
 
-	@Query("select dt from DynamicTask dt join dt.dependencies dep where dep.id = :dependencyId")
-	List<DynamicTask> findDynamicTasksByDependencyId(@Param("dependencyId") Long dependencyId);
+	@Query("select dt from DynamicTask dt join dt.dependencies dep join dt.account acc join acc.identity identity where dep.id = :dependencyId and identity.id = :identityId")  
+    List<DynamicTask> findDynamicTasksByDependencyIdAndIdentityId(@Param("dependencyId") Long dependencyId,  
+            @Param("identityId") Long identityId);  
 }

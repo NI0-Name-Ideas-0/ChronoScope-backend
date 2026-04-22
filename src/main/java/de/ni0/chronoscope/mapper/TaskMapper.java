@@ -158,11 +158,8 @@ public interface TaskMapper {
             task.setDependents(new HashSet<>());
         }
 
-        for (var dependency : task.getDependencies()) {
-            if (dependency.getDependents() == null) {
-                dependency.setDependents(new HashSet<>());
-            }
-            dependency.getDependents().add(task);
-        }
+        // Keep only the owning side (`task.dependencies`) in sync here.
+        // Writing to inverse side (`dependency.dependents`) with a transient task can
+        // corrupt HashSet membership when id-based hashCode changes after persist.
     }
 }

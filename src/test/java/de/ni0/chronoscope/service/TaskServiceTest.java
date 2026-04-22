@@ -1,17 +1,18 @@
 package de.ni0.chronoscope.service;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import de.ni0.chronoscope.exception.InvalidRequestException;
@@ -86,7 +87,7 @@ class TaskServiceTest {
         taskService.deleteTask(identityId, taskId);
 
         verify(taskRepository).findByIdAndAccountIdentityId(taskId, identityId);
-        verify(taskRepository, never()).findDynamicTasksByDependencyId(taskId);
+        verify(taskRepository, never()).findDynamicTasksByDependencyIdAndIdentityId(taskId, identityId);
         verify(taskRepository).delete(task);
         verify(taskRepository).flush();
     }
@@ -118,7 +119,7 @@ class TaskServiceTest {
         task.setDependents(new java.util.HashSet<>(task.getDependents()));
 
         when(taskRepository.findByIdAndAccountIdentityId(taskId, identityId)).thenReturn(Optional.of(task));
-        when(taskRepository.findDynamicTasksByDependencyId(taskId)).thenReturn(List.of(dependent));
+        when(taskRepository.findDynamicTasksByDependencyIdAndIdentityId(taskId, identityId)).thenReturn(List.of(dependent));
 
         taskService.deleteTask(identityId, taskId);
 
@@ -126,7 +127,7 @@ class TaskServiceTest {
         assertEquals(0, task.getDependents().size());
         assertEquals(0, predecessor.getDependents().size());
         assertEquals(0, dependent.getDependencies().size());
-        verify(taskRepository).findDynamicTasksByDependencyId(taskId);
+        verify(taskRepository).findDynamicTasksByDependencyIdAndIdentityId(taskId, identityId);
         verify(taskRepository).delete(task);
         verify(taskRepository).flush();
     }
@@ -142,7 +143,7 @@ class TaskServiceTest {
         assertThrows(ResourceNotFoundException.class, () -> taskService.deleteTask(identityId, taskId));
 
         verify(taskRepository).findByIdAndAccountIdentityId(taskId, identityId);
-        verify(taskRepository, never()).findDynamicTasksByDependencyId(taskId);
+        verify(taskRepository, never()).findDynamicTasksByDependencyIdAndIdentityId(taskId, identityId);
         verify(taskRepository, never()).delete(org.mockito.ArgumentMatchers.any());
         verify(taskRepository, never()).flush();
     }
@@ -220,6 +221,33 @@ class TaskServiceTest {
 
         assertEquals("Dependency task 100 must belong to the same identity", exception.getMessage());
         verify(taskRepository).findAllById(Set.of(100L));
+        verify(taskRepository, never()).save(newTask);
+    }
+
+    @Test
+    void createDynamicTask_ThrowsWhenDependencyIdIsNull() {
+        TaskService taskService = new TaskService(taskRepository);
+
+        Identity identity = new Identity();
+        identity.setId(42L);
+
+        Account sourceAccount = new Account();
+        sourceAccount.setId(10L);
+        sourceAccount.setIdentity(identity);
+
+        DynamicTask newTask = new DynamicTask();
+        newTask.setAccount(sourceAccount);
+
+        DynamicTask dependencyWithoutId = new DynamicTask();
+        newTask.setDependencies(new java.util.HashSet<>(Set.of(dependencyWithoutId)));
+
+        InvalidRequestException exception = assertThrows(
+            InvalidRequestException.class,
+            () -> taskService.createDynamicTask(newTask)
+        );
+
+        assertEquals("Dependency task id must be provided", exception.getMessage());
+        verify(taskRepository, never()).findAllById(org.mockito.ArgumentMatchers.any());
         verify(taskRepository, never()).save(newTask);
     }
 }
