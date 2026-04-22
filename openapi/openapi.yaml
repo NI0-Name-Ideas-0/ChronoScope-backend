@@ -358,9 +358,7 @@ paths:
       - Tasks
     patch:
       description: Partially update a task (PATCH semantics — omitted fields are left
-        unchanged). The "type" discriminator must match the existing task type. The
-        path parameter "id" is authoritative. Request payload must not contain read-only
-        fields such as id, accountId, scopes, or dependents.
+        unchanged). The "type" discriminator must match the existing task type.
       operationId: updateTask
       parameters:
       - description: Task ID
@@ -706,6 +704,8 @@ components:
               format: int64
           description:
             type: string
+            maxLength: 2147483647
+            minLength: 1
           difficulty:
             type: integer
             format: int32
@@ -730,8 +730,12 @@ components:
             format: int32
           name:
             type: string
+            maxLength: 2147483647
+            minLength: 1
           rrule:
             type: string
+            maxLength: 2147483647
+            minLength: 1
           startAt:
             type: string
             format: date-time
@@ -896,6 +900,8 @@ components:
         properties:
           description:
             type: string
+            maxLength: 2147483647
+            minLength: 1
           difficulty:
             type: integer
             format: int32
@@ -910,8 +916,12 @@ components:
               $ref: "#/components/schemas/LabelCreateRequest"
           name:
             type: string
+            maxLength: 2147483647
+            minLength: 1
           rrule:
             type: string
+            maxLength: 2147483647
+            minLength: 1
           startAt:
             type: string
             format: date-time
