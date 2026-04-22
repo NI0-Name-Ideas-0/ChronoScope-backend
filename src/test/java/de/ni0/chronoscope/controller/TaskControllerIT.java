@@ -280,6 +280,86 @@ class TaskControllerIT {
             .andExpect(jsonPath("$.dependents").isEmpty());
     }
 
+        @Test
+        void createTask_Dynamic_WithDependencyFromDifferentAccountSameIdentity_ReturnsCreated() throws Exception {
+                Identity identity = identityRepository.saveAndFlush(new Identity());
+                String requesterSubject = createAccountSubject();
+                long requesterAccountId = createAccount(identity.getId(), requesterSubject);
+                long linkedAccountId = createAccount(identity.getId(), createAccountSubject());
+                long predecessorId = createDynamicPredecessorTask(linkedAccountId);
+
+                String payload = """
+                        {
+                            "type": "dynamic",
+                            "accountId": %d,
+                            "name": "Cross-account dependency",
+                            "description": "Dependency should be allowed within same identity",
+                            "rrule": "FREQ=DAILY",
+                            "difficulty": 4,
+                            "startAt": "2026-04-20T08:00:00Z",
+                            "endAt": "2026-04-25T18:00:00Z",
+                            "labels": [],
+                            "duration": 240,
+                            "minScopeDuration": 30,
+                            "maxScopeDuration": 120,
+                            "dependencies": [
+                                %d
+                            ]
+                        }
+                        """.formatted(requesterAccountId, predecessorId);
+
+                mockMvc.perform(post("/v1/tasks")
+                                .with(jwt().jwt(jwt -> jwt.subject(requesterSubject)))
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(payload))
+                        .andExpect(status().isCreated())
+                        .andExpect(jsonPath("$.accountId").value(requesterAccountId))
+                        .andExpect(jsonPath("$.dependencies").isArray())
+                        .andExpect(jsonPath("$.dependencies.length()").value(1))
+                        .andExpect(jsonPath("$.dependencies[0]").value(predecessorId));
+        }
+
+        @Test
+        void createTask_Dynamic_WithDependencyFromDifferentIdentity_ReturnsValidationError() throws Exception {
+                Identity sourceIdentity = identityRepository.saveAndFlush(new Identity());
+                String requesterSubject = createAccountSubject();
+                long requesterAccountId = createAccount(sourceIdentity.getId(), requesterSubject);
+
+                Identity otherIdentity = identityRepository.saveAndFlush(new Identity());
+                long foreignAccountId = createAccount(otherIdentity.getId(), createAccountSubject());
+                long predecessorId = createDynamicPredecessorTask(foreignAccountId);
+
+                String payload = """
+                        {
+                            "type": "dynamic",
+                            "accountId": %d,
+                            "name": "Cross-identity dependency",
+                            "description": "Dependency should be rejected",
+                            "rrule": "FREQ=DAILY",
+                            "difficulty": 4,
+                            "startAt": "2026-04-20T08:00:00Z",
+                            "endAt": "2026-04-25T18:00:00Z",
+                            "labels": [],
+                            "duration": 240,
+                            "minScopeDuration": 30,
+                            "maxScopeDuration": 120,
+                            "dependencies": [
+                                %d
+                            ]
+                        }
+                        """.formatted(requesterAccountId, predecessorId);
+
+                mockMvc.perform(post("/v1/tasks")
+                                .with(jwt().jwt(jwt -> jwt.subject(requesterSubject)))
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(payload))
+                        .andExpect(status().isBadRequest())
+                        .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                        .andExpect(jsonPath("$.type").value("urn:chronoscope:error:validation-error"))
+                        .andExpect(jsonPath("$.errorCode").value("VALIDATION_ERROR"))
+                        .andExpect(jsonPath("$.detail").value("Dependency task " + predecessorId + " must belong to the same identity"));
+        }
+
             @Test
             void getTask_Dynamic_ReturnsDependenciesAndDependentsFields() throws Exception {
             String subject = createAccountSubject();

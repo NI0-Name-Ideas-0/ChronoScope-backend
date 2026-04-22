@@ -14,8 +14,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import de.ni0.chronoscope.exception.InvalidRequestException;
 import de.ni0.chronoscope.exception.ResourceNotFoundException;
+import de.ni0.chronoscope.model.Account;
 import de.ni0.chronoscope.model.DynamicTask;
+import de.ni0.chronoscope.model.Identity;
 import de.ni0.chronoscope.model.StaticTask;
 import de.ni0.chronoscope.model.Task;
 import de.ni0.chronoscope.repository.TaskRepository;
@@ -142,5 +145,81 @@ class TaskServiceTest {
         verify(taskRepository, never()).findDynamicTasksByDependencyId(taskId);
         verify(taskRepository, never()).delete(org.mockito.ArgumentMatchers.any());
         verify(taskRepository, never()).flush();
+    }
+
+    @Test
+    void createDynamicTask_AllowsDependenciesFromDifferentAccountWithSameIdentity() {
+        TaskService taskService = new TaskService(taskRepository);
+
+        Identity identity = new Identity();
+        identity.setId(42L);
+
+        Account sourceAccount = new Account();
+        sourceAccount.setId(10L);
+        sourceAccount.setIdentity(identity);
+
+        DynamicTask newTask = new DynamicTask();
+        newTask.setAccount(sourceAccount);
+
+        DynamicTask dependency = new DynamicTask();
+        dependency.setId(100L);
+        newTask.setDependencies(new java.util.HashSet<>(Set.of(dependency)));
+
+        Account dependencyAccount = new Account();
+        dependencyAccount.setId(20L);
+        dependencyAccount.setIdentity(identity);
+
+        DynamicTask persistedDependency = new DynamicTask();
+        persistedDependency.setId(100L);
+        persistedDependency.setAccount(dependencyAccount);
+
+        when(taskRepository.findAllById(Set.of(100L))).thenReturn(List.of(persistedDependency));
+        when(taskRepository.save(newTask)).thenReturn(newTask);
+
+        DynamicTask result = taskService.createDynamicTask(newTask);
+
+        assertEquals(newTask, result);
+        verify(taskRepository).findAllById(Set.of(100L));
+        verify(taskRepository).save(newTask);
+    }
+
+    @Test
+    void createDynamicTask_ThrowsWhenDependencyBelongsToDifferentIdentity() {
+        TaskService taskService = new TaskService(taskRepository);
+
+        Identity sourceIdentity = new Identity();
+        sourceIdentity.setId(42L);
+        Identity dependencyIdentity = new Identity();
+        dependencyIdentity.setId(99L);
+
+        Account sourceAccount = new Account();
+        sourceAccount.setId(10L);
+        sourceAccount.setIdentity(sourceIdentity);
+
+        Account dependencyAccount = new Account();
+        dependencyAccount.setId(20L);
+        dependencyAccount.setIdentity(dependencyIdentity);
+
+        DynamicTask newTask = new DynamicTask();
+        newTask.setAccount(sourceAccount);
+
+        DynamicTask dependencyReference = new DynamicTask();
+        dependencyReference.setId(100L);
+        newTask.setDependencies(new java.util.HashSet<>(Set.of(dependencyReference)));
+
+        DynamicTask persistedDependency = new DynamicTask();
+        persistedDependency.setId(100L);
+        persistedDependency.setAccount(dependencyAccount);
+
+        when(taskRepository.findAllById(Set.of(100L))).thenReturn(List.of(persistedDependency));
+
+        InvalidRequestException exception = assertThrows(
+            InvalidRequestException.class,
+            () -> taskService.createDynamicTask(newTask)
+        );
+
+        assertEquals("Dependency task 100 must belong to the same identity", exception.getMessage());
+        verify(taskRepository).findAllById(Set.of(100L));
+        verify(taskRepository, never()).save(newTask);
     }
 }
