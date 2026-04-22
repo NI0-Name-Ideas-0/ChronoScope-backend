@@ -1,6 +1,6 @@
 package de.ni0.chronoscope.mapper;
 
-import java.util.ArrayList;
+import java.util.HashSet;
 
 import org.mapstruct.AfterMapping;
 import org.mapstruct.Mapper;
@@ -20,7 +20,7 @@ import de.ni0.chronoscope.model.StaticTask;
 
 @Mapper(
     componentModel = MappingConstants.ComponentModel.SPRING,
-    uses = {LabelMapper.class, ScopeMapper.class, TaskDependencyMapper.class},
+    uses = {LabelMapper.class, ScopeMapper.class, TaskProxyProvider.class},
     unmappedTargetPolicy = ReportingPolicy.ERROR
 )
 public interface TaskMapper {
@@ -54,7 +54,8 @@ public interface TaskMapper {
     @Mapping(target = "minScopeDuration", source = "minScopeDuration")
     @Mapping(target = "maxScopeDuration", source = "maxScopeDuration")
     @Mapping(target = "scopes", expression = "java(new java.util.ArrayList<>())") // default to empty list because it's not provided by request
-    @Mapping(target = "dependencies", source = "dependencies")
+    @Mapping(target = "dependencies", source = "dependencies", qualifiedByName = "dependencyIdsToReferences")
+    @Mapping(target = "dependents", expression = "java(new java.util.HashSet<>())")
     @Mapping(target = "elapsed", constant = "0") // default to 0 because it's not provided by request
     DynamicTask fromCreateRequest(DynamicTaskCreateRequest request);
 
@@ -82,6 +83,7 @@ public interface TaskMapper {
     @Mapping(target = "labels", ignore = true)
     @Mapping(target = "scopes", ignore = true)
     @Mapping(target = "dependencies", ignore = true)
+    @Mapping(target = "dependents", ignore = true)
     @Mapping(target = "name", source = "name")
     @Mapping(target = "description", source = "description")
     @Mapping(target = "difficulty", source = "difficulty")
@@ -122,7 +124,8 @@ public interface TaskMapper {
     @Mapping(target = "minScopeDuration", source = "minScopeDuration")
     @Mapping(target = "maxScopeDuration", source = "maxScopeDuration")
     @Mapping(target = "scopes", source = "scopes")
-    @Mapping(target = "dependencies", source = "dependencies")
+    @Mapping(target = "dependencies", source = "dependencies", qualifiedByName = "dynamicTasksToIds")
+    @Mapping(target = "dependents", source = "dependents", qualifiedByName = "dynamicTasksToIds")
     DynamicTaskResponse toResponse(DynamicTask task);
 
     // --- After-mapping: wire bidirectional Label -> Task ---
@@ -148,11 +151,18 @@ public interface TaskMapper {
     @AfterMapping
     default void wireDependencies(@MappingTarget DynamicTask task) {
         if (task.getDependencies() == null) {
-            task.setDependencies(new ArrayList<>());
-            return;
+            task.setDependencies(new HashSet<>());
         }
+
+        if (task.getDependents() == null) {
+            task.setDependents(new HashSet<>());
+        }
+
         for (var dependency : task.getDependencies()) {
-            dependency.setDynamicTask(task);
+            if (dependency.getDependents() == null) {
+                dependency.setDependents(new HashSet<>());
+            }
+            dependency.getDependents().add(task);
         }
     }
 }

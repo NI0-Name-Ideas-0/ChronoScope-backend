@@ -2,10 +2,12 @@ package de.ni0.chronoscope.controller;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.not;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -14,23 +16,28 @@ import org.springframework.context.annotation.ComponentScan;
 import org.springframework.http.MediaType;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import org.springframework.test.web.servlet.MockMvc;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import org.springframework.transaction.annotation.Transactional;
 
 import de.ni0.chronoscope.model.Account;
 import de.ni0.chronoscope.model.DynamicTask;
 import de.ni0.chronoscope.model.Identity;
+import de.ni0.chronoscope.model.Scope;
 import de.ni0.chronoscope.model.StaticTask;
 import de.ni0.chronoscope.repository.AccountRepository;
 import de.ni0.chronoscope.repository.IdentityRepository;
+import de.ni0.chronoscope.repository.ScopeRepository;
 import de.ni0.chronoscope.repository.TaskRepository;
 
 @SpringBootTest
 @AutoConfigureMockMvc
 @ComponentScan(basePackages = "de.ni0.chronoscope.mapper")
+@Transactional
 class TaskControllerIT {
 
     @Autowired
@@ -44,6 +51,9 @@ class TaskControllerIT {
 
     @Autowired
     private TaskRepository taskRepository;
+
+    @Autowired
+    private ScopeRepository scopeRepository;
 
     private long createAccount() {
         return createAccount("it-subject-" + System.nanoTime());
@@ -80,7 +90,8 @@ class TaskControllerIT {
         predecessor.setMaxScopeDuration(60);
         predecessor.setLabels(new ArrayList<>());
         predecessor.setScopes(new ArrayList<>());
-        predecessor.setDependencies(new ArrayList<>());
+        predecessor.setDependencies(new HashSet<>());
+        predecessor.setDependents(new HashSet<>());
         return taskRepository.saveAndFlush(predecessor).getId();
     }
 
@@ -113,7 +124,8 @@ class TaskControllerIT {
         ownTask.setMaxScopeDuration(60);
         ownTask.setLabels(new ArrayList<>());
         ownTask.setScopes(new ArrayList<>());
-        ownTask.setDependencies(new ArrayList<>());
+        ownTask.setDependencies(new HashSet<>());
+        ownTask.setDependents(new HashSet<>());
         taskRepository.saveAndFlush(ownTask);
 
         StaticTask linkedTask = new StaticTask();
@@ -225,7 +237,9 @@ class TaskControllerIT {
             .andExpect(jsonPath("$.scopes").isArray())
             .andExpect(jsonPath("$.scopes").isEmpty())
             .andExpect(jsonPath("$.dependencies").isArray())
-            .andExpect(jsonPath("$.dependencies").isEmpty());
+            .andExpect(jsonPath("$.dependencies").isEmpty())
+            .andExpect(jsonPath("$.dependents").isArray())
+            .andExpect(jsonPath("$.dependents").isEmpty());
     }
 
     @Test
@@ -249,9 +263,7 @@ class TaskControllerIT {
               "minScopeDuration": 30,
               "maxScopeDuration": 120,
               "dependencies": [
-                {
-                  "predecessorDynamicTaskId": %d
-                }
+                                %d
               ]
             }
             """.formatted(accountId, predecessorId);
@@ -263,9 +275,46 @@ class TaskControllerIT {
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.dependencies").isArray())
             .andExpect(jsonPath("$.dependencies.length()").value(1))
-            .andExpect(jsonPath("$.dependencies[0].dynamicTaskId").isNumber())
-            .andExpect(jsonPath("$.dependencies[0].predecessorDynamicTaskId").value(predecessorId));
+            .andExpect(jsonPath("$.dependencies[0]").value(predecessorId))
+            .andExpect(jsonPath("$.dependents").isArray())
+            .andExpect(jsonPath("$.dependents").isEmpty());
     }
+
+            @Test
+            void getTask_Dynamic_ReturnsDependenciesAndDependentsFields() throws Exception {
+            String subject = createAccountSubject();
+            long accountId = createAccount(subject);
+            long predecessorId = createDynamicPredecessorTask(accountId);
+
+            DynamicTask dependent = new DynamicTask();
+            dependent.setAccount(accountRepository.getReferenceById(accountId));
+            dependent.setName("Dependent dynamic task");
+            dependent.setDescription("Depends on predecessor");
+            dependent.setDifficulty(3);
+            dependent.setStartAt(Instant.parse("2026-04-21T08:00:00Z"));
+            dependent.setEndAt(Instant.parse("2026-04-24T18:00:00Z"));
+            dependent.setRrule("FREQ=DAILY");
+            dependent.setDuration(180);
+            dependent.setElapsed(0);
+            dependent.setMinScopeDuration(30);
+            dependent.setMaxScopeDuration(90);
+            dependent.setLabels(new ArrayList<>());
+            dependent.setScopes(new ArrayList<>());
+            dependent.setDependencies(new HashSet<>(List.of((DynamicTask) taskRepository.getReferenceById(predecessorId))));
+            dependent.setDependents(new HashSet<>());
+            dependent = taskRepository.saveAndFlush(dependent);
+
+            mockMvc.perform(get("/v1/tasks/{id}", dependent.getId())
+                .with(jwt().jwt(jwt -> jwt.subject(subject))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(dependent.getId()))
+                .andExpect(jsonPath("$.type").value("dynamic"))
+                .andExpect(jsonPath("$.dependencies").isArray())
+                .andExpect(jsonPath("$.dependencies.length()").value(1))
+                .andExpect(jsonPath("$.dependencies[0]").value(predecessorId))
+                .andExpect(jsonPath("$.dependents").isArray())
+                .andExpect(jsonPath("$.dependents").isEmpty());
+            }
 
     @Test
     void createTask_Dynamic_MissingDependencies_ReturnsValidationError() throws Exception {
@@ -360,5 +409,125 @@ class TaskControllerIT {
             .andExpect(jsonPath("$.fieldErrors[*].field", hasItem("description")))
             .andExpect(jsonPath("$.fieldErrors[*].field", hasItem("rrule")))
             .andExpect(jsonPath("$.fieldErrors[*].field", hasItem("labels")));
+    }
+
+    @Test
+    void deleteTask_Static_ReturnsNoContentAndRemovesTask() throws Exception {
+        String subject = createAccountSubject();
+        long accountId = createAccount(subject);
+
+        StaticTask task = new StaticTask();
+        task.setAccount(accountRepository.getReferenceById(accountId));
+        task.setName("Static to delete");
+        task.setDescription("Delete me");
+        task.setDifficulty(1);
+        task.setStartAt(Instant.parse("2026-04-20T09:00:00Z"));
+        task.setEndAt(Instant.parse("2026-04-20T10:00:00Z"));
+        task.setRrule("FREQ=DAILY");
+        task.setLabels(new ArrayList<>());
+        task.setIsBlocker(false);
+        long taskId = taskRepository.saveAndFlush(task).getId();
+
+        mockMvc.perform(delete("/v1/tasks/{id}", taskId)
+                .with(jwt().jwt(jwt -> jwt.subject(subject))))
+            .andExpect(status().isNoContent());
+
+        assertTrue(taskRepository.findById(taskId).isEmpty());
+    }
+
+    @Test
+    void deleteTask_Dynamic_RemovesScopesAndInboundLinks() throws Exception {
+        String subject = createAccountSubject();
+        long accountId = createAccount(subject);
+
+        DynamicTask predecessor = new DynamicTask();
+        predecessor.setAccount(accountRepository.getReferenceById(accountId));
+        predecessor.setName("Predecessor");
+        predecessor.setDescription("Will be deleted");
+        predecessor.setDifficulty(2);
+        predecessor.setStartAt(Instant.parse("2026-04-20T08:00:00Z"));
+        predecessor.setEndAt(Instant.parse("2026-04-22T18:00:00Z"));
+        predecessor.setRrule("FREQ=DAILY");
+        predecessor.setDuration(120);
+        predecessor.setElapsed(0);
+        predecessor.setMinScopeDuration(30);
+        predecessor.setMaxScopeDuration(60);
+        predecessor.setLabels(new ArrayList<>());
+        predecessor.setDependencies(new HashSet<>());
+        predecessor.setDependents(new HashSet<>());
+
+        Scope scope = new Scope();
+        scope.setDynamicTask(predecessor);
+        scope.setStartAt(Instant.parse("2026-04-20T08:00:00Z"));
+        scope.setEndAt(Instant.parse("2026-04-20T09:00:00Z"));
+        predecessor.setScopes(new ArrayList<>(List.of(scope)));
+
+        predecessor = taskRepository.saveAndFlush(predecessor);
+        long predecessorId = predecessor.getId();
+        long predecessorScopeId = predecessor.getScopes().getFirst().getId();
+
+        DynamicTask dependent = new DynamicTask();
+        dependent.setAccount(accountRepository.getReferenceById(accountId));
+        dependent.setName("Dependent");
+        dependent.setDescription("Depends on predecessor");
+        dependent.setDifficulty(3);
+        dependent.setStartAt(Instant.parse("2026-04-20T08:00:00Z"));
+        dependent.setEndAt(Instant.parse("2026-04-24T18:00:00Z"));
+        dependent.setRrule("FREQ=DAILY");
+        dependent.setDuration(240);
+        dependent.setElapsed(0);
+        dependent.setMinScopeDuration(30);
+        dependent.setMaxScopeDuration(120);
+        dependent.setLabels(new ArrayList<>());
+        dependent.setScopes(new ArrayList<>());
+        dependent.setDependencies(new HashSet<>(List.of(predecessor)));
+        dependent.setDependents(new HashSet<>());
+
+        taskRepository.saveAndFlush(dependent);
+
+        mockMvc.perform(delete("/v1/tasks/{id}", predecessorId)
+                .with(jwt().jwt(jwt -> jwt.subject(subject))))
+            .andExpect(status().isNoContent());
+
+        assertTrue(taskRepository.findById(predecessorId).isEmpty());
+        assertTrue(scopeRepository.findById(predecessorScopeId).isEmpty());
+
+        DynamicTask updatedDependent = (DynamicTask) taskRepository.findById(dependent.getId()).orElseThrow();
+        assertTrue(updatedDependent.getDependencies().isEmpty());
+    }
+
+    @Test
+    void deleteTask_NotFound_Returns404() throws Exception {
+        String subject = createAccountSubject();
+        createAccount(subject);
+
+        mockMvc.perform(delete("/v1/tasks/{id}", 999_999L)
+                .with(jwt().jwt(jwt -> jwt.subject(subject))))
+            .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void deleteTask_FromDifferentIdentity_Returns404() throws Exception {
+        String ownerSubject = createAccountSubject();
+        long ownerAccountId = createAccount(ownerSubject);
+
+        StaticTask task = new StaticTask();
+        task.setAccount(accountRepository.getReferenceById(ownerAccountId));
+        task.setName("Foreign task");
+        task.setDescription("Should not be deletable");
+        task.setDifficulty(1);
+        task.setStartAt(Instant.parse("2026-04-20T09:00:00Z"));
+        task.setEndAt(Instant.parse("2026-04-20T10:00:00Z"));
+        task.setRrule("FREQ=DAILY");
+        task.setLabels(new ArrayList<>());
+        task.setIsBlocker(false);
+        long taskId = taskRepository.saveAndFlush(task).getId();
+
+        String attackerSubject = createAccountSubject();
+        createAccount(attackerSubject);
+
+        mockMvc.perform(delete("/v1/tasks/{id}", taskId)
+                .with(jwt().jwt(jwt -> jwt.subject(attackerSubject))))
+            .andExpect(status().isNotFound());
     }
 }

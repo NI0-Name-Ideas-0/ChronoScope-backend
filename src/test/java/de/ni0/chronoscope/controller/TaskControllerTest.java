@@ -84,6 +84,7 @@ class TaskControllerTest {
             30,
             60,
             List.of(),
+            List.of(),
             List.of()
         );
 
@@ -211,6 +212,7 @@ class TaskControllerTest {
             30,
             120,
             List.of(),
+            List.of(),
             List.of()
         );
 
@@ -283,5 +285,56 @@ class TaskControllerTest {
         assertThrows(AccountAccessDeniedException.class, () -> controller.createTask(request));
         verify(accountRepository).findById(13L);
         verifyNoMoreInteractions(taskMapper, taskService, accountRepository);
+    }
+
+    @Test
+    void deleteTask_DelegatesToServiceWithCurrentIdentity() {
+        RequestContext requestContext = new RequestContext();
+        requestContext.setIdentityId(99L);
+        TaskController controller = new TaskController(taskService, taskMapper, accountRepository, requestContext);
+
+        controller.deleteTask(123L);
+
+        verify(taskService).deleteTask(99L, 123L);
+        verifyNoMoreInteractions(taskService, taskMapper, accountRepository);
+    }
+
+    @Test
+    void getTask_Dynamic_UsesIdentityScopedLookupAndReturnsMappedResponse() {
+        RequestContext requestContext = new RequestContext();
+        requestContext.setIdentityId(99L);
+        TaskController controller = new TaskController(taskService, taskMapper, accountRepository, requestContext);
+
+        DynamicTask dynamicTask = new DynamicTask();
+        dynamicTask.setId(500L);
+
+        DynamicTaskResponse expectedResponse = new DynamicTaskResponse(
+            500L,
+            11L,
+            "Dynamic task",
+            "desc",
+            2,
+            Instant.parse("2026-04-20T08:00:00Z"),
+            Instant.parse("2026-04-22T18:00:00Z"),
+            "FREQ=DAILY",
+            List.of(),
+            120,
+            0,
+            30,
+            60,
+            List.of(),
+            List.of(42L),
+            List.of(600L)
+        );
+
+        when(taskService.getTaskForIdentity(99L, 500L)).thenReturn(dynamicTask);
+        when(taskMapper.toResponse(dynamicTask)).thenReturn(expectedResponse);
+
+        TaskResponse result = controller.getTask(500L);
+
+        assertEquals(expectedResponse, result);
+        verify(taskService).getTaskForIdentity(99L, 500L);
+        verify(taskMapper).toResponse(dynamicTask);
+        verifyNoMoreInteractions(taskService, taskMapper, accountRepository);
     }
 }

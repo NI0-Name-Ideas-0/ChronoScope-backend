@@ -20,9 +20,7 @@ import de.ni0.chronoscope.config.RequestContext;
 import de.ni0.chronoscope.controller.dto.request.DynamicTaskCreateRequest;
 import de.ni0.chronoscope.controller.dto.request.StaticTaskCreateRequest;
 import de.ni0.chronoscope.controller.dto.request.TaskCreateRequest;
-import de.ni0.chronoscope.controller.dto.request.TaskDependencyCreateRequest;
 import de.ni0.chronoscope.controller.dto.request.TaskUpdateRequest;
-import de.ni0.chronoscope.controller.dto.response.TaskDependencyResponse;
 import de.ni0.chronoscope.controller.dto.response.TaskResponse;
 import de.ni0.chronoscope.exception.AccountAccessDeniedException;
 import de.ni0.chronoscope.exception.AccountNotFoundException;
@@ -73,8 +71,8 @@ public class TaskController {
             case StaticTask staticTask -> taskMapper.toResponse(staticTask);
             case DynamicTask dynamicTask -> taskMapper.toResponse(dynamicTask);
             default -> {
-                String taskType = task == null ? "null" : task.getClass().getName();
-                String taskId = task == null ? "null" : String.valueOf(task.getId());
+                String taskType = task.getClass().getName();
+                String taskId = String.valueOf(task.getId());
                 throw new IllegalStateException("Unexpected task subtype in TaskController.mapTask: type=" + taskType + ", taskId=" + taskId);
             }
         };
@@ -125,7 +123,7 @@ public class TaskController {
     @GetMapping("/{id}")
     public TaskResponse getTask(
             @Parameter(description = "Task ID") @PathVariable Long id) {
-        throw new ApiNotImplementedException();
+        return mapTask(taskService.getTaskForIdentity(requestContext.getIdentityId(), id));
     }
 
     @Operation(summary = "Update task", description = "Partially update a task (PATCH semantics — omitted fields are left unchanged). The \"type\" discriminator must match the existing task type.")
@@ -152,35 +150,7 @@ public class TaskController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteTask(
             @Parameter(description = "Task ID") @PathVariable Long id) {
-        throw new ApiNotImplementedException();
-    }
-
-    @Operation(summary = "Create dependency", description = "Add a predecessor dependency to a dynamic task. The task identified by {id} will depend on predecessorDynamicTaskId.")
-    @ApiResponses({
-        @ApiResponse(responseCode = "201", description = "Dependency created"),
-        @ApiResponse(responseCode = "400", description = "Validation error or cycle detected", content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
-        @ApiResponse(responseCode = "401", description = "Missing or invalid token", content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
-        @ApiResponse(responseCode = "404", description = "Task not found", content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
-    })
-    @PostMapping("/{id}/dependencies")
-    public ResponseEntity<TaskDependencyResponse> createDependency(
-            @Parameter(description = "Dynamic task ID that gains the dependency") @PathVariable Long id,
-            @Valid @RequestBody TaskDependencyCreateRequest request) {
-        throw new ApiNotImplementedException();
-    }
-
-    @Operation(summary = "Delete dependency", description = "Remove a dependency link from a dynamic task.")
-    @ApiResponses({
-        @ApiResponse(responseCode = "204", description = "Dependency deleted"),
-        @ApiResponse(responseCode = "401", description = "Missing or invalid token", content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
-        @ApiResponse(responseCode = "404", description = "Task or dependency not found", content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
-    })
-    @DeleteMapping("/{id}/dependencies/{linkId}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteDependency(
-            @Parameter(description = "Dynamic task ID") @PathVariable Long id,
-            @Parameter(description = "Dependency link ID") @PathVariable Long linkId) {
-        throw new ApiNotImplementedException();
+        taskService.deleteTask(requestContext.getIdentityId(), id);
     }
 }
 
