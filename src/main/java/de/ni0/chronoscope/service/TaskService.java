@@ -36,7 +36,9 @@ public class TaskService {
 
     @Transactional(readOnly = true)
     public List<Task> getTasksForIdentity(long identityId) {
-        return this.taskRepository.findByAccountIdentityIdWithRelations(identityId);
+        List<Task> tasks = this.taskRepository.findByAccountIdentityId(identityId);
+        this.taskRepository.findDynamicTasksByAccountIdentityId(identityId);
+        return tasks;
     }
 
     @Transactional(readOnly = true)

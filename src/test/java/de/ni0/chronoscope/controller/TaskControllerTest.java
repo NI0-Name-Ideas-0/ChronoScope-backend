@@ -422,4 +422,33 @@ class TaskControllerTest {
         verify(taskService).getTaskForIdentity(99L, 300L);
         verifyNoMoreInteractions(taskService, taskMapper, accountRepository);
     }
+
+    @Test
+    void updateTask_ThrowsWhenStaticPayloadTargetsDynamicTask() {
+        RequestContext requestContext = new RequestContext();
+        requestContext.setIdentityId(99L);
+        TaskController controller = new TaskController(taskService, taskMapper, accountRepository, requestContext);
+
+        DynamicTask existingTask = new DynamicTask();
+        existingTask.setId(301L);
+
+        StaticTaskUpdateRequest request = new StaticTaskUpdateRequest(
+            "Static name",
+            "Static description",
+            "FREQ=WEEKLY",
+            2,
+            Instant.parse("2026-04-20T09:00:00Z"),
+            Instant.parse("2026-04-20T10:00:00Z"),
+            List.of(),
+            false
+        );
+
+        when(taskService.getTaskForIdentity(99L, 301L)).thenReturn(existingTask);
+
+        InvalidRequestException ignored = assertThrows(InvalidRequestException.class, () -> controller.updateTask(301L, request));
+        assertEquals(InvalidRequestException.class, ignored.getClass());
+
+        verify(taskService).getTaskForIdentity(99L, 301L);
+        verifyNoMoreInteractions(taskService, taskMapper, accountRepository);
+    }
 }

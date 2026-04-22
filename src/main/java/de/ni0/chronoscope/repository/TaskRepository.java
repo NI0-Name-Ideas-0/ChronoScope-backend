@@ -14,15 +14,8 @@ import de.ni0.chronoscope.model.Task;
 	@EntityGraph(attributePaths = { "labels" })
 	List<Task> findByAccountIdentityId(long identityId);
 
-	@Query("""
-		select distinct t from Task t
-		left join fetch t.labels
-		left join fetch treat(t as DynamicTask).dependencies
-		left join fetch treat(t as DynamicTask).dependents
-		left join fetch treat(t as DynamicTask).scopes
-		where t.account.identity.id = :identityId
-		""")
-	List<Task> findByAccountIdentityIdWithRelations(@Param("identityId") long identityId);
+	@EntityGraph(attributePaths = { "dependencies", "dependents" })
+	List<DynamicTask> findDynamicTasksByAccountIdentityId(long identityId);
 
 	Optional<Task> findByIdAndAccountIdentityId(Long id, Long identityId);
 

@@ -481,6 +481,129 @@ class TaskControllerIT {
     }
 
     @Test
+    void updateTask_Dynamic_AllowsElapsedZero() throws Exception {
+        String subject = createAccountSubject();
+        long accountId = createAccount(subject);
+
+        DynamicTask task = new DynamicTask();
+        task.setAccount(accountRepository.getReferenceById(accountId));
+        task.setName("Dynamic task");
+        task.setDescription("Can reset elapsed to zero");
+        task.setDifficulty(3);
+        task.setStartAt(Instant.parse("2026-04-21T08:00:00Z"));
+        task.setEndAt(Instant.parse("2026-04-24T18:00:00Z"));
+        task.setRrule("FREQ=DAILY");
+        task.setDuration(180);
+        task.setElapsed(45);
+        task.setMinScopeDuration(30);
+        task.setMaxScopeDuration(90);
+        task.setLabels(new ArrayList<>());
+        task.setScopes(new ArrayList<>());
+        task.setDependencies(new HashSet<>());
+        task.setDependents(new HashSet<>());
+        long taskId = taskRepository.saveAndFlush(task).getId();
+
+        String payload = """
+            {
+              "type": "dynamic",
+              "elapsed": 0
+            }
+            """;
+
+        mockMvc.perform(patch("/v1/tasks/{id}", taskId)
+                .with(jwt().jwt(jwt -> jwt.subject(subject)))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.id").value(taskId))
+            .andExpect(jsonPath("$.type").value("dynamic"))
+            .andExpect(jsonPath("$.elapsed").value(0));
+
+        DynamicTask updatedTask = (DynamicTask) taskRepository.findById(taskId).orElseThrow();
+        assertTrue(updatedTask.getElapsed() == 0);
+    }
+
+    @Test
+    void updateTask_Dynamic_NegativeElapsed_ReturnsValidationError() throws Exception {
+        String subject = createAccountSubject();
+        long accountId = createAccount(subject);
+
+        DynamicTask task = new DynamicTask();
+        task.setAccount(accountRepository.getReferenceById(accountId));
+        task.setName("Dynamic task");
+        task.setDescription("Should reject negative elapsed");
+        task.setDifficulty(3);
+        task.setStartAt(Instant.parse("2026-04-21T08:00:00Z"));
+        task.setEndAt(Instant.parse("2026-04-24T18:00:00Z"));
+        task.setRrule("FREQ=DAILY");
+        task.setDuration(180);
+        task.setElapsed(10);
+        task.setMinScopeDuration(30);
+        task.setMaxScopeDuration(90);
+        task.setLabels(new ArrayList<>());
+        task.setScopes(new ArrayList<>());
+        task.setDependencies(new HashSet<>());
+        task.setDependents(new HashSet<>());
+        long taskId = taskRepository.saveAndFlush(task).getId();
+
+        String payload = """
+            {
+              "type": "dynamic",
+              "elapsed": -1
+            }
+            """;
+
+        mockMvc.perform(patch("/v1/tasks/{id}", taskId)
+                .with(jwt().jwt(jwt -> jwt.subject(subject)))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload))
+            .andExpect(status().isBadRequest())
+            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+            .andExpect(jsonPath("$.type").value("urn:chronoscope:error:validation-error"))
+            .andExpect(jsonPath("$.fieldErrors[*].field", hasItem("elapsed")));
+    }
+
+    @Test
+    void updateTask_Dynamic_WithStaticTypePayload_ReturnsValidationError() throws Exception {
+        String subject = createAccountSubject();
+        long accountId = createAccount(subject);
+
+        DynamicTask task = new DynamicTask();
+        task.setAccount(accountRepository.getReferenceById(accountId));
+        task.setName("Dynamic task");
+        task.setDescription("Type mismatch case");
+        task.setDifficulty(3);
+        task.setStartAt(Instant.parse("2026-04-21T08:00:00Z"));
+        task.setEndAt(Instant.parse("2026-04-24T18:00:00Z"));
+        task.setRrule("FREQ=DAILY");
+        task.setDuration(180);
+        task.setElapsed(10);
+        task.setMinScopeDuration(30);
+        task.setMaxScopeDuration(90);
+        task.setLabels(new ArrayList<>());
+        task.setScopes(new ArrayList<>());
+        task.setDependencies(new HashSet<>());
+        task.setDependents(new HashSet<>());
+        long taskId = taskRepository.saveAndFlush(task).getId();
+
+        String payload = """
+            {
+              "type": "static",
+              "name": "Attempted static update"
+            }
+            """;
+
+        mockMvc.perform(patch("/v1/tasks/{id}", taskId)
+                .with(jwt().jwt(jwt -> jwt.subject(subject)))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload))
+            .andExpect(status().isBadRequest())
+            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+            .andExpect(jsonPath("$.type").value("urn:chronoscope:error:validation-error"))
+            .andExpect(jsonPath("$.detail").value("Task type mismatch: expected static task"));
+    }
+
+    @Test
     void updateTask_Dynamic_RemovesDependencyAndCleansInverseRelation() throws Exception {
         String subject = createAccountSubject();
         long accountId = createAccount(subject);
