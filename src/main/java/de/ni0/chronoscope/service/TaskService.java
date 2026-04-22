@@ -36,7 +36,7 @@ public class TaskService {
 
     @Transactional(readOnly = true)
     public List<Task> getTasksForIdentity(long identityId) {
-        return this.taskRepository.findByAccountIdentityId(identityId);
+        return this.taskRepository.findByAccountIdentityIdWithRelations(identityId);
     }
 
     @Transactional(readOnly = true)
@@ -69,46 +69,95 @@ public class TaskService {
         this.taskRepository.flush();
     }
 
+    @Transactional
     public DynamicTask updateDynamicTask(Long id, DynamicTask task) {
         return updateDynamicTask(id, task, null);
     }
 
+    @Transactional
     public DynamicTask updateDynamicTask(Long id, DynamicTask task, List<Long> dependencyIds) {
         //TODO: validate task (e.g. duration > 0, minScopeDuration <= maxScopeDuration, etc.)
         if (!Objects.equals(id, task.getId())) {
             throw new InvalidRequestException("Task id in path does not match target task");
         }
 
-        if (dependencyIds != null) {
-            Set<DynamicTask> previousDependencies = new HashSet<>(task.getDependencies());
-            Set<DynamicTask> updatedDependencies = resolveAndValidateDependencies(task, dependencyIds);
+        Task persistedTask = this.taskRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Task not found: " + id));
+        if (!(persistedTask instanceof DynamicTask managedTask)) {
+            throw new InvalidRequestException("Task type mismatch: expected dynamic task");
+        }
 
-            for (DynamicTask previousDependency : previousDependencies) {
-                if (!updatedDependencies.contains(previousDependency)) {
-                    previousDependency.getDependents().remove(task);
-                }
-            }
+        managedTask.setName(task.getName());
+        managedTask.setDescription(task.getDescription());
+        managedTask.setDifficulty(task.getDifficulty());
+        managedTask.setStartAt(task.getStartAt());
+        managedTask.setEndAt(task.getEndAt());
+        managedTask.setRrule(task.getRrule());
+        managedTask.setDuration(task.getDuration());
+        managedTask.setElapsed(task.getElapsed());
+        managedTask.setMinScopeDuration(task.getMinScopeDuration());
+        managedTask.setMaxScopeDuration(task.getMaxScopeDuration());
 
-            task.getDependencies().clear();
-            task.getDependencies().addAll(updatedDependencies);
-
-            for (DynamicTask currentDependency : updatedDependencies) {
-                currentDependency.getDependents().add(task);
+        if (task.getLabels() != null) {
+            managedTask.setLabels(task.getLabels());
+            for (var label : managedTask.getLabels()) {
+                label.setTask(managedTask);
             }
         }
 
-        validateDependencyIdentity(task);
+        if (dependencyIds != null) {
+            Set<DynamicTask> previousDependencies = new HashSet<>(managedTask.getDependencies());
+            Set<DynamicTask> updatedDependencies = resolveAndValidateDependencies(managedTask, dependencyIds);
+
+            for (DynamicTask previousDependency : previousDependencies) {
+                if (!updatedDependencies.contains(previousDependency)) {
+                    previousDependency.getDependents().remove(managedTask);
+                }
+            }
+
+            managedTask.getDependencies().clear();
+            managedTask.getDependencies().addAll(updatedDependencies);
+
+            for (DynamicTask currentDependency : updatedDependencies) {
+                currentDependency.getDependents().add(managedTask);
+            }
+        }
+
+        validateDependencyIdentity(managedTask);
         this.taskRepository.flush();
-        return task;
+        return managedTask;
     }
 
+    @Transactional
     public StaticTask updateStaticTask(Long id, StaticTask task) {
         //TODO: validate task (e.g. startAt < endAt, etc.)
         if (!Objects.equals(id, task.getId())) {
             throw new InvalidRequestException("Task id in path does not match target task");
         }
+
+        Task persistedTask = this.taskRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Task not found: " + id));
+        if (!(persistedTask instanceof StaticTask managedTask)) {
+            throw new InvalidRequestException("Task type mismatch: expected static task");
+        }
+
+        managedTask.setName(task.getName());
+        managedTask.setDescription(task.getDescription());
+        managedTask.setDifficulty(task.getDifficulty());
+        managedTask.setStartAt(task.getStartAt());
+        managedTask.setEndAt(task.getEndAt());
+        managedTask.setRrule(task.getRrule());
+        managedTask.setIsBlocker(task.getIsBlocker());
+
+        if (task.getLabels() != null) {
+            managedTask.setLabels(task.getLabels());
+            for (var label : managedTask.getLabels()) {
+                label.setTask(managedTask);
+            }
+        }
+
         this.taskRepository.flush();
-        return task;
+        return managedTask;
     }
 
     private Set<DynamicTask> resolveAndValidateDependencies(DynamicTask task, List<Long> dependencyIds) {

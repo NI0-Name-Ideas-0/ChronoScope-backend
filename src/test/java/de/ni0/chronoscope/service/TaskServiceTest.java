@@ -263,13 +263,46 @@ class TaskServiceTest {
         task.setId(200L);
         task.setAccount(account);
         task.setDependencies(new java.util.HashSet<>(Set.of(dependencyRef)));
+        task.setLabels(new java.util.ArrayList<>());
+        task.setScopes(new java.util.ArrayList<>());
 
+        DynamicTask managedTask = new DynamicTask();
+        managedTask.setId(200L);
+        managedTask.setAccount(account);
+        managedTask.setDependencies(new java.util.HashSet<>(Set.of(dependencyRef)));
+        managedTask.setDependents(new java.util.HashSet<>());
+        managedTask.setLabels(new java.util.ArrayList<>());
+        managedTask.setScopes(new java.util.ArrayList<>());
+
+        when(taskRepository.findById(200L)).thenReturn(Optional.of(managedTask));
         when(taskRepository.findAllById(Set.of(500L))).thenReturn(List.of(dependency));
 
         DynamicTask result = taskService.updateDynamicTask(200L, task);
 
-        assertEquals(task, result);
+        assertEquals(managedTask, result);
+        verify(taskRepository).findById(200L);
         verify(taskRepository).findAllById(Set.of(500L));
+        verify(taskRepository).flush();
+    }
+
+    @Test
+    void updateStaticTask_PersistsAndFlushes() {
+        TaskService taskService = new TaskService(taskRepository);
+
+        StaticTask task = new StaticTask();
+        task.setId(100L);
+        task.setLabels(new java.util.ArrayList<>());
+
+        StaticTask managedTask = new StaticTask();
+        managedTask.setId(100L);
+        managedTask.setLabels(new java.util.ArrayList<>());
+
+        when(taskRepository.findById(100L)).thenReturn(Optional.of(managedTask));
+
+        StaticTask result = taskService.updateStaticTask(100L, task);
+
+        assertEquals(managedTask, result);
+        verify(taskRepository).findById(100L);
         verify(taskRepository).flush();
     }
 }

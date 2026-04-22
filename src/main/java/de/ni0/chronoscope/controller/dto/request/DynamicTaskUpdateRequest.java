@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 
 @Schema(description = "Update request for a dynamic (schedulable) task")
@@ -19,7 +20,7 @@ public record DynamicTaskUpdateRequest(
     Instant endAt,
     List<@Valid @NotNull LabelCreateRequest> labels,
     @Positive Integer duration,
-    @Positive Integer elapsed,
+    @PositiveOrZero Integer elapsed,
     @Positive Integer minScopeDuration,
     @Positive Integer maxScopeDuration,
     List<@NotNull Long> dependencies
