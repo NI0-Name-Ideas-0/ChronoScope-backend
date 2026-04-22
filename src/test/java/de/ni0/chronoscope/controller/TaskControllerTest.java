@@ -19,12 +19,15 @@ import org.springframework.http.ResponseEntity;
 
 import de.ni0.chronoscope.config.RequestContext;
 import de.ni0.chronoscope.controller.dto.request.DynamicTaskCreateRequest;
+import de.ni0.chronoscope.controller.dto.request.DynamicTaskUpdateRequest;
 import de.ni0.chronoscope.controller.dto.request.StaticTaskCreateRequest;
+import de.ni0.chronoscope.controller.dto.request.StaticTaskUpdateRequest;
 import de.ni0.chronoscope.controller.dto.response.DynamicTaskResponse;
 import de.ni0.chronoscope.controller.dto.response.StaticTaskResponse;
 import de.ni0.chronoscope.controller.dto.response.TaskResponse;
 import de.ni0.chronoscope.exception.AccountAccessDeniedException;
 import de.ni0.chronoscope.exception.AccountNotFoundException;
+import de.ni0.chronoscope.exception.InvalidRequestException;
 import de.ni0.chronoscope.mapper.TaskMapper;
 import de.ni0.chronoscope.model.Account;
 import de.ni0.chronoscope.model.DynamicTask;
@@ -251,7 +254,8 @@ class TaskControllerTest {
 
         when(accountRepository.findById(12L)).thenReturn(Optional.empty());
 
-        assertThrows(AccountNotFoundException.class, () -> controller.createTask(request));
+        AccountNotFoundException ignored = assertThrows(AccountNotFoundException.class, () -> controller.createTask(request));
+        assertEquals(AccountNotFoundException.class, ignored.getClass());
         verify(accountRepository).findById(12L);
         verifyNoMoreInteractions(taskMapper, taskService, accountRepository);
     }
@@ -282,7 +286,8 @@ class TaskControllerTest {
 
         when(accountRepository.findById(13L)).thenReturn(Optional.of(account));
 
-        assertThrows(AccountAccessDeniedException.class, () -> controller.createTask(request));
+        AccountAccessDeniedException ignored = assertThrows(AccountAccessDeniedException.class, () -> controller.createTask(request));
+        assertEquals(AccountAccessDeniedException.class, ignored.getClass());
         verify(accountRepository).findById(13L);
         verifyNoMoreInteractions(taskMapper, taskService, accountRepository);
     }
@@ -335,6 +340,86 @@ class TaskControllerTest {
         assertEquals(expectedResponse, result);
         verify(taskService).getTaskForIdentity(99L, 500L);
         verify(taskMapper).toResponse(dynamicTask);
+        verifyNoMoreInteractions(taskService, taskMapper, accountRepository);
+    }
+
+    @Test
+    void updateTask_Static_UpdatesAndMapsResponse() {
+        RequestContext requestContext = new RequestContext();
+        requestContext.setIdentityId(99L);
+        TaskController controller = new TaskController(taskService, taskMapper, accountRepository, requestContext);
+
+        StaticTask existingTask = new StaticTask();
+        existingTask.setId(200L);
+
+        StaticTaskUpdateRequest request = new StaticTaskUpdateRequest(
+            "Updated static task",
+            "Updated description",
+            "FREQ=WEEKLY",
+            2,
+            Instant.parse("2026-04-20T09:00:00Z"),
+            Instant.parse("2026-04-20T10:00:00Z"),
+            List.of(),
+            true
+        );
+
+        StaticTaskResponse expectedResponse = new StaticTaskResponse(
+            200L,
+            10L,
+            "Updated static task",
+            "Updated description",
+            2,
+            Instant.parse("2026-04-20T09:00:00Z"),
+            Instant.parse("2026-04-20T10:00:00Z"),
+            "FREQ=WEEKLY",
+            List.of(),
+            true
+        );
+
+        when(taskService.getTaskForIdentity(99L, 200L)).thenReturn(existingTask);
+        when(taskService.updateStaticTask(200L, existingTask)).thenReturn(existingTask);
+        when(taskMapper.toResponse(existingTask)).thenReturn(expectedResponse);
+
+        TaskResponse result = controller.updateTask(200L, request);
+
+        assertEquals(expectedResponse, result);
+        verify(taskService).getTaskForIdentity(99L, 200L);
+        verify(taskMapper).fromUpdateRequest(request, existingTask);
+        verify(taskService).updateStaticTask(200L, existingTask);
+        verify(taskMapper).toResponse(existingTask);
+        verifyNoMoreInteractions(taskService, taskMapper, accountRepository);
+    }
+
+    @Test
+    void updateTask_ThrowsWhenTypeDoesNotMatchPersistedTask() {
+        RequestContext requestContext = new RequestContext();
+        requestContext.setIdentityId(99L);
+        TaskController controller = new TaskController(taskService, taskMapper, accountRepository, requestContext);
+
+        StaticTask existingTask = new StaticTask();
+        existingTask.setId(300L);
+
+        DynamicTaskUpdateRequest request = new DynamicTaskUpdateRequest(
+            "Dynamic name",
+            "Dynamic description",
+            "FREQ=DAILY",
+            2,
+            Instant.parse("2026-04-20T09:00:00Z"),
+            Instant.parse("2026-04-20T10:00:00Z"),
+            List.of(),
+            90,
+            15,
+            15,
+            60,
+            List.of()
+        );
+
+        when(taskService.getTaskForIdentity(99L, 300L)).thenReturn(existingTask);
+
+        InvalidRequestException ignored = assertThrows(InvalidRequestException.class, () -> controller.updateTask(300L, request));
+        assertEquals(InvalidRequestException.class, ignored.getClass());
+
+        verify(taskService).getTaskForIdentity(99L, 300L);
         verifyNoMoreInteractions(taskService, taskMapper, accountRepository);
     }
 }

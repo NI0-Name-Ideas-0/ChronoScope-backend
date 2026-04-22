@@ -70,14 +70,88 @@ public class TaskService {
     }
 
     public DynamicTask updateDynamicTask(Long id, DynamicTask task) {
+        return updateDynamicTask(id, task, null);
+    }
+
+    public DynamicTask updateDynamicTask(Long id, DynamicTask task, List<Long> dependencyIds) {
         //TODO: validate task (e.g. duration > 0, minScopeDuration <= maxScopeDuration, etc.)
+        if (!Objects.equals(id, task.getId())) {
+            throw new InvalidRequestException("Task id in path does not match target task");
+        }
+
+        if (dependencyIds != null) {
+            Set<DynamicTask> previousDependencies = new HashSet<>(task.getDependencies());
+            Set<DynamicTask> updatedDependencies = resolveAndValidateDependencies(task, dependencyIds);
+
+            for (DynamicTask previousDependency : previousDependencies) {
+                if (!updatedDependencies.contains(previousDependency)) {
+                    previousDependency.getDependents().remove(task);
+                }
+            }
+
+            task.getDependencies().clear();
+            task.getDependencies().addAll(updatedDependencies);
+
+            for (DynamicTask currentDependency : updatedDependencies) {
+                currentDependency.getDependents().add(task);
+            }
+        }
+
         validateDependencyIdentity(task);
-        return this.taskRepository.save(task);
+        this.taskRepository.flush();
+        return task;
     }
 
     public StaticTask updateStaticTask(Long id, StaticTask task) {
         //TODO: validate task (e.g. startAt < endAt, etc.)
-        return this.taskRepository.save(task);
+        if (!Objects.equals(id, task.getId())) {
+            throw new InvalidRequestException("Task id in path does not match target task");
+        }
+        this.taskRepository.flush();
+        return task;
+    }
+
+    private Set<DynamicTask> resolveAndValidateDependencies(DynamicTask task, List<Long> dependencyIds) {
+        Set<Long> dependencyIdSet = dependencyIds.stream()
+            .collect(Collectors.toSet());
+
+        if (dependencyIdSet.isEmpty()) {
+            return new HashSet<>();
+        }
+
+        Long sourceIdentityId = task.getAccount() != null
+            && task.getAccount().getIdentity() != null
+            ? task.getAccount().getIdentity().getId()
+            : null;
+
+        if (sourceIdentityId == null) {
+            throw new InvalidRequestException("Dynamic task account identity must be set");
+        }
+
+        Map<Long, Task> dependenciesById = this.taskRepository.findAllById(dependencyIdSet).stream()
+            .collect(Collectors.toMap(Task::getId, Function.identity()));
+
+        Set<DynamicTask> resolvedDependencies = new HashSet<>();
+
+        for (Long dependencyId : dependencyIdSet) {
+            Task dependencyTask = dependenciesById.get(dependencyId);
+            if (!(dependencyTask instanceof DynamicTask dynamicDependency)) {
+                throw new InvalidRequestException("Dependency task not found: " + dependencyId);
+            }
+
+            Long dependencyIdentityId = dynamicDependency.getAccount() != null
+                && dynamicDependency.getAccount().getIdentity() != null
+                ? dynamicDependency.getAccount().getIdentity().getId()
+                : null;
+
+            if (!Objects.equals(sourceIdentityId, dependencyIdentityId)) {
+                throw new InvalidRequestException("Dependency task " + dependencyId + " must belong to the same identity");
+            }
+
+            resolvedDependencies.add(dynamicDependency);
+        }
+
+        return resolvedDependencies;
     }
 
     private void validateDependencyIdentity(DynamicTask task) {

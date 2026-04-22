@@ -358,7 +358,9 @@ paths:
       - Tasks
     patch:
       description: Partially update a task (PATCH semantics — omitted fields are left
-        unchanged). The "type" discriminator must match the existing task type.
+        unchanged). The "type" discriminator must match the existing task type. The
+        path parameter "id" is authoritative. Request payload must not contain read-only
+        fields such as id, accountId, scopes, or dependents.
       operationId: updateTask
       parameters:
       - description: Task ID
@@ -697,6 +699,11 @@ components:
       - $ref: "#/components/schemas/TaskUpdateRequest"
       - type: object
         properties:
+          dependencies:
+            type: array
+            items:
+              type: integer
+              format: int64
           description:
             type: string
           difficulty:
