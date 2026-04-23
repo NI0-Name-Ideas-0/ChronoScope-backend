@@ -1,6 +1,8 @@
 package de.ni0.chronoscope.controller;
 
+import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
 
@@ -79,10 +81,10 @@ class TaskControllerTest {
             Instant.parse("2026-04-22T18:00:00Z"),
             "FREQ=DAILY",
             List.of(),
-            120,
-            0,
-            30,
-            60,
+                Duration.ofMinutes(120),
+                Duration.ofMinutes(0),
+                Duration.ofMinutes(30),
+                Duration.ofMinutes(60),
             List.of(),
             List.of()
         );
@@ -182,9 +184,9 @@ class TaskControllerTest {
             Instant.parse("2026-04-20T08:00:00Z"),
             Instant.parse("2026-04-25T18:00:00Z"),
             List.of(),
-            240,
-            30,
-            120,
+                Duration.of(240, ChronoUnit.MINUTES),
+                Duration.of(30, ChronoUnit.MINUTES),
+                Duration.of(120, ChronoUnit.MINUTES),
             List.of()
         );
 
@@ -206,10 +208,10 @@ class TaskControllerTest {
             Instant.parse("2026-04-25T18:00:00Z"),
             "FREQ=DAILY",
             List.of(),
-            240,
-            0,
-            30,
-            120,
+                Duration.of(240, ChronoUnit.MINUTES),
+                Duration.of(0, ChronoUnit.MINUTES),
+                Duration.of(30, ChronoUnit.MINUTES),
+                Duration.of(120, ChronoUnit.MINUTES),
             List.of(),
             List.of()
         );

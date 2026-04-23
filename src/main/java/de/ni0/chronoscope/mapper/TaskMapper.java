@@ -55,7 +55,7 @@ public interface TaskMapper {
     @Mapping(target = "maxScopeDuration", source = "maxScopeDuration")
     @Mapping(target = "scopes", expression = "java(new java.util.ArrayList<>())") // default to empty list because it's not provided by request
     @Mapping(target = "dependencies", source = "dependencies")
-    @Mapping(target = "elapsed", constant = "0") // default to 0 because it's not provided by request
+    @Mapping(target = "elapsed", ignore = true)
     DynamicTask fromCreateRequest(DynamicTaskCreateRequest request);
 
     //! DO NOT USE YET

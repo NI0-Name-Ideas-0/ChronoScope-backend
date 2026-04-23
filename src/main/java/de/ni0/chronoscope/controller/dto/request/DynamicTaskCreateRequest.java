@@ -1,5 +1,6 @@
 package de.ni0.chronoscope.controller.dto.request;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
@@ -19,9 +20,9 @@ public record DynamicTaskCreateRequest(
     @NotNull Instant startAt,
     @NotNull Instant endAt,
     @NotNull List<@Valid @NotNull LabelCreateRequest> labels,
-    @NotNull @Positive Integer duration,
-    @NotNull @Positive Integer minScopeDuration,
-    @NotNull @Positive Integer maxScopeDuration,
+    @NotNull Duration duration,
+    @NotNull Duration minScopeDuration,
+    @NotNull Duration maxScopeDuration,
     @NotNull List<@Valid @NotNull TaskDependencyCreateRequest> dependencies
 ) implements TaskCreateRequest {
 }
