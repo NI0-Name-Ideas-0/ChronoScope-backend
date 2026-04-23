@@ -364,8 +364,8 @@ class TaskControllerIT {
                         .andExpect(jsonPath("$.detail").value("Dependency task " + predecessorId + " must belong to the same identity"));
         }
 
-            @Test
-            void getTask_Dynamic_ReturnsDependenciesAndDependentsFields() throws Exception {
+        @Test
+        void getTask_Dynamic_ReturnsDependenciesAndDependentsFields() throws Exception {
             String subject = createAccountSubject();
             long accountId = createAccount(subject);
             long predecessorId = createDynamicPredecessorTask(accountId);
@@ -378,10 +378,10 @@ class TaskControllerIT {
             dependent.setStartAt(Instant.parse("2026-04-21T08:00:00Z"));
             dependent.setEndAt(Instant.parse("2026-04-24T18:00:00Z"));
             dependent.setRrule("FREQ=DAILY");
-            dependent.setDuration(180);
-            dependent.setElapsed(0);
-            dependent.setMinScopeDuration(30);
-            dependent.setMaxScopeDuration(90);
+            dependent.setDuration(Duration.of(180, ChronoUnit.MINUTES));
+            dependent.setElapsed(Duration.of(0, ChronoUnit.MINUTES));
+            dependent.setMinScopeDuration(Duration.of(30, ChronoUnit.MINUTES));
+            dependent.setMaxScopeDuration(Duration.of(90, ChronoUnit.MINUTES));
             dependent.setLabels(new ArrayList<>());
             dependent.setScopes(new ArrayList<>());
             dependent.setDependencies(new HashSet<>(List.of((DynamicTask) taskRepository.getReferenceById(predecessorId))));
@@ -453,10 +453,10 @@ class TaskControllerIT {
         task.setStartAt(Instant.parse("2026-04-21T08:00:00Z"));
         task.setEndAt(Instant.parse("2026-04-24T18:00:00Z"));
         task.setRrule("FREQ=DAILY");
-        task.setDuration(180);
-        task.setElapsed(0);
-        task.setMinScopeDuration(30);
-        task.setMaxScopeDuration(90);
+        task.setDuration(Duration.of(180, ChronoUnit.MINUTES));
+        task.setElapsed(Duration.of(0, ChronoUnit.MINUTES));
+        task.setMinScopeDuration(Duration.of(30, ChronoUnit.MINUTES));
+        task.setMaxScopeDuration(Duration.of(90, ChronoUnit.MINUTES));
         task.setLabels(new ArrayList<>());
         task.setScopes(new ArrayList<>());
         task.setDependencies(new HashSet<>(List.of((DynamicTask) taskRepository.getReferenceById(predecessorId))));
@@ -495,10 +495,10 @@ class TaskControllerIT {
         task.setStartAt(Instant.parse("2026-04-21T08:00:00Z"));
         task.setEndAt(Instant.parse("2026-04-24T18:00:00Z"));
         task.setRrule("FREQ=DAILY");
-        task.setDuration(180);
-        task.setElapsed(45);
-        task.setMinScopeDuration(30);
-        task.setMaxScopeDuration(90);
+        task.setDuration(Duration.of(180, ChronoUnit.MINUTES));
+        task.setElapsed(Duration.of(45, ChronoUnit.MINUTES));
+        task.setMinScopeDuration(Duration.of(30, ChronoUnit.MINUTES));
+        task.setMaxScopeDuration(Duration.of(90, ChronoUnit.MINUTES));
         task.setLabels(new ArrayList<>());
         task.setScopes(new ArrayList<>());
         task.setDependencies(new HashSet<>());
@@ -519,10 +519,10 @@ class TaskControllerIT {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.id").value(taskId))
             .andExpect(jsonPath("$.type").value("dynamic"))
-            .andExpect(jsonPath("$.elapsed").value(0));
+            .andExpect(jsonPath("$.elapsed").value("PT0S"));
 
         DynamicTask updatedTask = (DynamicTask) taskRepository.findById(taskId).orElseThrow();
-        assertTrue(updatedTask.getElapsed() == 0);
+        assertTrue(updatedTask.getElapsed().isZero());
     }
 
     @Test
@@ -538,10 +538,10 @@ class TaskControllerIT {
         task.setStartAt(Instant.parse("2026-04-21T08:00:00Z"));
         task.setEndAt(Instant.parse("2026-04-24T18:00:00Z"));
         task.setRrule("FREQ=DAILY");
-        task.setDuration(180);
-        task.setElapsed(10);
-        task.setMinScopeDuration(30);
-        task.setMaxScopeDuration(90);
+        task.setDuration(Duration.of(180, ChronoUnit.MINUTES));
+        task.setElapsed(Duration.of(10, ChronoUnit.MINUTES));
+        task.setMinScopeDuration(Duration.of(30, ChronoUnit.MINUTES));
+        task.setMaxScopeDuration(Duration.of(90, ChronoUnit.MINUTES));
         task.setLabels(new ArrayList<>());
         task.setScopes(new ArrayList<>());
         task.setDependencies(new HashSet<>());
@@ -562,7 +562,7 @@ class TaskControllerIT {
             .andExpect(status().isBadRequest())
             .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
             .andExpect(jsonPath("$.type").value("urn:chronoscope:error:validation-error"))
-            .andExpect(jsonPath("$.fieldErrors[*].field", hasItem("elapsed")));
+            .andExpect(jsonPath("$.fieldErrors[*].field", hasItem("elapsedValid")));
     }
 
     @Test
@@ -578,10 +578,10 @@ class TaskControllerIT {
         task.setStartAt(Instant.parse("2026-04-21T08:00:00Z"));
         task.setEndAt(Instant.parse("2026-04-24T18:00:00Z"));
         task.setRrule("FREQ=DAILY");
-        task.setDuration(180);
-        task.setElapsed(10);
-        task.setMinScopeDuration(30);
-        task.setMaxScopeDuration(90);
+        task.setDuration(Duration.of(180, ChronoUnit.MINUTES));
+        task.setElapsed(Duration.of(10, ChronoUnit.MINUTES));
+        task.setMinScopeDuration(Duration.of(30, ChronoUnit.MINUTES));
+        task.setMaxScopeDuration(Duration.of(90, ChronoUnit.MINUTES));
         task.setLabels(new ArrayList<>());
         task.setScopes(new ArrayList<>());
         task.setDependencies(new HashSet<>());
@@ -620,10 +620,10 @@ class TaskControllerIT {
         dependent.setStartAt(Instant.parse("2026-04-21T08:00:00Z"));
         dependent.setEndAt(Instant.parse("2026-04-24T18:00:00Z"));
         dependent.setRrule("FREQ=DAILY");
-        dependent.setDuration(180);
-        dependent.setElapsed(0);
-        dependent.setMinScopeDuration(30);
-        dependent.setMaxScopeDuration(90);
+        dependent.setDuration(Duration.of(180, ChronoUnit.MINUTES));
+        dependent.setElapsed(Duration.of(0, ChronoUnit.MINUTES));
+        dependent.setMinScopeDuration(Duration.of(30, ChronoUnit.MINUTES));
+        dependent.setMaxScopeDuration(Duration.of(90, ChronoUnit.MINUTES));
         dependent.setLabels(new ArrayList<>());
         dependent.setScopes(new ArrayList<>());
         dependent.setDependencies(new HashSet<>(List.of((DynamicTask) taskRepository.getReferenceById(predecessorId))));
@@ -672,10 +672,10 @@ class TaskControllerIT {
         dependent.setStartAt(Instant.parse("2026-04-21T08:00:00Z"));
         dependent.setEndAt(Instant.parse("2026-04-24T18:00:00Z"));
         dependent.setRrule("FREQ=DAILY");
-        dependent.setDuration(180);
-        dependent.setElapsed(0);
-        dependent.setMinScopeDuration(30);
-        dependent.setMaxScopeDuration(90);
+        dependent.setDuration(Duration.of(180, ChronoUnit.MINUTES));
+        dependent.setElapsed(Duration.of(0, ChronoUnit.MINUTES));
+        dependent.setMinScopeDuration(Duration.of(30, ChronoUnit.MINUTES));
+        dependent.setMaxScopeDuration(Duration.of(90, ChronoUnit.MINUTES));
         dependent.setLabels(new ArrayList<>());
         dependent.setScopes(new ArrayList<>());
         dependent.setDependencies(new HashSet<>());
@@ -727,10 +727,10 @@ class TaskControllerIT {
         task.setStartAt(Instant.parse("2026-04-21T08:00:00Z"));
         task.setEndAt(Instant.parse("2026-04-24T18:00:00Z"));
         task.setRrule("FREQ=DAILY");
-        task.setDuration(180);
-        task.setElapsed(0);
-        task.setMinScopeDuration(30);
-        task.setMaxScopeDuration(90);
+        task.setDuration(Duration.of(180, ChronoUnit.MINUTES));
+        task.setElapsed(Duration.of(0, ChronoUnit.MINUTES));
+        task.setMinScopeDuration(Duration.of(30, ChronoUnit.MINUTES));
+        task.setMaxScopeDuration(Duration.of(90, ChronoUnit.MINUTES));
         task.setLabels(new ArrayList<>());
         task.setScopes(new ArrayList<>());
         task.setDependencies(new HashSet<>());
@@ -940,10 +940,10 @@ class TaskControllerIT {
         predecessor.setStartAt(Instant.parse("2026-04-20T08:00:00Z"));
         predecessor.setEndAt(Instant.parse("2026-04-22T18:00:00Z"));
         predecessor.setRrule("FREQ=DAILY");
-        predecessor.setDuration(120);
-        predecessor.setElapsed(0);
-        predecessor.setMinScopeDuration(30);
-        predecessor.setMaxScopeDuration(60);
+        predecessor.setDuration(Duration.of(120, ChronoUnit.MINUTES));
+        predecessor.setElapsed(Duration.of(0, ChronoUnit.MINUTES));
+        predecessor.setMinScopeDuration(Duration.of(30, ChronoUnit.MINUTES));
+        predecessor.setMaxScopeDuration(Duration.of(60, ChronoUnit.MINUTES));
         predecessor.setLabels(new ArrayList<>());
         predecessor.setDependencies(new HashSet<>());
         predecessor.setDependents(new HashSet<>());
@@ -966,10 +966,10 @@ class TaskControllerIT {
         dependent.setStartAt(Instant.parse("2026-04-20T08:00:00Z"));
         dependent.setEndAt(Instant.parse("2026-04-24T18:00:00Z"));
         dependent.setRrule("FREQ=DAILY");
-        dependent.setDuration(240);
-        dependent.setElapsed(0);
-        dependent.setMinScopeDuration(30);
-        dependent.setMaxScopeDuration(120);
+        dependent.setDuration(Duration.of(240, ChronoUnit.MINUTES));
+        dependent.setElapsed(Duration.of(0, ChronoUnit.MINUTES));
+        dependent.setMinScopeDuration(Duration.of(30, ChronoUnit.MINUTES));
+        dependent.setMaxScopeDuration(Duration.of(120, ChronoUnit.MINUTES));
         dependent.setLabels(new ArrayList<>());
         dependent.setScopes(new ArrayList<>());
         dependent.setDependencies(new HashSet<>(List.of(predecessor)));

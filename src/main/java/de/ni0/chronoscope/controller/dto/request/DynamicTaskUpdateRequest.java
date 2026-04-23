@@ -1,5 +1,6 @@
 package de.ni0.chronoscope.controller.dto.request;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.Duration;
@@ -7,6 +8,7 @@ import java.time.Instant;
 import java.util.List;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
@@ -26,4 +28,15 @@ public record DynamicTaskUpdateRequest(
     Duration maxScopeDuration,
     List<@NotNull Long> dependencies
 ) implements TaskUpdateRequest {
+
+    @JsonIgnore
+    @AssertTrue(message = "duration must be non-negative")
+    public boolean isDurationValid() {
+        return duration == null || !duration.isNegative();
+    }
+    @JsonIgnore
+    @AssertTrue(message = "elapsed must be non-negative")
+    public boolean isElapsedValid() {
+        return elapsed == null || !elapsed.isNegative();
+    }
 }

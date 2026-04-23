@@ -325,10 +325,10 @@ class TaskControllerTest {
             Instant.parse("2026-04-22T18:00:00Z"),
             "FREQ=DAILY",
             List.of(),
-            120,
-            0,
-            30,
-            60,
+                Duration.of(120, ChronoUnit.MINUTES),
+                Duration.of(0, ChronoUnit.MINUTES),
+                Duration.of(30, ChronoUnit.MINUTES),
+                Duration.of(60, ChronoUnit.MINUTES),
             List.of(),
             List.of(42L),
             List.of(600L)
@@ -409,10 +409,10 @@ class TaskControllerTest {
             Instant.parse("2026-04-20T09:00:00Z"),
             Instant.parse("2026-04-20T10:00:00Z"),
             List.of(),
-            90,
-            15,
-            15,
-            60,
+                Duration.of(90, ChronoUnit.MINUTES),
+                Duration.of(15, ChronoUnit.MINUTES),
+                Duration.of(15, ChronoUnit.MINUTES),
+                Duration.of(60, ChronoUnit.MINUTES),
             List.of()
         );
 
