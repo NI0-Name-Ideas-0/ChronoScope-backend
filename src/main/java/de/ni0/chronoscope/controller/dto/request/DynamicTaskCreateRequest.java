@@ -6,7 +6,6 @@ import java.util.List;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
@@ -26,9 +25,4 @@ public record DynamicTaskCreateRequest(
     @NotNull Duration maxScopeDuration,
     @NotNull List<@Valid @NotNull TaskDependencyCreateRequest> dependencies
 ) implements TaskCreateRequest {
-
-    @AssertTrue(message = "minScopeDuration must be less than or equal to maxScopeDuration")
-    public boolean isScopeDurationRangeValid() {
-        return minScopeDuration != null && maxScopeDuration != null && !minScopeDuration.minus(maxScopeDuration).isPositive();
-    }
 }

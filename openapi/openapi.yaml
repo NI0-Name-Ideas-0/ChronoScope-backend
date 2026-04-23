@@ -679,8 +679,7 @@ components:
             type: integer
             format: int32
           duration:
-            type: integer
-            format: int32
+            type: string
           endAt:
             type: string
             format: date-time
@@ -689,11 +688,9 @@ components:
             items:
               $ref: "#/components/schemas/LabelCreateRequest"
           maxScopeDuration:
-            type: integer
-            format: int32
+            type: string
           minScopeDuration:
-            type: integer
-            format: int32
+            type: string
           name:
             type: string
             minLength: 1
@@ -735,11 +732,9 @@ components:
             type: integer
             format: int32
           duration:
-            type: integer
-            format: int32
+            type: string
           elapsed:
-            type: integer
-            format: int32
+            type: string
           endAt:
             type: string
             format: date-time
@@ -751,11 +746,9 @@ components:
             items:
               $ref: "#/components/schemas/LabelResponse"
           maxScopeDuration:
-            type: integer
-            format: int32
+            type: string
           minScopeDuration:
-            type: integer
-            format: int32
+            type: string
           name:
             type: string
           rrule:
@@ -780,11 +773,9 @@ components:
             type: integer
             format: int32
           duration:
-            type: integer
-            format: int32
+            type: string
           elapsed:
-            type: integer
-            format: int32
+            type: string
           endAt:
             type: string
             format: date-time
@@ -793,11 +784,9 @@ components:
             items:
               $ref: "#/components/schemas/LabelCreateRequest"
           maxScopeDuration:
-            type: integer
-            format: int32
+            type: string
           minScopeDuration:
-            type: integer
-            format: int32
+            type: string
           name:
             type: string
           rrule:
