@@ -53,7 +53,7 @@ public class TaskService {
             .orElseThrow(() -> new ResourceNotFoundException("Task not found: " + taskId));
 
         if (task instanceof DynamicTask dynamicTask) {
-            List<DynamicTask> dependents = this.taskRepository.findDynamicTasksByDependencyId(taskId);
+            List<DynamicTask> dependents = this.taskRepository.findDynamicTasksByDependencyIdAndIdentityId(taskId, identityId);
 
             for (DynamicTask dependency : new HashSet<>(dynamicTask.getDependencies())) {
                 dependency.getDependents().remove(dynamicTask);
@@ -210,9 +210,13 @@ public class TaskService {
             return;
         }
 
-        Set<Long> dependencyIds = task.getDependencies().stream()
-            .map(Task::getId)
-            .collect(Collectors.toSet());
+        Set<Long> dependencyIds = new HashSet<>();
+        for (Task dependency : task.getDependencies()) {
+            if (dependency == null || dependency.getId() == null) {
+                throw new InvalidRequestException("Dependency task id must be provided");
+            }
+            dependencyIds.add(dependency.getId());
+        }
 
         if (dependencyIds.isEmpty()) {
             return;
@@ -232,8 +236,12 @@ public class TaskService {
 
         for (Long dependencyId : dependencyIds) {
             Task dependencyTask = dependenciesById.get(dependencyId);
-            if (!(dependencyTask instanceof DynamicTask)) {
-                throw new InvalidRequestException("Dependency task not found: " + dependencyId);
+            if (dependencyTask == null) {  
+                throw new InvalidRequestException("Dependency task not found: " + dependencyId);  
+            }  
+
+            if (!(dependencyTask instanceof DynamicTask)) {  
+                throw new InvalidRequestException("Dependency task must be a dynamic task: " + dependencyId);  
             }
 
             Long dependencyIdentityId = dependencyTask.getAccount() != null
