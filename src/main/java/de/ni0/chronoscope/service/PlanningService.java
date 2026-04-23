@@ -7,7 +7,6 @@ import de.ni0.chronoscope.algorithm.WorkSlotProvider;
 import de.ni0.chronoscope.algorithm.dataprovider.CPMDataProvider;
 import de.ni0.chronoscope.model.DynamicTask;
 import de.ni0.chronoscope.model.Scope;
-import de.ni0.chronoscope.model.TaskDependency;
 import de.ni0.chronoscope.model.WorkSlot;
 import org.springframework.stereotype.Service;
 
@@ -27,11 +26,14 @@ public class PlanningService {
             taskMap.put(task, new Task(task, new ArrayList<>(), new ArrayList<>()));
         }
         for (DynamicTask task : tasks) {
-            for (TaskDependency dependency : task.getDependencies()) {
-                Task algTask = taskMap.get(task);
-                Task algDependency = taskMap.get(dependency.getPredecessor());
-                algTask.dependencies().add(algDependency);
-                algDependency.successors().add(algTask);
+            Task algTask = taskMap.get(task);
+            for (DynamicTask dependency : task.getDependencies()) {
+                Task depTask = taskMap.get(dependency);
+                algTask.dependencies().add(depTask);
+            }
+            for (DynamicTask dependent : task.getDependents()) {
+                Task depTask = taskMap.get(dependent);
+                algTask.dependents().add(depTask);
             }
         }
         List<Task> algTasks = new ArrayList<>(taskMap.values());

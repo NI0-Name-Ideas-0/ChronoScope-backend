@@ -1,5 +1,9 @@
 package de.ni0.chronoscope.model;
 
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -30,8 +34,17 @@ public class DynamicTask extends Task {
     @OneToMany(mappedBy = "dynamicTask", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Scope> scopes;
 
-    @OneToMany(mappedBy = "dynamicTask", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<TaskDependency> dependencies;
+    @ManyToMany
+    @JoinTable(
+            name = "task_relation",
+            joinColumns = @JoinColumn(name = "dependent_id"),
+            inverseJoinColumns = @JoinColumn(name = "dependency_id")
+    )
+    private Set<DynamicTask> dependencies = new HashSet<>();
+
+    @ManyToMany(mappedBy = "dependencies")
+    private Set<DynamicTask> dependents = new HashSet<>();
+
 
     @Converter
     public static class DurationToLongConverter implements AttributeConverter<Duration, Long> {

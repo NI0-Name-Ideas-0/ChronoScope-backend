@@ -23,6 +23,6 @@ public record DynamicTaskCreateRequest(
     @NotNull Duration duration,
     @NotNull Duration minScopeDuration,
     @NotNull Duration maxScopeDuration,
-    @NotNull List<@Valid @NotNull TaskDependencyCreateRequest> dependencies
+    @NotNull List<@NotNull Long> dependencies
 ) implements TaskCreateRequest {
 }

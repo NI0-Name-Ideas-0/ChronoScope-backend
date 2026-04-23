@@ -6,6 +6,8 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 @Schema(description = "Response for a dynamic (schedulable) task, including its scopes and dependencies")
 public record DynamicTaskResponse(
     Long id,
@@ -22,6 +24,7 @@ public record DynamicTaskResponse(
     Duration minScopeDuration,
     Duration maxScopeDuration,
     List<ScopeResponse> scopes,
-    List<TaskDependencyResponse> dependencies
+    List<Long> dependencies,
+    List<Long> dependents
 ) implements TaskResponse {
 }

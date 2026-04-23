@@ -65,7 +65,7 @@ public class Algorithm {
             // Only calculate new possible tasks if current one has been completly planned
             if (newRemainingTaskDuration.isZero()) {
                 tasks.remove(task);
-                for (Task successor : task.successors()) {
+                for (Task successor : task.dependents()) {
                     int newCount = dependencyCount.get(successor) - 1;
                     dependencyCount.put(successor, newCount);
                     if (newCount == 0) {
@@ -104,7 +104,7 @@ public class Algorithm {
             remainingTaskDurations.put(task, remainingTaskDurations.get(task).plus(scopeDuration));
             if (newRemainingTaskDuration.isZero()) {
                 tasks.add(task);
-                for (Task successor : task.successors()) {
+                for (Task successor : task.dependents()) {
                     int newCount = dependencyCount.get(successor) + 1;
                     dependencyCount.put(successor, newCount);
                     if (newCount == 0) {

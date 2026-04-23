@@ -34,7 +34,7 @@ public class CPM {
         if (task.end() != null) {
             latestFinish = task.end();
         }
-        for (Task successor : task.successors()) {
+        for (Task successor : task.dependents()) {
             Instant sucLatestFinish = this.calcLatestFinish(successor);
             Instant sucLatestStart = sucLatestFinish.minus(successor.duration());
             if (sucLatestStart.isBefore(latestFinish)) {
