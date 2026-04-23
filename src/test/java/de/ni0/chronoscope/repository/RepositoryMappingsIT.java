@@ -1,6 +1,8 @@
 package de.ni0.chronoscope.repository;
 
+import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
@@ -100,10 +102,10 @@ class RepositoryMappingsIT {
         predecessor.setStartAt(Instant.parse("2026-04-20T09:00:00Z"));
         predecessor.setEndAt(Instant.parse("2026-04-20T10:00:00Z"));
         predecessor.setRrule("FREQ=DAILY");
-        predecessor.setDuration(60);
-        predecessor.setElapsed(0);
-        predecessor.setMinScopeDuration(15);
-        predecessor.setMaxScopeDuration(30);
+        predecessor.setDuration(Duration.of(60, ChronoUnit.MINUTES));
+        predecessor.setElapsed(Duration.of(0, ChronoUnit.MINUTES));
+        predecessor.setMinScopeDuration(Duration.of(15, ChronoUnit.MINUTES));
+        predecessor.setMaxScopeDuration(Duration.of(30, ChronoUnit.MINUTES));
         predecessor.setLabels(new ArrayList<>());
         predecessor.setScopes(new ArrayList<>());
         predecessor.setDependencies(new HashSet<>());
@@ -118,10 +120,10 @@ class RepositoryMappingsIT {
         dependent.setStartAt(Instant.parse("2026-04-20T10:00:00Z"));
         dependent.setEndAt(Instant.parse("2026-04-20T12:00:00Z"));
         dependent.setRrule("FREQ=DAILY");
-        dependent.setDuration(120);
-        dependent.setElapsed(0);
-        dependent.setMinScopeDuration(30);
-        dependent.setMaxScopeDuration(60);
+        dependent.setDuration(Duration.of(120, ChronoUnit.MINUTES));
+        dependent.setElapsed(Duration.of(0, ChronoUnit.MINUTES));
+        dependent.setMinScopeDuration(Duration.of(30, ChronoUnit.MINUTES));
+        dependent.setMaxScopeDuration(Duration.of(60, ChronoUnit.MINUTES));
         dependent.setLabels(new ArrayList<>());
         dependent.setScopes(new ArrayList<>());
         dependent.setDependencies(new HashSet<>(Set.of(predecessor)));

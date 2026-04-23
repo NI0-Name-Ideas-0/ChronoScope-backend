@@ -30,6 +30,7 @@ public class TaskProxyProvider {
     public List<Long> dynamicTasksToIds(Set<DynamicTask> dynamicTasks) {
         return dynamicTasks.stream()
             .map(DynamicTask::getId)
+            .sorted()
             .toList();
     }
 }

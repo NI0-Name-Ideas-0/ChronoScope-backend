@@ -37,11 +37,13 @@ class TaskServiceTest {
         List<Task> expectedTasks = List.of();
 
         when(taskRepository.findByAccountIdentityId(identityId)).thenReturn(expectedTasks);
+        when(taskRepository.findDynamicTasksByAccountIdentityId(identityId)).thenReturn(List.of());
 
         List<Task> result = taskService.getTasksForIdentity(identityId);
 
         assertEquals(expectedTasks, result);
         verify(taskRepository).findByAccountIdentityId(identityId);
+        verify(taskRepository).findDynamicTasksByAccountIdentityId(identityId);
     }
 
     @Test
@@ -68,7 +70,8 @@ class TaskServiceTest {
 
         when(taskRepository.findByIdAndAccountIdentityId(taskId, identityId)).thenReturn(Optional.empty());
 
-        assertThrows(ResourceNotFoundException.class, () -> taskService.getTaskForIdentity(identityId, taskId));
+        ResourceNotFoundException ignored = assertThrows(ResourceNotFoundException.class, () -> taskService.getTaskForIdentity(identityId, taskId));
+        assertEquals(ResourceNotFoundException.class, ignored.getClass());
 
         verify(taskRepository).findByIdAndAccountIdentityId(taskId, identityId);
     }
@@ -140,7 +143,8 @@ class TaskServiceTest {
 
         when(taskRepository.findByIdAndAccountIdentityId(taskId, identityId)).thenReturn(Optional.empty());
 
-        assertThrows(ResourceNotFoundException.class, () -> taskService.deleteTask(identityId, taskId));
+        ResourceNotFoundException ignored = assertThrows(ResourceNotFoundException.class, () -> taskService.deleteTask(identityId, taskId));
+        assertEquals(ResourceNotFoundException.class, ignored.getClass());
 
         verify(taskRepository).findByIdAndAccountIdentityId(taskId, identityId);
         verify(taskRepository, never()).findDynamicTasksByDependencyIdAndIdentityId(taskId, identityId);
@@ -222,6 +226,87 @@ class TaskServiceTest {
         assertEquals("Dependency task 100 must belong to the same identity", exception.getMessage());
         verify(taskRepository).findAllById(Set.of(100L));
         verify(taskRepository, never()).save(newTask);
+    }
+
+    @Test
+    void updateStaticTask_ThrowsWhenPathIdDoesNotMatchTaskId() {
+        TaskService taskService = new TaskService(taskRepository);
+
+        StaticTask task = new StaticTask();
+        task.setId(100L);
+
+        InvalidRequestException exception = assertThrows(
+            InvalidRequestException.class,
+            () -> taskService.updateStaticTask(101L, task)
+        );
+
+        assertEquals("Task id in path does not match target task", exception.getMessage());
+        verify(taskRepository, never()).save(task);
+    }
+
+    @Test
+    void updateDynamicTask_ValidatesDependenciesBeforeSave() {
+        TaskService taskService = new TaskService(taskRepository);
+
+        Identity identity = new Identity();
+        identity.setId(42L);
+
+        Account account = new Account();
+        account.setId(10L);
+        account.setIdentity(identity);
+
+        DynamicTask dependencyRef = new DynamicTask();
+        dependencyRef.setId(500L);
+
+        DynamicTask dependency = new DynamicTask();
+        dependency.setId(500L);
+        dependency.setAccount(account);
+
+        DynamicTask task = new DynamicTask();
+        task.setId(200L);
+        task.setAccount(account);
+        task.setDependencies(new java.util.HashSet<>(Set.of(dependencyRef)));
+        task.setLabels(new java.util.ArrayList<>());
+        task.setScopes(new java.util.ArrayList<>());
+
+        DynamicTask managedTask = new DynamicTask();
+        managedTask.setId(200L);
+        managedTask.setAccount(account);
+        managedTask.setDependencies(new java.util.HashSet<>(Set.of(dependencyRef)));
+        managedTask.setDependents(new java.util.HashSet<>());
+        managedTask.setLabels(new java.util.ArrayList<>());
+        managedTask.setScopes(new java.util.ArrayList<>());
+
+        when(taskRepository.findById(200L)).thenReturn(Optional.of(managedTask));
+        when(taskRepository.findAllById(Set.of(500L))).thenReturn(List.of(dependency));
+
+        DynamicTask result = taskService.updateDynamicTask(200L, task);
+
+        assertEquals(managedTask, result);
+        verify(taskRepository).findById(200L);
+        verify(taskRepository).findAllById(Set.of(500L));
+        verify(taskRepository).flush();
+    }
+
+    @Test
+    void updateStaticTask_PersistsAndFlushes() {
+        TaskService taskService = new TaskService(taskRepository);
+
+        StaticTask task = new StaticTask();
+        task.setId(100L);
+        task.setLabels(new java.util.ArrayList<>());
+
+        StaticTask managedTask = new StaticTask();
+        managedTask.setId(100L);
+        managedTask.setLabels(new java.util.ArrayList<>());
+
+        when(taskRepository.findById(100L)).thenReturn(Optional.of(managedTask));
+
+        StaticTask result = taskService.updateStaticTask(100L, task);
+
+        assertEquals(managedTask, result);
+        verify(taskRepository).findById(100L);
+        verify(taskRepository).flush();
     }
 
     @Test

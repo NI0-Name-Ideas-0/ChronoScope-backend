@@ -596,8 +596,7 @@ components:
             type: integer
             format: int32
           duration:
-            type: integer
-            format: int32
+            type: string
           endAt:
             type: string
             format: date-time
@@ -606,11 +605,9 @@ components:
             items:
               $ref: "#/components/schemas/LabelCreateRequest"
           maxScopeDuration:
-            type: integer
-            format: int32
+            type: string
           minScopeDuration:
-            type: integer
-            format: int32
+            type: string
           name:
             type: string
             minLength: 1
@@ -658,11 +655,9 @@ components:
             type: integer
             format: int32
           duration:
-            type: integer
-            format: int32
+            type: string
           elapsed:
-            type: integer
-            format: int32
+            type: string
           endAt:
             type: string
             format: date-time
@@ -674,11 +669,9 @@ components:
             items:
               $ref: "#/components/schemas/LabelResponse"
           maxScopeDuration:
-            type: integer
-            format: int32
+            type: string
           minScopeDuration:
-            type: integer
-            format: int32
+            type: string
           name:
             type: string
           rrule:
@@ -697,17 +690,22 @@ components:
       - $ref: "#/components/schemas/TaskUpdateRequest"
       - type: object
         properties:
+          dependencies:
+            type: array
+            items:
+              type: integer
+              format: int64
           description:
             type: string
+            maxLength: 2147483647
+            minLength: 1
           difficulty:
             type: integer
             format: int32
           duration:
-            type: integer
-            format: int32
+            type: string
           elapsed:
-            type: integer
-            format: int32
+            type: string
           endAt:
             type: string
             format: date-time
@@ -716,15 +714,17 @@ components:
             items:
               $ref: "#/components/schemas/LabelCreateRequest"
           maxScopeDuration:
-            type: integer
-            format: int32
+            type: string
           minScopeDuration:
-            type: integer
-            format: int32
+            type: string
           name:
             type: string
+            maxLength: 2147483647
+            minLength: 1
           rrule:
             type: string
+            maxLength: 2147483647
+            minLength: 1
           startAt:
             type: string
             format: date-time
@@ -889,6 +889,8 @@ components:
         properties:
           description:
             type: string
+            maxLength: 2147483647
+            minLength: 1
           difficulty:
             type: integer
             format: int32
@@ -903,8 +905,12 @@ components:
               $ref: "#/components/schemas/LabelCreateRequest"
           name:
             type: string
+            maxLength: 2147483647
+            minLength: 1
           rrule:
             type: string
+            maxLength: 2147483647
+            minLength: 1
           startAt:
             type: string
             format: date-time

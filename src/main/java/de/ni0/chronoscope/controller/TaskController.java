@@ -18,13 +18,15 @@ import org.springframework.web.bind.annotation.RestController;
 
 import de.ni0.chronoscope.config.RequestContext;
 import de.ni0.chronoscope.controller.dto.request.DynamicTaskCreateRequest;
+import de.ni0.chronoscope.controller.dto.request.DynamicTaskUpdateRequest;
 import de.ni0.chronoscope.controller.dto.request.StaticTaskCreateRequest;
+import de.ni0.chronoscope.controller.dto.request.StaticTaskUpdateRequest;
 import de.ni0.chronoscope.controller.dto.request.TaskCreateRequest;
 import de.ni0.chronoscope.controller.dto.request.TaskUpdateRequest;
 import de.ni0.chronoscope.controller.dto.response.TaskResponse;
 import de.ni0.chronoscope.exception.AccountAccessDeniedException;
 import de.ni0.chronoscope.exception.AccountNotFoundException;
-import de.ni0.chronoscope.exception.ApiNotImplementedException;
+import de.ni0.chronoscope.exception.InvalidRequestException;
 import de.ni0.chronoscope.mapper.TaskMapper;
 import de.ni0.chronoscope.model.Account;
 import de.ni0.chronoscope.model.DynamicTask;
@@ -137,7 +139,24 @@ public class TaskController {
     public TaskResponse updateTask(
             @Parameter(description = "Task ID") @PathVariable Long id,
             @Valid @RequestBody TaskUpdateRequest request) {
-        throw new ApiNotImplementedException();
+        Task existingTask = taskService.getTaskForIdentity(requestContext.getIdentityId(), id);
+
+        return switch (request) {
+            case StaticTaskUpdateRequest staticRequest -> {
+                if (!(existingTask instanceof StaticTask staticTask)) {
+                    throw new InvalidRequestException("Task type mismatch: expected static task");
+                }
+                taskMapper.fromUpdateRequest(staticRequest, staticTask);
+                yield taskMapper.toResponse(taskService.updateStaticTask(id, staticTask));
+            }
+            case DynamicTaskUpdateRequest dynamicRequest -> {
+                if (!(existingTask instanceof DynamicTask dynamicTask)) {
+                    throw new InvalidRequestException("Task type mismatch: expected dynamic task");
+                }
+                taskMapper.fromUpdateRequest(dynamicRequest, dynamicTask);
+                yield taskMapper.toResponse(taskService.updateDynamicTask(id, dynamicTask, dynamicRequest.dependencies()));
+            }
+        };
     }
 
     @Operation(summary = "Delete task", description = "Delete a task and all its associated labels, scopes and dependencies.")

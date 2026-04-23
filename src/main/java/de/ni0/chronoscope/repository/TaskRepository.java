@@ -11,8 +11,11 @@ import org.springframework.data.repository.query.Param;
 import de.ni0.chronoscope.model.DynamicTask;
 import de.ni0.chronoscope.model.Task;
  public interface TaskRepository extends JpaRepository<Task, Long> {
- 	@EntityGraph(attributePaths = { "labels" })
-    List<Task> findByAccountIdentityId(long identityId);
+	@EntityGraph(attributePaths = { "labels" })
+	List<Task> findByAccountIdentityId(long identityId);
+
+	@EntityGraph(attributePaths = { "dependencies", "dependents" })
+	List<DynamicTask> findDynamicTasksByAccountIdentityId(long identityId);
 
 	Optional<Task> findByIdAndAccountIdentityId(Long id, Long identityId);
 
