@@ -58,7 +58,7 @@ public interface TaskMapper {
     @Mapping(target = "scopes", expression = "java(new java.util.ArrayList<>())") // default to empty list because it's not provided by request
     @Mapping(target = "dependencies", source = "dependencies", qualifiedByName = "dependencyIdsToReferences")
     @Mapping(target = "dependents", expression = "java(new java.util.HashSet<>())")
-    @Mapping(target = "elapsed", constant = "0") // default to 0 because it's not provided by request
+    @Mapping(target = "elapsed", ignore = true)
     DynamicTask fromCreateRequest(DynamicTaskCreateRequest request);
 
     // --- Static task: update ---

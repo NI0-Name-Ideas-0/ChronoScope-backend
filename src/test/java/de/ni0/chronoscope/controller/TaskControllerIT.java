@@ -1,6 +1,8 @@
 package de.ni0.chronoscope.controller;
 
+import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -86,10 +88,10 @@ class TaskControllerIT {
         predecessor.setStartAt(Instant.parse("2026-04-20T08:00:00Z"));
         predecessor.setEndAt(Instant.parse("2026-04-22T18:00:00Z"));
         predecessor.setRrule("FREQ=DAILY");
-        predecessor.setDuration(120);
-        predecessor.setElapsed(0);
-        predecessor.setMinScopeDuration(30);
-        predecessor.setMaxScopeDuration(60);
+        predecessor.setDuration(Duration.of(120, ChronoUnit.MINUTES));
+        predecessor.setElapsed(Duration.of(0, ChronoUnit.MINUTES));
+        predecessor.setMinScopeDuration(Duration.of(30, ChronoUnit.MINUTES));
+        predecessor.setMaxScopeDuration(Duration.of(60, ChronoUnit.MINUTES));
         predecessor.setLabels(new ArrayList<>());
         predecessor.setScopes(new ArrayList<>());
         predecessor.setDependencies(new HashSet<>());
@@ -120,10 +122,10 @@ class TaskControllerIT {
         ownTask.setStartAt(Instant.parse("2026-04-20T08:00:00Z"));
         ownTask.setEndAt(Instant.parse("2026-04-22T18:00:00Z"));
         ownTask.setRrule("FREQ=DAILY");
-        ownTask.setDuration(120);
-        ownTask.setElapsed(0);
-        ownTask.setMinScopeDuration(30);
-        ownTask.setMaxScopeDuration(60);
+        ownTask.setDuration(Duration.of(120, ChronoUnit.MINUTES));
+        ownTask.setElapsed(Duration.of(0, ChronoUnit.MINUTES));
+        ownTask.setMinScopeDuration(Duration.of(30, ChronoUnit.MINUTES));
+        ownTask.setMaxScopeDuration(Duration.of(60, ChronoUnit.MINUTES));
         ownTask.setLabels(new ArrayList<>());
         ownTask.setScopes(new ArrayList<>());
         ownTask.setDependencies(new HashSet<>());
@@ -162,8 +164,8 @@ class TaskControllerIT {
             .andExpect(jsonPath("$[*].name", hasItem(dynamicTaskName)))
             .andExpect(jsonPath("$[*].name", hasItem(linkedStaticTaskName)))
             .andExpect(jsonPath("$[*].name", not(hasItem(foreignTaskName))))
-                .andExpect(jsonPath("$[*].accountId", hasItem((int) primaryAccountId)))
-                .andExpect(jsonPath("$[*].accountId", hasItem((int) linkedAccountId)))
+            .andExpect(jsonPath("$[*].accountId", hasItem((int) primaryAccountId)))
+            .andExpect(jsonPath("$[*].accountId", hasItem((int) linkedAccountId)))
             .andExpect(jsonPath("$[*].type", hasItem("dynamic")))
             .andExpect(jsonPath("$[*].type", hasItem("static")));
     }
@@ -217,9 +219,9 @@ class TaskControllerIT {
               "startAt": "2026-04-20T08:00:00Z",
               "endAt": "2026-04-25T18:00:00Z",
               "labels": [],
-              "duration": 240,
-              "minScopeDuration": 30,
-              "maxScopeDuration": 120,
+              "duration": "PT240M",
+              "minScopeDuration": "PT30M",
+              "maxScopeDuration": "PT120M",
               "dependencies": []
             }
             """.formatted(accountId);
@@ -232,10 +234,10 @@ class TaskControllerIT {
             .andExpect(jsonPath("$.accountId").value(accountId))
             .andExpect(jsonPath("$.name").value("Implement API endpoint"))
             .andExpect(jsonPath("$.difficulty").value(4))
-            .andExpect(jsonPath("$.duration").value(240))
-            .andExpect(jsonPath("$.elapsed").value(0))
-            .andExpect(jsonPath("$.minScopeDuration").value(30))
-            .andExpect(jsonPath("$.maxScopeDuration").value(120))
+            .andExpect(jsonPath("$.duration").value("PT4H"))
+            .andExpect(jsonPath("$.elapsed").value("PT0S"))
+            .andExpect(jsonPath("$.minScopeDuration").value("PT30M"))
+            .andExpect(jsonPath("$.maxScopeDuration").value("PT2H"))
             .andExpect(jsonPath("$.scopes").isArray())
             .andExpect(jsonPath("$.scopes").isEmpty())
             .andExpect(jsonPath("$.dependencies").isArray())
@@ -261,9 +263,9 @@ class TaskControllerIT {
               "startAt": "2026-04-20T08:00:00Z",
               "endAt": "2026-04-25T18:00:00Z",
               "labels": [],
-              "duration": 240,
-              "minScopeDuration": 30,
-              "maxScopeDuration": 120,
+              "duration": "PT240M",
+              "minScopeDuration": "PT30M",
+              "maxScopeDuration": "PT120M",
               "dependencies": [
                                 %d
               ]
@@ -822,9 +824,9 @@ class TaskControllerIT {
               "startAt": "2026-04-20T08:00:00Z",
               "endAt": "2026-04-25T18:00:00Z",
               "labels": [],
-              "duration": 240,
-              "minScopeDuration": 30,
-              "maxScopeDuration": 120
+              "duration": "PT240M",
+              "minScopeDuration": "PT30M",
+              "maxScopeDuration": "PT120M"
             }
             """.formatted(accountId);
 

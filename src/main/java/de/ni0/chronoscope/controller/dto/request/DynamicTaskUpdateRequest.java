@@ -1,13 +1,14 @@
 package de.ni0.chronoscope.controller.dto.request;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
-import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
-import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 
 @Schema(description = "Update request for a dynamic (schedulable) task")
@@ -19,10 +20,10 @@ public record DynamicTaskUpdateRequest(
     Instant startAt,
     Instant endAt,
     List<@Valid @NotNull LabelCreateRequest> labels,
-    @Positive Integer duration,
-    @PositiveOrZero Integer elapsed,
-    @Positive Integer minScopeDuration,
-    @Positive Integer maxScopeDuration,
+    Duration duration,
+    Duration elapsed,
+    Duration minScopeDuration,
+    Duration maxScopeDuration,
     List<@NotNull Long> dependencies
 ) implements TaskUpdateRequest {
 }

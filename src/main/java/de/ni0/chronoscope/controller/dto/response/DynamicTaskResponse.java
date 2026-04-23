@@ -1,5 +1,8 @@
 package de.ni0.chronoscope.controller.dto.response;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
@@ -16,10 +19,10 @@ public record DynamicTaskResponse(
     Instant endAt,
     String rrule,
     List<LabelResponse> labels,
-    Integer duration,
-    Integer elapsed,
-    Integer minScopeDuration,
-    Integer maxScopeDuration,
+    Duration duration,
+    Duration elapsed,
+    Duration minScopeDuration,
+    Duration maxScopeDuration,
     List<ScopeResponse> scopes,
     List<Long> dependencies,
     List<Long> dependents
