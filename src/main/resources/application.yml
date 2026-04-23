@@ -17,3 +17,6 @@ springdoc:
 logging:
   level:
     de.ni0.chronoscope: DEBUG
+
+cors:
+  allowed-origins: ""

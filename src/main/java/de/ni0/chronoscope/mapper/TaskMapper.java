@@ -1,12 +1,14 @@
 package de.ni0.chronoscope.mapper;
 
-import java.util.ArrayList;
+import java.util.HashSet;
 
 import org.mapstruct.AfterMapping;
+import org.mapstruct.BeanMapping;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingConstants;
 import org.mapstruct.MappingTarget;
+import org.mapstruct.NullValuePropertyMappingStrategy;
 import org.mapstruct.ReportingPolicy;
 
 import de.ni0.chronoscope.controller.dto.request.DynamicTaskCreateRequest;
@@ -20,7 +22,7 @@ import de.ni0.chronoscope.model.StaticTask;
 
 @Mapper(
     componentModel = MappingConstants.ComponentModel.SPRING,
-    uses = {LabelMapper.class, ScopeMapper.class, TaskDependencyMapper.class},
+    uses = {LabelMapper.class, ScopeMapper.class, TaskProxyProvider.class},
     unmappedTargetPolicy = ReportingPolicy.ERROR
 )
 public interface TaskMapper {
@@ -54,16 +56,16 @@ public interface TaskMapper {
     @Mapping(target = "minScopeDuration", source = "minScopeDuration")
     @Mapping(target = "maxScopeDuration", source = "maxScopeDuration")
     @Mapping(target = "scopes", expression = "java(new java.util.ArrayList<>())") // default to empty list because it's not provided by request
-    @Mapping(target = "dependencies", source = "dependencies")
-    @Mapping(target = "elapsed", constant = "0") // default to 0 because it's not provided by request
+    @Mapping(target = "dependencies", source = "dependencies", qualifiedByName = "dependencyIdsToReferences")
+    @Mapping(target = "dependents", expression = "java(new java.util.HashSet<>())")
+    @Mapping(target = "elapsed", ignore = true)
     DynamicTask fromCreateRequest(DynamicTaskCreateRequest request);
 
-    //! DO NOT USE YET
-    // TODO: how will we handle task updates?
     // --- Static task: update ---
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "account", ignore = true)
-    @Mapping(target = "labels", ignore = true)
+    @Mapping(target = "labels", source = "labels")
     @Mapping(target = "name", source = "name")
     @Mapping(target = "description", source = "description")
     @Mapping(target = "difficulty", source = "difficulty")
@@ -71,17 +73,16 @@ public interface TaskMapper {
     @Mapping(target = "endAt", source = "endAt")
     @Mapping(target = "rrule", source = "rrule")
     @Mapping(target = "isBlocker", source = "isBlocker")
-    @Deprecated
     void fromUpdateRequest(StaticTaskUpdateRequest request, @MappingTarget StaticTask task);
 
-    //! DO NOT USE YET
-    // TODO: how will we handle task updates?
     // --- Dynamic task: update ---
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "account", ignore = true)
-    @Mapping(target = "labels", ignore = true)
+    @Mapping(target = "labels", source = "labels")
     @Mapping(target = "scopes", ignore = true)
     @Mapping(target = "dependencies", ignore = true)
+    @Mapping(target = "dependents", ignore = true)
     @Mapping(target = "name", source = "name")
     @Mapping(target = "description", source = "description")
     @Mapping(target = "difficulty", source = "difficulty")
@@ -92,7 +93,6 @@ public interface TaskMapper {
     @Mapping(target = "elapsed", source = "elapsed")
     @Mapping(target = "minScopeDuration", source = "minScopeDuration")
     @Mapping(target = "maxScopeDuration", source = "maxScopeDuration")
-    @Deprecated
     void fromUpdateRequest(DynamicTaskUpdateRequest request, @MappingTarget DynamicTask task);
 
     // --- Response mapping ---
@@ -122,7 +122,8 @@ public interface TaskMapper {
     @Mapping(target = "minScopeDuration", source = "minScopeDuration")
     @Mapping(target = "maxScopeDuration", source = "maxScopeDuration")
     @Mapping(target = "scopes", source = "scopes")
-    @Mapping(target = "dependencies", source = "dependencies")
+    @Mapping(target = "dependencies", source = "dependencies", qualifiedByName = "dynamicTasksToIds")
+    @Mapping(target = "dependents", source = "dependents", qualifiedByName = "dynamicTasksToIds")
     DynamicTaskResponse toResponse(DynamicTask task);
 
     // --- After-mapping: wire bidirectional Label -> Task ---
@@ -148,11 +149,15 @@ public interface TaskMapper {
     @AfterMapping
     default void wireDependencies(@MappingTarget DynamicTask task) {
         if (task.getDependencies() == null) {
-            task.setDependencies(new ArrayList<>());
-            return;
+            task.setDependencies(new HashSet<>());
         }
-        for (var dependency : task.getDependencies()) {
-            dependency.setDynamicTask(task);
+
+        if (task.getDependents() == null) {
+            task.setDependents(new HashSet<>());
         }
+
+        // Keep only the owning side (`task.dependencies`) in sync here.
+        // Writing to inverse side (`dependency.dependents`) with a transient task can
+        // corrupt HashSet membership when id-based hashCode changes after persist.
     }
 }

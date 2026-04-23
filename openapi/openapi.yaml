@@ -406,90 +406,6 @@ paths:
       summary: Update task
       tags:
       - Tasks
-  /v1/tasks/{id}/dependencies:
-    post:
-      description: "Add a predecessor dependency to a dynamic task. The task identified\
-        \ by {id} will depend on predecessorDynamicTaskId."
-      operationId: createDependency
-      parameters:
-      - description: Dynamic task ID that gains the dependency
-        in: path
-        name: id
-        required: true
-        schema:
-          type: integer
-          format: int64
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/TaskDependencyCreateRequest"
-        required: true
-      responses:
-        "201":
-          content:
-            '*/*':
-              schema:
-                $ref: "#/components/schemas/TaskDependencyResponse"
-          description: Dependency created
-        "400":
-          content:
-            '*/*':
-              schema:
-                $ref: "#/components/schemas/ProblemDetail"
-          description: Validation error or cycle detected
-        "401":
-          content:
-            '*/*':
-              schema:
-                $ref: "#/components/schemas/ProblemDetail"
-          description: Missing or invalid token
-        "404":
-          content:
-            '*/*':
-              schema:
-                $ref: "#/components/schemas/ProblemDetail"
-          description: Task not found
-      summary: Create dependency
-      tags:
-      - Tasks
-  /v1/tasks/{id}/dependencies/{linkId}:
-    delete:
-      description: Remove a dependency link from a dynamic task.
-      operationId: deleteDependency
-      parameters:
-      - description: Dynamic task ID
-        in: path
-        name: id
-        required: true
-        schema:
-          type: integer
-          format: int64
-      - description: Dependency link ID
-        in: path
-        name: linkId
-        required: true
-        schema:
-          type: integer
-          format: int64
-      responses:
-        "204":
-          description: Dependency deleted
-        "401":
-          content:
-            '*/*':
-              schema:
-                $ref: "#/components/schemas/ProblemDetail"
-          description: Missing or invalid token
-        "404":
-          content:
-            '*/*':
-              schema:
-                $ref: "#/components/schemas/ProblemDetail"
-          description: Task or dependency not found
-      summary: Delete dependency
-      tags:
-      - Tasks
   /v1/workslots:
     get:
       description: Return all work slots belonging to the current identity.
@@ -672,15 +588,15 @@ components:
           dependencies:
             type: array
             items:
-              $ref: "#/components/schemas/TaskDependencyCreateRequest"
+              type: integer
+              format: int64
           description:
             type: string
           difficulty:
             type: integer
             format: int32
           duration:
-            type: integer
-            format: int32
+            type: string
           endAt:
             type: string
             format: date-time
@@ -689,11 +605,9 @@ components:
             items:
               $ref: "#/components/schemas/LabelCreateRequest"
           maxScopeDuration:
-            type: integer
-            format: int32
+            type: string
           minScopeDuration:
-            type: integer
-            format: int32
+            type: string
           name:
             type: string
             minLength: 1
@@ -728,18 +642,22 @@ components:
           dependencies:
             type: array
             items:
-              $ref: "#/components/schemas/TaskDependencyResponse"
+              type: integer
+              format: int64
+          dependents:
+            type: array
+            items:
+              type: integer
+              format: int64
           description:
             type: string
           difficulty:
             type: integer
             format: int32
           duration:
-            type: integer
-            format: int32
+            type: string
           elapsed:
-            type: integer
-            format: int32
+            type: string
           endAt:
             type: string
             format: date-time
@@ -751,11 +669,9 @@ components:
             items:
               $ref: "#/components/schemas/LabelResponse"
           maxScopeDuration:
-            type: integer
-            format: int32
+            type: string
           minScopeDuration:
-            type: integer
-            format: int32
+            type: string
           name:
             type: string
           rrule:
@@ -774,17 +690,22 @@ components:
       - $ref: "#/components/schemas/TaskUpdateRequest"
       - type: object
         properties:
+          dependencies:
+            type: array
+            items:
+              type: integer
+              format: int64
           description:
             type: string
+            maxLength: 2147483647
+            minLength: 1
           difficulty:
             type: integer
             format: int32
           duration:
-            type: integer
-            format: int32
+            type: string
           elapsed:
-            type: integer
-            format: int32
+            type: string
           endAt:
             type: string
             format: date-time
@@ -793,15 +714,17 @@ components:
             items:
               $ref: "#/components/schemas/LabelCreateRequest"
           maxScopeDuration:
-            type: integer
-            format: int32
+            type: string
           minScopeDuration:
-            type: integer
-            format: int32
+            type: string
           name:
             type: string
+            maxLength: 2147483647
+            minLength: 1
           rrule:
             type: string
+            maxLength: 2147483647
+            minLength: 1
           startAt:
             type: string
             format: date-time
@@ -966,6 +889,8 @@ components:
         properties:
           description:
             type: string
+            maxLength: 2147483647
+            minLength: 1
           difficulty:
             type: integer
             format: int32
@@ -980,8 +905,12 @@ components:
               $ref: "#/components/schemas/LabelCreateRequest"
           name:
             type: string
+            maxLength: 2147483647
+            minLength: 1
           rrule:
             type: string
+            maxLength: 2147483647
+            minLength: 1
           startAt:
             type: string
             format: date-time
@@ -994,26 +923,6 @@ components:
           type: string
       required:
       - type
-    TaskDependencyCreateRequest:
-      type: object
-      properties:
-        predecessorDynamicTaskId:
-          type: integer
-          format: int64
-      required:
-      - predecessorDynamicTaskId
-    TaskDependencyResponse:
-      type: object
-      properties:
-        dynamicTaskId:
-          type: integer
-          format: int64
-        id:
-          type: integer
-          format: int64
-        predecessorDynamicTaskId:
-          type: integer
-          format: int64
     TaskResponse:
       discriminator:
         propertyName: type

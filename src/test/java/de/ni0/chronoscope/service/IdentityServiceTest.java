@@ -15,6 +15,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import de.ni0.chronoscope.exception.ResourceNotFoundException;
 import de.ni0.chronoscope.model.Account;
 import de.ni0.chronoscope.model.Identity;
 import de.ni0.chronoscope.repository.AccountRepository;
@@ -67,6 +68,35 @@ class IdentityServiceTest {
         verify(accountRepository).findBySubject("unknown-subject");
         verify(identityRepository, never()).save(any(Identity.class));
         verify(accountRepository, never()).save(any(Account.class));
+        verifyNoMoreInteractions(accountRepository, identityRepository);
+    }
+
+    @Test
+    void getIdentity_ReturnsIdentityForExistingId() {
+        IdentityService identityService = new IdentityService(accountRepository, identityRepository);
+
+        Identity identity = new Identity();
+        identity.setId(99L);
+        when(identityRepository.findByIdWithAccountsAndOrganizations(99L)).thenReturn(Optional.of(identity));
+
+        Identity result = identityService.getIdentity(99L);
+
+        assertEquals(identity, result);
+        verify(identityRepository).findByIdWithAccountsAndOrganizations(99L);
+        verifyNoMoreInteractions(accountRepository, identityRepository);
+    }
+
+    @Test
+    void getIdentity_ThrowsWhenIdentityIsMissing() {
+        IdentityService identityService = new IdentityService(accountRepository, identityRepository);
+
+        when(identityRepository.findByIdWithAccountsAndOrganizations(99L)).thenReturn(Optional.empty());
+
+        ResourceNotFoundException exception = assertThrows(ResourceNotFoundException.class,
+            () -> identityService.getIdentity(99L));
+
+        assertEquals("Identity not found: 99", exception.getMessage());
+        verify(identityRepository).findByIdWithAccountsAndOrganizations(99L);
         verifyNoMoreInteractions(accountRepository, identityRepository);
     }
 }

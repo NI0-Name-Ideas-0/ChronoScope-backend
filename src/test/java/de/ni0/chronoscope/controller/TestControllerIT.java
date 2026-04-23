@@ -1,13 +1,13 @@
 package de.ni0.chronoscope.controller;
 
+import static org.hamcrest.Matchers.hasItem;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import org.springframework.test.web.servlet.MockMvc;
-
-import static org.hamcrest.Matchers.hasItem;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -29,21 +29,33 @@ class TestControllerIT {
     }
 
     @Test
-    void identityEndpoint_ReturnsNotImplemented() throws Exception {
+    void identityEndpoint_ReturnsIdentity() throws Exception {
+        String subject = "it-subject-" + System.nanoTime();
+
+        mockMvc.perform(get("/v1/identity")
+                .with(jwt().jwt(jwt -> jwt.subject(subject))))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.id").isNumber())
+                .andExpect(jsonPath("$.accounts").isArray())
+                .andExpect(jsonPath("$.accounts.length()").value(1))
+                .andExpect(jsonPath("$.accounts[0].id").isNumber())
+                .andExpect(jsonPath("$.accounts[0].identityId").isNumber())
+                .andExpect(jsonPath("$.accounts[0].organizations").isArray());
+    }
+
+    @Test
+    void identityEndpoint_UnauthenticatedReturnsUnauthorized() throws Exception {
         mockMvc.perform(get("/v1/identity"))
-                .andExpect(status().isNotImplemented())
-                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
-                .andExpect(jsonPath("$.type").value("urn:chronoscope:error:api-not-implemented"))
-                .andExpect(jsonPath("$.title").value("Not Implemented"))
-                .andExpect(jsonPath("$.status").value(501))
-                .andExpect(jsonPath("$.detail").value("Not implemented yet"))
-                .andExpect(jsonPath("$.instance").value("/v1/identity"))
-                .andExpect(jsonPath("$.errorCode").value("API_NOT_IMPLEMENTED"));
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
     void accountLinkValidation_ReturnsProblemDetail() throws Exception {
+        String subject = "it-subject-" + System.nanoTime();
+
         mockMvc.perform(post("/v1/identity/accounts")
+                        .with(jwt().jwt(jwt -> jwt.subject(subject)))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"targetEmail\":\"not-an-email\"}"))
                 .andExpect(status().isBadRequest())
@@ -59,7 +71,10 @@ class TestControllerIT {
 
     @Test
     void unknownPublicApiRoute_ReturnsNotFound() throws Exception {
-        mockMvc.perform(get("/v1/does-not-exist"))
+        String subject = "it-subject-" + System.nanoTime();
+
+        mockMvc.perform(get("/v1/does-not-exist")
+                        .with(jwt().jwt(jwt -> jwt.subject(subject))))
                 .andExpect(status().isNotFound())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
                 .andExpect(jsonPath("$.type").value("urn:chronoscope:error:resource-not-found"))
