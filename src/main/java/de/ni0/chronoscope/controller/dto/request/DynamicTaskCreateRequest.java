@@ -30,6 +30,6 @@ public record DynamicTaskCreateRequest(
 
     @AssertTrue(message = "minScopeDuration must be less than or equal to maxScopeDuration")
     public boolean isScopeDurationRangeValid() {
-        return minScopeDuration == null || maxScopeDuration == null || !minScopeDuration.minus(maxScopeDuration).isNegative();
+        return minScopeDuration != null && maxScopeDuration != null && !minScopeDuration.minus(maxScopeDuration).isPositive();
     }
 }
