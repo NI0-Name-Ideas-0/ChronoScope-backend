@@ -1,3 +1,7 @@
+logging:
+  level:
+    de.ni0.chronoscope: DEBUG
+
 cors:
   allowed-origins: "http://localhost:4200"
 
