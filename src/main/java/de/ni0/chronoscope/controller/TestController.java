@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
+import de.ni0.chronoscope.config.DevAuthProperties;
 import de.ni0.chronoscope.model.Account;
 import de.ni0.chronoscope.model.DynamicTask;
 import de.ni0.chronoscope.model.Label;
@@ -42,9 +43,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class TestController {
 
-    private static final String SEED_SUBJECT = "local-test-user";
-    private static final List<String> SEED_ORGANIZATIONS = List.of("private", "chronoscope-local");
-
+    private final DevAuthProperties devAuthProperties;
     private final AccountService accountService;
     private final AccountRepository accountRepository;
     private final OrganizationRepository organizationRepository;
@@ -69,7 +68,7 @@ public class TestController {
         Account account = syncSeedAccount();
         clearSeedData(account);
 
-        List<Organization> organizations = SEED_ORGANIZATIONS.stream()
+        List<Organization> organizations = devAuthProperties.organizations().stream()
             .map(this::getOrganization)
             .toList();
         ZoneId zone = ZoneId.systemDefault();
@@ -79,7 +78,8 @@ public class TestController {
         List<WorkSlot> workSlots = createWorkSlots(account, organizations, startDate, zone);
 
         return new SeedDataResponse(
-            SEED_SUBJECT,
+            devAuthProperties.subject(),
+            devAuthProperties.token(),
             account.getIdentity().getId(),
             account.getId(),
             organizations.stream().map(Organization::getId).toList(),
@@ -89,8 +89,8 @@ public class TestController {
     }
 
     private Account syncSeedAccount() {
-        accountService.syncAccount(SEED_SUBJECT, SEED_ORGANIZATIONS);
-        return accountRepository.findBySubject(SEED_SUBJECT)
+        accountService.syncAccount(devAuthProperties.subject(), devAuthProperties.organizations());
+        return accountRepository.findBySubject(devAuthProperties.subject())
             .orElseThrow(() -> new IllegalStateException("Seed account was not created"));
     }
 
@@ -319,6 +319,7 @@ public class TestController {
 
     public record SeedDataResponse(
         String subject,
+        String devBearerToken,
         Long identityId,
         Long accountId,
         List<Long> organizationIds,

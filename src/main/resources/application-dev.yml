@@ -5,3 +5,11 @@ logging:
 cors:
   allowed-origins:
     - "*"
+
+chronoscope:
+  dev-auth:
+    token: local-test-user
+    subject: local-test-user
+    organizations:
+      - private
+      - chronoscope-local
