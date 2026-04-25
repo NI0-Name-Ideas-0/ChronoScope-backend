@@ -28,7 +28,7 @@
     </scm>
     <properties>
         <java.version>25</java.version>
-        <spring-boot.run.profiles>dev</spring-boot.run.profiles>
+        <spring-default-profile>dev</spring-default-profile>
         <springdoc.local.port>6767</springdoc.local.port>
         <springdoc.skip>false</springdoc.skip>
     </properties>
@@ -163,6 +163,9 @@
                             <artifactId>lombok</artifactId>
                         </exclude>
                     </excludes>
+                    <profiles>
+                        <profile>${spring-default-profile}</profile>
+                    </profiles>
                 </configuration>
                 <executions>
                     <!-- Start Spring Boot application for springdoc-openapi-maven-plugin -->
@@ -173,7 +176,10 @@
                         </goals>
                         <configuration>
                             <skip>${springdoc.skip}</skip>
-                            <jvmArguments>-Dserver.port=${springdoc.local.port} -Dspring.profiles.active=generate</jvmArguments>
+                            <profiles combine.children="override">
+                                <profile>generate</profile>
+                            </profiles>
+                            <jvmArguments>-Dserver.port=${springdoc.local.port}</jvmArguments>
                         </configuration>
                     </execution>
                     <execution>
