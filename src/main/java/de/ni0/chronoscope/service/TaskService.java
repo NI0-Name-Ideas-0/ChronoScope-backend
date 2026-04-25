@@ -53,7 +53,7 @@ public class TaskService {
             .orElseThrow(() -> new ResourceNotFoundException("Task not found: " + taskId));
 
         if (task instanceof DynamicTask dynamicTask) {
-            List<DynamicTask> dependents = this.taskRepository.findDynamicTasksByDependencyIdAndIdentityId(taskId, identityId);
+            List<DynamicTask> dependents = this.taskRepository.findDependentsByDependencyIdAndAccountIdentityId(taskId, identityId);
 
             for (DynamicTask dependency : new HashSet<>(dynamicTask.getDependencies())) {
                 dependency.getDependents().remove(dynamicTask);

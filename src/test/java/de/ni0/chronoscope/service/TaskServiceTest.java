@@ -90,7 +90,7 @@ class TaskServiceTest {
         taskService.deleteTask(identityId, taskId);
 
         verify(taskRepository).findByIdAndAccountIdentityId(taskId, identityId);
-        verify(taskRepository, never()).findDynamicTasksByDependencyIdAndIdentityId(taskId, identityId);
+        verify(taskRepository, never()).findDependentsByDependencyIdAndAccountIdentityId(taskId, identityId);
         verify(taskRepository).delete(task);
         verify(taskRepository).flush();
     }
@@ -122,7 +122,7 @@ class TaskServiceTest {
         task.setDependents(new java.util.HashSet<>(task.getDependents()));
 
         when(taskRepository.findByIdAndAccountIdentityId(taskId, identityId)).thenReturn(Optional.of(task));
-        when(taskRepository.findDynamicTasksByDependencyIdAndIdentityId(taskId, identityId)).thenReturn(List.of(dependent));
+        when(taskRepository.findDependentsByDependencyIdAndAccountIdentityId(taskId, identityId)).thenReturn(List.of(dependent));
 
         taskService.deleteTask(identityId, taskId);
 
@@ -130,7 +130,7 @@ class TaskServiceTest {
         assertEquals(0, task.getDependents().size());
         assertEquals(0, predecessor.getDependents().size());
         assertEquals(0, dependent.getDependencies().size());
-        verify(taskRepository).findDynamicTasksByDependencyIdAndIdentityId(taskId, identityId);
+        verify(taskRepository).findDependentsByDependencyIdAndAccountIdentityId(taskId, identityId);
         verify(taskRepository).delete(task);
         verify(taskRepository).flush();
     }
@@ -147,7 +147,7 @@ class TaskServiceTest {
         assertEquals(ResourceNotFoundException.class, ignored.getClass());
 
         verify(taskRepository).findByIdAndAccountIdentityId(taskId, identityId);
-        verify(taskRepository, never()).findDynamicTasksByDependencyIdAndIdentityId(taskId, identityId);
+        verify(taskRepository, never()).findDependentsByDependencyIdAndAccountIdentityId(taskId, identityId);
         verify(taskRepository, never()).delete(org.mockito.ArgumentMatchers.any());
         verify(taskRepository, never()).flush();
     }

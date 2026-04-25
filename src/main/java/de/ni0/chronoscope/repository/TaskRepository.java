@@ -10,16 +10,23 @@ import org.springframework.data.repository.query.Param;
 
 import de.ni0.chronoscope.model.DynamicTask;
 import de.ni0.chronoscope.model.Task;
- public interface TaskRepository extends JpaRepository<Task, Long> {
-	@EntityGraph(attributePaths = { "labels" })
-	List<Task> findByAccountIdentityId(long identityId);
 
-	@EntityGraph(attributePaths = { "dependencies", "dependents" })
-	List<DynamicTask> findDynamicTasksByAccountIdentityId(long identityId);
+public interface TaskRepository extends JpaRepository<Task, Long> {
+    @EntityGraph(attributePaths = { "labels" })
+    List<Task> findByAccountIdentityId(long identityId);
 
-	Optional<Task> findByIdAndAccountIdentityId(Long id, Long identityId);
+    @EntityGraph(attributePaths = { "dependencies", "dependents" })
+    List<DynamicTask> findDynamicTasksByAccountIdentityId(long identityId);
 
-	@Query("select dt from DynamicTask dt join dt.dependencies dep join dt.account acc join acc.identity identity where dep.id = :dependencyId and identity.id = :identityId")  
-    List<DynamicTask> findDynamicTasksByDependencyIdAndIdentityId(@Param("dependencyId") Long dependencyId,  
-            @Param("identityId") Long identityId);  
+    Optional<Task> findByIdAndAccountIdentityId(Long id, Long identityId);
+
+    @Query("""
+            select dt
+            from DynamicTask dt
+            join dt.dependencies dep
+            where dep.id = :dependencyId
+              and dt.account.identity.id = :identityId
+            """)
+    List<DynamicTask> findDependentsByDependencyIdAndAccountIdentityId(@Param("dependencyId") Long dependencyId,
+            @Param("identityId") Long identityId);
 }
