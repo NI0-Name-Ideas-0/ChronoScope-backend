@@ -99,6 +99,7 @@ public class TaskService {
         managedTask.setElapsed(task.getElapsed());
         managedTask.setMinScopeDuration(task.getMinScopeDuration());
         managedTask.setMaxScopeDuration(task.getMaxScopeDuration());
+        managedTask.setOrganization(task.getOrganization());
 
         if (task.getLabels() != null) {
             managedTask.setLabels(task.getLabels());
@@ -150,6 +151,7 @@ public class TaskService {
         managedTask.setEndAt(task.getEndAt());
         managedTask.setRrule(task.getRrule());
         managedTask.setIsBlocker(task.getIsBlocker());
+        managedTask.setOrganization(task.getOrganization());
 
         if (task.getLabels() != null) {
             managedTask.setLabels(task.getLabels());
@@ -236,12 +238,12 @@ public class TaskService {
 
         for (Long dependencyId : dependencyIds) {
             Task dependencyTask = dependenciesById.get(dependencyId);
-            if (dependencyTask == null) {  
-                throw new InvalidRequestException("Dependency task not found: " + dependencyId);  
-            }  
+            if (dependencyTask == null) {
+                throw new InvalidRequestException("Dependency task not found: " + dependencyId);
+            }
 
-            if (!(dependencyTask instanceof DynamicTask)) {  
-                throw new InvalidRequestException("Dependency task must be a dynamic task: " + dependencyId);  
+            if (!(dependencyTask instanceof DynamicTask)) {
+                throw new InvalidRequestException("Dependency task must be a dynamic task: " + dependencyId);
             }
 
             Long dependencyIdentityId = dependencyTask.getAccount() != null

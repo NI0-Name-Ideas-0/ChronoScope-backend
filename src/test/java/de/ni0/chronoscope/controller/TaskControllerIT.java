@@ -30,10 +30,12 @@ import org.springframework.transaction.annotation.Transactional;
 import de.ni0.chronoscope.model.Account;
 import de.ni0.chronoscope.model.DynamicTask;
 import de.ni0.chronoscope.model.Identity;
+import de.ni0.chronoscope.model.Organization;
 import de.ni0.chronoscope.model.Scope;
 import de.ni0.chronoscope.model.StaticTask;
 import de.ni0.chronoscope.repository.AccountRepository;
 import de.ni0.chronoscope.repository.IdentityRepository;
+import de.ni0.chronoscope.repository.OrganizationRepository;
 import de.ni0.chronoscope.repository.ScopeRepository;
 import de.ni0.chronoscope.repository.TaskRepository;
 import jakarta.persistence.EntityManager;
@@ -60,6 +62,9 @@ class TaskControllerIT {
     @Autowired
     private ScopeRepository scopeRepository;
 
+    @Autowired
+    private OrganizationRepository organizationRepository;
+
     @PersistenceContext
     private EntityManager entityManager;
 
@@ -77,6 +82,12 @@ class TaskControllerIT {
 
     private String createAccountSubject() {
         return "it-subject-" + System.nanoTime();
+    }
+
+    private long createOrganization() {
+        Organization org = new Organization();
+        org.setName("it-org-" + System.nanoTime());
+        return organizationRepository.saveAndFlush(org).getId();
     }
 
     private long createDynamicPredecessorTask(long accountId) {
@@ -174,11 +185,13 @@ class TaskControllerIT {
     void createTask_Static_ReturnsCreated() throws Exception {
         String subject = createAccountSubject();
         long accountId = createAccount(subject);
+        long organizationId = createOrganization();
 
         String payload = """
             {
               "type": "static",
               "accountId": %d,
+              "organizationId": %d,
               "name": "Write report",
               "description": "Prepare weekly summary",
               "rrule": "FREQ=WEEKLY;BYDAY=MO",
@@ -188,7 +201,7 @@ class TaskControllerIT {
               "labels": [],
               "isBlocker": false
             }
-            """.formatted(accountId);
+            """.formatted(accountId, organizationId);
 
         mockMvc.perform(post("/v1/tasks")
                 .with(jwt().jwt(jwt -> jwt.subject(subject)))
@@ -207,11 +220,13 @@ class TaskControllerIT {
     void createTask_Dynamic_ReturnsCreatedWithDefaults() throws Exception {
         String subject = createAccountSubject();
         long accountId = createAccount(subject);
+        long organizationId = createOrganization();
 
         String payload = """
             {
               "type": "dynamic",
               "accountId": %d,
+              "organizationId": %d,
               "name": "Implement API endpoint",
               "description": "Create and test endpoint",
               "rrule": "FREQ=DAILY",
@@ -224,7 +239,7 @@ class TaskControllerIT {
               "maxScopeDuration": "PT120M",
               "dependencies": []
             }
-            """.formatted(accountId);
+            """.formatted(accountId, organizationId);
 
         mockMvc.perform(post("/v1/tasks")
                 .with(jwt().jwt(jwt -> jwt.subject(subject)))
@@ -251,11 +266,13 @@ class TaskControllerIT {
         String subject = createAccountSubject();
         long accountId = createAccount(subject);
         long predecessorId = createDynamicPredecessorTask(accountId);
+        long organizationId = createOrganization();
 
         String payload = """
             {
               "type": "dynamic",
               "accountId": %d,
+              "organizationId": %d,
               "name": "Task with dependencies",
               "description": "Should link predecessor",
               "rrule": "FREQ=DAILY",
@@ -270,7 +287,7 @@ class TaskControllerIT {
                                 %d
               ]
             }
-            """.formatted(accountId, predecessorId);
+            """.formatted(accountId, organizationId, predecessorId);
 
         mockMvc.perform(post("/v1/tasks")
                 .with(jwt().jwt(jwt -> jwt.subject(subject)))
@@ -291,11 +308,13 @@ class TaskControllerIT {
                 long requesterAccountId = createAccount(identity.getId(), requesterSubject);
                 long linkedAccountId = createAccount(identity.getId(), createAccountSubject());
                 long predecessorId = createDynamicPredecessorTask(linkedAccountId);
+                long organizationId = createOrganization();
 
                 String payload = """
                         {
                             "type": "dynamic",
                             "accountId": %d,
+                            "organizationId": %d,
                             "name": "Cross-account dependency",
                             "description": "Dependency should be allowed within same identity",
                             "rrule": "FREQ=DAILY",
@@ -310,7 +329,7 @@ class TaskControllerIT {
                                 %d
                             ]
                         }
-                        """.formatted(requesterAccountId, predecessorId);
+                        """.formatted(requesterAccountId, organizationId, predecessorId);
 
                 mockMvc.perform(post("/v1/tasks")
                                 .with(jwt().jwt(jwt -> jwt.subject(requesterSubject)))
@@ -332,11 +351,13 @@ class TaskControllerIT {
                 Identity otherIdentity = identityRepository.saveAndFlush(new Identity());
                 long foreignAccountId = createAccount(otherIdentity.getId(), createAccountSubject());
                 long predecessorId = createDynamicPredecessorTask(foreignAccountId);
+                long organizationId = createOrganization();
 
                 String payload = """
                         {
                             "type": "dynamic",
                             "accountId": %d,
+                            "organizationId": %d,
                             "name": "Cross-identity dependency",
                             "description": "Dependency should be rejected",
                             "rrule": "FREQ=DAILY",
@@ -351,7 +372,7 @@ class TaskControllerIT {
                                 %d
                             ]
                         }
-                        """.formatted(requesterAccountId, predecessorId);
+                        """.formatted(requesterAccountId, organizationId, predecessorId);
 
                 mockMvc.perform(post("/v1/tasks")
                                 .with(jwt().jwt(jwt -> jwt.subject(requesterSubject)))
@@ -812,11 +833,13 @@ class TaskControllerIT {
     void createTask_Dynamic_MissingDependencies_ReturnsValidationError() throws Exception {
         String subject = createAccountSubject();
         long accountId = createAccount(subject);
+        long organizationId = createOrganization();
 
         String payload = """
             {
               "type": "dynamic",
               "accountId": %d,
+              "organizationId": %d,
               "name": "Implement API endpoint",
               "description": "Create and test endpoint",
               "rrule": "FREQ=DAILY",
@@ -828,7 +851,7 @@ class TaskControllerIT {
               "minScopeDuration": "PT30M",
               "maxScopeDuration": "PT120M"
             }
-            """.formatted(accountId);
+            """.formatted(accountId, organizationId);
 
         mockMvc.perform(post("/v1/tasks")
                 .with(jwt().jwt(jwt -> jwt.subject(subject)))
@@ -844,11 +867,13 @@ class TaskControllerIT {
     void createTask_Static_MissingStartAndEndAt_ReturnsValidationError() throws Exception {
         String subject = createAccountSubject();
         long accountId = createAccount(subject);
+        long organizationId = createOrganization();
 
         String payload = """
             {
               "type": "static",
               "accountId": %d,
+              "organizationId": %d,
               "name": "Write report",
               "description": "Prepare weekly summary",
               "rrule": "FREQ=WEEKLY;BYDAY=MO",
@@ -856,7 +881,7 @@ class TaskControllerIT {
               "labels": [],
               "isBlocker": false
             }
-            """.formatted(accountId);
+            """.formatted(accountId, organizationId);
 
         mockMvc.perform(post("/v1/tasks")
                 .with(jwt().jwt(jwt -> jwt.subject(subject)))
@@ -878,18 +903,20 @@ class TaskControllerIT {
     void createTask_Static_MissingDescriptionRruleAndLabels_ReturnsValidationError() throws Exception {
         String subject = createAccountSubject();
         long accountId = createAccount(subject);
+        long organizationId = createOrganization();
 
         String payload = """
             {
               "type": "static",
               "accountId": %d,
+              "organizationId": %d,
               "name": "Write report",
               "difficulty": 3,
               "startAt": "2026-04-20T09:00:00Z",
               "endAt": "2026-04-20T10:00:00Z",
               "isBlocker": false
             }
-            """.formatted(accountId);
+            """.formatted(accountId, organizationId);
 
         mockMvc.perform(post("/v1/tasks")
                 .with(jwt().jwt(jwt -> jwt.subject(subject)))

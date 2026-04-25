@@ -63,6 +63,7 @@ class TaskControllerTest {
         StaticTaskResponse staticResponse = new StaticTaskResponse(
             1L,
             10L,
+            1L,
             "Static task",
             "desc",
             1,
@@ -75,6 +76,7 @@ class TaskControllerTest {
         DynamicTaskResponse dynamicResponse = new DynamicTaskResponse(
             2L,
             11L,
+            1L,
             "Dynamic task",
             "desc",
             2,
@@ -116,6 +118,7 @@ class TaskControllerTest {
 
         StaticTaskCreateRequest request = new StaticTaskCreateRequest(
             10L,
+            1L,
             "Write report",
             "Prepare weekly summary",
             "FREQ=WEEKLY;BYDAY=MO",
@@ -137,6 +140,7 @@ class TaskControllerTest {
         StaticTaskResponse expectedResponse = new StaticTaskResponse(
             123L,
             10L,
+            1L,
             "Write report",
             "Prepare weekly summary",
             3,
@@ -173,6 +177,7 @@ class TaskControllerTest {
 
         DynamicTaskCreateRequest request = new DynamicTaskCreateRequest(
             11L,
+            1L,
             "Implement API endpoint",
             "Create and test endpoint",
             "FREQ=DAILY",
@@ -197,6 +202,7 @@ class TaskControllerTest {
         DynamicTaskResponse expectedResponse = new DynamicTaskResponse(
             124L,
             11L,
+            1L,
             "Implement API endpoint",
             "Create and test endpoint",
             4,
@@ -236,6 +242,7 @@ class TaskControllerTest {
 
         StaticTaskCreateRequest request = new StaticTaskCreateRequest(
             12L,
+            1L,
             "Write report",
             "Prepare weekly summary",
             "FREQ=WEEKLY;BYDAY=MO",
@@ -262,6 +269,7 @@ class TaskControllerTest {
 
         StaticTaskCreateRequest request = new StaticTaskCreateRequest(
             13L,
+            1L,
             "Write report",
             "Prepare weekly summary",
             "FREQ=WEEKLY;BYDAY=MO",
@@ -304,6 +312,7 @@ class TaskControllerTest {
         DynamicTaskResponse expectedResponse = new DynamicTaskResponse(
             500L,
             11L,
+            1L,
             "Dynamic task",
             "desc",
             2,
@@ -341,6 +350,7 @@ class TaskControllerTest {
         existingTask.setId(200L);
 
         StaticTaskUpdateRequest request = new StaticTaskUpdateRequest(
+            null,
             "Updated static task",
             "Updated description",
             "FREQ=WEEKLY",
@@ -354,6 +364,7 @@ class TaskControllerTest {
         StaticTaskResponse expectedResponse = new StaticTaskResponse(
             200L,
             10L,
+            1L,
             "Updated static task",
             "Updated description",
             2,
@@ -388,6 +399,7 @@ class TaskControllerTest {
         existingTask.setId(300L);
 
         DynamicTaskUpdateRequest request = new DynamicTaskUpdateRequest(
+            null,
             "Dynamic name",
             "Dynamic description",
             "FREQ=DAILY",
@@ -421,6 +433,7 @@ class TaskControllerTest {
         existingTask.setId(301L);
 
         StaticTaskUpdateRequest request = new StaticTaskUpdateRequest(
+            null,
             "Static name",
             "Static description",
             "FREQ=WEEKLY",

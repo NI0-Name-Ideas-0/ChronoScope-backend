@@ -22,7 +22,7 @@ import de.ni0.chronoscope.model.StaticTask;
 
 @Mapper(
     componentModel = MappingConstants.ComponentModel.SPRING,
-    uses = {LabelMapper.class, ScopeMapper.class, TaskProxyProvider.class},
+    uses = {LabelMapper.class, ScopeMapper.class, TaskProxyProvider.class, OrganizationProxyProvider.class},
     unmappedTargetPolicy = ReportingPolicy.ERROR
 )
 public interface TaskMapper {
@@ -31,6 +31,7 @@ public interface TaskMapper {
     @Mapping(target = "id", ignore = true)
     // Account is validated and assigned by controller logic after request parsing.
     @Mapping(target = "account", ignore = true)
+    @Mapping(target = "organization", source = "organizationId", qualifiedByName = "organizationProxy")
     @Mapping(target = "name", source = "name")
     @Mapping(target = "description", source = "description")
     @Mapping(target = "difficulty", source = "difficulty")
@@ -45,6 +46,7 @@ public interface TaskMapper {
     @Mapping(target = "id", ignore = true)
     // Account is validated and assigned by controller logic after request parsing.
     @Mapping(target = "account", ignore = true)
+    @Mapping(target = "organization", source = "organizationId", qualifiedByName = "organizationProxy")
     @Mapping(target = "name", source = "name")
     @Mapping(target = "description", source = "description")
     @Mapping(target = "difficulty", source = "difficulty")
@@ -65,6 +67,7 @@ public interface TaskMapper {
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "account", ignore = true)
+    @Mapping(target = "organization", source = "organizationId", qualifiedByName = "organizationProxy")
     @Mapping(target = "labels", source = "labels")
     @Mapping(target = "name", source = "name")
     @Mapping(target = "description", source = "description")
@@ -79,6 +82,7 @@ public interface TaskMapper {
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "account", ignore = true)
+    @Mapping(target = "organization", source = "organizationId", qualifiedByName = "organizationProxy")
     @Mapping(target = "labels", source = "labels")
     @Mapping(target = "scopes", ignore = true)
     @Mapping(target = "dependencies", ignore = true)
@@ -97,6 +101,7 @@ public interface TaskMapper {
 
     // --- Response mapping ---
     @Mapping(target = "accountId", source = "account.id")
+    @Mapping(target = "organizationId", source = "organization.id")
     @Mapping(target = "id", source = "id")
     @Mapping(target = "name", source = "name")
     @Mapping(target = "description", source = "description")
@@ -109,6 +114,7 @@ public interface TaskMapper {
     StaticTaskResponse toResponse(StaticTask task);
 
     @Mapping(target = "accountId", source = "account.id")
+    @Mapping(target = "organizationId", source = "organization.id")
     @Mapping(target = "id", source = "id")
     @Mapping(target = "name", source = "name")
     @Mapping(target = "description", source = "description")
