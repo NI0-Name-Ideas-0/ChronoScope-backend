@@ -2,7 +2,7 @@ package de.ni0.chronoscope.algorithm.dataprovider;
 
 import de.ni0.chronoscope.algorithm.CPM;
 import de.ni0.chronoscope.algorithm.DataProviderContext;
-import de.ni0.chronoscope.algorithm.Task;
+import de.ni0.chronoscope.algorithm.TaskGraphNode;
 import de.ni0.chronoscope.algorithm.WeightDataProvider;
 
 import java.time.Duration;
@@ -22,7 +22,7 @@ public class CPMDataProvider implements WeightDataProvider {
      * @param tasks Tasks to be weighted
      */
     @Override
-    public void calculate(DataProviderContext ctx, List<Task> tasks) {
+    public void calculate(DataProviderContext ctx, List<TaskGraphNode> tasks) {
         this.cpm = new CPM(tasks, ctx.getCurrentTime());
         this.minSlack = Long.MAX_VALUE;
         this.maxSlack = Long.MIN_VALUE;
@@ -38,7 +38,7 @@ public class CPMDataProvider implements WeightDataProvider {
      * @return The weight
      */
     @Override
-    public double getWeight(Task task) {
+    public double getWeight(TaskGraphNode task) {
         Duration slack = this.cpm.getTaskData().get(task).getSlack();
         double slackMinutes = slack.toMinutes();
         double weight = (slackMinutes - this.minSlack) / (this.maxSlack - this.minSlack);

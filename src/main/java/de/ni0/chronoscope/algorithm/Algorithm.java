@@ -26,9 +26,9 @@ public class Algorithm {
      * @param currentTime The current time
      * @return The planned scopes in the current path after this node
      */
-    public List<Scope> plan(List<Task> tasks,
-                            Map<Task, Integer> dependencyCount,
-                            Map<Task, Duration> remainingTaskDurations,
+    public List<Scope> plan(List<TaskGraphNode> tasks,
+                            Map<TaskGraphNode, Integer> dependencyCount,
+                            Map<TaskGraphNode, Duration> remainingTaskDurations,
                             WorkSlotProvider slots,
                             WorkSlot slot,
                             Instant currentTime) {
@@ -36,8 +36,8 @@ public class Algorithm {
         Duration remainingSlotDuration = currentTime.until(slot.getEndAt());
         log.debug("{} time left in slot", remainingSlotDuration);
 
-        for (Task task : tasks) {
-            if (currentTime.plus(remainingTaskDurations.get(task)).isAfter(task.end())) {
+        for (TaskGraphNode task : tasks) {
+            if (currentTime.plus(remainingTaskDurations.get(task)).isAfter(task.getEndAt())) {
                 log.debug("Deadline not met");
                 return null;
             }
@@ -48,7 +48,7 @@ public class Algorithm {
         }
         tasks.sort((t1, t2) -> -1*Double.compare(getWeight(t1), getWeight(t2)));
 
-        for (Task task : new ArrayList<>(tasks)) {
+        for (TaskGraphNode task : new ArrayList<>(tasks)) {
             log.debug("Chose Task: {}", task);
 
             List<Scope> scopes = new ArrayList<>();
@@ -65,7 +65,7 @@ public class Algorithm {
             // Only calculate new possible tasks if current one has been completly planned
             if (newRemainingTaskDuration.isZero()) {
                 tasks.remove(task);
-                for (Task successor : task.dependents()) {
+                for (TaskGraphNode successor : task.dependents()) {
                     int newCount = dependencyCount.get(successor) - 1;
                     dependencyCount.put(successor, newCount);
                     if (newCount == 0) {
@@ -104,7 +104,7 @@ public class Algorithm {
             remainingTaskDurations.put(task, remainingTaskDurations.get(task).plus(scopeDuration));
             if (newRemainingTaskDuration.isZero()) {
                 tasks.add(task);
-                for (Task successor : task.dependents()) {
+                for (TaskGraphNode successor : task.dependents()) {
                     int newCount = dependencyCount.get(successor) + 1;
                     dependencyCount.put(successor, newCount);
                     if (newCount == 0) {
@@ -117,7 +117,7 @@ public class Algorithm {
         return null;
     }
 
-    private double getWeight(Task task) {
+    private double getWeight(TaskGraphNode task) {
         double weight = 0;
         for (WeightDataProvider provider : this.providers) {
             weight += provider.getWeight(task);

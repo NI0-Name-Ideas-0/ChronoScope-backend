@@ -9,34 +9,34 @@ import java.util.List;
 import java.util.Map;
 
 public class CPM {
-    public record TaskData(Task task, Instant earliestStart, Instant earliestFinish, Instant latestStart, Instant latestFinish) {
+    public record TaskData(TaskGraphNode task, Instant earliestStart, Instant earliestFinish, Instant latestStart, Instant latestFinish) {
         public Duration getSlack() {
             return this.earliestStart.until(this.latestStart);
         }
     }
 
     @Getter
-    private final Map<Task, TaskData> taskData = new HashMap<>();
+    private final Map<TaskGraphNode, TaskData> taskData = new HashMap<>();
 
-    private Instant calcFirstStart(Task task, Instant defaultStart) {
+    private Instant calcFirstStart(TaskGraphNode task, Instant defaultStart) {
         Instant firstStart = defaultStart;
-        for (Task dependency : task.dependencies()) {
+        for (TaskGraphNode dependency : task.dependencies()) {
             Instant depEarliestStart = this.calcFirstStart(dependency, defaultStart);
-            Instant depEarliestEnd = depEarliestStart.plus(dependency.duration());
+            Instant depEarliestEnd = depEarliestStart.plus(dependency.getDuration());
             if (depEarliestEnd.isAfter(firstStart)) {
                 firstStart = depEarliestEnd;
             }
         }
         return firstStart;
     }
-    private Instant calcLatestFinish(Task task) {
+    private Instant calcLatestFinish(TaskGraphNode task) {
         Instant latestFinish = Instant.MAX;
-        if (task.end() != null) {
-            latestFinish = task.end();
+        if (task.getEndAt() != null) {
+            latestFinish = task.getEndAt();
         }
-        for (Task successor : task.dependents()) {
+        for (TaskGraphNode successor : task.dependents()) {
             Instant sucLatestFinish = this.calcLatestFinish(successor);
-            Instant sucLatestStart = sucLatestFinish.minus(successor.duration());
+            Instant sucLatestStart = sucLatestFinish.minus(successor.getDuration());
             if (sucLatestStart.isBefore(latestFinish)) {
                 latestFinish = sucLatestStart;
             }
@@ -44,12 +44,12 @@ public class CPM {
         return latestFinish;
     }
 
-    public CPM(List<Task> tasks, Instant start) {
-        for (Task task : tasks) {
+    public CPM(List<TaskGraphNode> tasks, Instant start) {
+        for (TaskGraphNode task : tasks) {
             Instant firstStart = calcFirstStart(task, start);
-            Instant firstFinish = firstStart.plus(task.duration());
+            Instant firstFinish = firstStart.plus(task.getDuration());
             Instant latestFinish = calcLatestFinish(task);
-            Instant latestStart = latestFinish.minus(task.duration());
+            Instant latestStart = latestFinish.minus(task.getDuration());
             this.taskData.put(task, new TaskData(task, firstStart, firstFinish, latestStart, latestFinish));
         }
     }

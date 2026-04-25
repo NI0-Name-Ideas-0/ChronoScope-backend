@@ -1,7 +1,7 @@
 package de.ni0.chronoscope.service;
 
 import de.ni0.chronoscope.algorithm.Algorithm;
-import de.ni0.chronoscope.algorithm.Task;
+import de.ni0.chronoscope.algorithm.TaskGraphNode;
 import de.ni0.chronoscope.algorithm.WeightDataProvider;
 import de.ni0.chronoscope.algorithm.WorkSlotProvider;
 import de.ni0.chronoscope.algorithm.dataprovider.CPMDataProvider;
@@ -19,36 +19,35 @@ import java.util.Map;
 @Service
 public class PlanningService {
 
-    public List<Scope> plan(List<DynamicTask> tasks,
-                            List<WorkSlot> slots) {
-        Map<DynamicTask, Task> taskMap = new HashMap<>();
+    public List<Scope> plan(List<DynamicTask> tasks, List<WorkSlot> slots) {
+        Map<DynamicTask, TaskGraphNode> taskMap = new HashMap<>();
         for (DynamicTask task : tasks) {
-            taskMap.put(task, new Task(task, new ArrayList<>(), new ArrayList<>()));
+            taskMap.put(task, new TaskGraphNode(task, new ArrayList<>(), new ArrayList<>()));
         }
         for (DynamicTask task : tasks) {
-            Task algTask = taskMap.get(task);
+            TaskGraphNode algTask = taskMap.get(task);
             for (DynamicTask dependency : task.getDependencies()) {
-                Task depTask = taskMap.get(dependency);
+                TaskGraphNode depTask = taskMap.get(dependency);
                 algTask.dependencies().add(depTask);
             }
             for (DynamicTask dependent : task.getDependents()) {
-                Task depTask = taskMap.get(dependent);
+                TaskGraphNode depTask = taskMap.get(dependent);
                 algTask.dependents().add(depTask);
             }
         }
-        List<Task> algTasks = new ArrayList<>(taskMap.values());
+        List<TaskGraphNode> algTasks = new ArrayList<>(taskMap.values());
 
         return this.plan2(algTasks, slots);
     }
 
-    private List<Scope> plan2(List<Task> tasks, List<WorkSlot> slots) {
-        Map<Task, Integer> dependencyCount = new HashMap<>();
-        Map<Task, Duration> remainingTaskDurations = new HashMap<>();
-        for (Task task : tasks) {
+    private List<Scope> plan2(List<TaskGraphNode> tasks, List<WorkSlot> slots) {
+        Map<TaskGraphNode, Integer> dependencyCount = new HashMap<>();
+        Map<TaskGraphNode, Duration> remainingTaskDurations = new HashMap<>();
+        for (TaskGraphNode task : tasks) {
             dependencyCount.put(task, task.dependencies().size());
-            remainingTaskDurations.put(task, task.duration());
+            remainingTaskDurations.put(task, task.getDuration());
         }
-        List<Task> startTasks = new ArrayList<>();
+        List<TaskGraphNode> startTasks = new ArrayList<>();
         dependencyCount.forEach((k, v) -> {
             if (v == 0) {
                 startTasks.add(k);

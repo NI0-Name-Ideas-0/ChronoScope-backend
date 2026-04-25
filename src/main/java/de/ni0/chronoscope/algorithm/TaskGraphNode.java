@@ -4,22 +4,24 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
-public record Task(de.ni0.chronoscope.model.DynamicTask task, List<Task> dependencies, List<Task> dependents) {
+import de.ni0.chronoscope.model.DynamicTask;
+
+public record TaskGraphNode(DynamicTask task, List<TaskGraphNode> dependencies, List<TaskGraphNode> dependents) {
 
     @Override
     public String toString() {
         return Long.toString(this.task.getId());
     }
 
-    public Instant start() {
+    public Instant getStartAt() {
         return this.task.getStartAt();
     }
 
-    public Instant end() {
+    public Instant getEndAt() {
         return this.task.getEndAt();
     }
 
-    public Duration duration() {
+    public Duration getDuration() {
         return this.task.getDuration();
     }
 }
