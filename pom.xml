@@ -28,6 +28,7 @@
     </scm>
     <properties>
         <java.version>25</java.version>
+        <spring-boot.run.profiles>dev</spring-boot.run.profiles>
         <springdoc.local.port>6767</springdoc.local.port>
         <springdoc.skip>false</springdoc.skip>
     </properties>

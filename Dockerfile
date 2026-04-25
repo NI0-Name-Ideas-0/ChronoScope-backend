@@ -12,6 +12,7 @@ RUN mvn clean package -DskipTests
 # Stage 2: Run the application
 FROM eclipse-temurin:25-jre
 WORKDIR /app
+ENV SPRING_PROFILES_ACTIVE=prod
 
 # Copy the built jar file from the build stage
 COPY --from=build /app/target/*.jar app.jar
