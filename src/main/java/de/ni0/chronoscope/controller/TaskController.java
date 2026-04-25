@@ -1,7 +1,6 @@
 package de.ni0.chronoscope.controller;
 
 import java.util.List;
-import java.util.Objects;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -24,15 +23,13 @@ import de.ni0.chronoscope.controller.dto.request.StaticTaskUpdateRequest;
 import de.ni0.chronoscope.controller.dto.request.TaskCreateRequest;
 import de.ni0.chronoscope.controller.dto.request.TaskUpdateRequest;
 import de.ni0.chronoscope.controller.dto.response.TaskResponse;
-import de.ni0.chronoscope.exception.AccountAccessDeniedException;
-import de.ni0.chronoscope.exception.AccountNotFoundException;
 import de.ni0.chronoscope.exception.InvalidRequestException;
 import de.ni0.chronoscope.mapper.TaskMapper;
 import de.ni0.chronoscope.model.Account;
 import de.ni0.chronoscope.model.DynamicTask;
 import de.ni0.chronoscope.model.StaticTask;
 import de.ni0.chronoscope.model.Task;
-import de.ni0.chronoscope.repository.AccountRepository;
+import de.ni0.chronoscope.service.AccountService;
 import de.ni0.chronoscope.service.TaskService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -52,7 +49,7 @@ public class TaskController {
 
     private final TaskService taskService;
     private final TaskMapper taskMapper;
-    private final AccountRepository accountRepository;
+    private final AccountService accountService;
     private final RequestContext requestContext;
 
     @Operation(summary = "List tasks", description = "Return all tasks belonging to the current identity, including tasks from linked accounts. Each task is either a StaticTask or a DynamicTask, discriminated by the \"type\" field.")
@@ -90,30 +87,19 @@ public class TaskController {
     public ResponseEntity<TaskResponse> createTask(@Valid @RequestBody TaskCreateRequest request) {
         TaskResponse response = switch (request) {
             case StaticTaskCreateRequest staticRequest -> {
-                Account account = validateAccountOwnership(staticRequest.accountId());
+                Account account = accountService.validateAccountOwnership(requestContext.getIdentityId(), staticRequest.accountId());
                 StaticTask newTask = taskMapper.fromCreateRequest(staticRequest);
                 newTask.setAccount(account);
                 yield taskMapper.toResponse(taskService.createStaticTask(newTask));
             }
             case DynamicTaskCreateRequest dynamicRequest -> {
-                Account account = validateAccountOwnership(dynamicRequest.accountId());
+                Account account = accountService.validateAccountOwnership(requestContext.getIdentityId(), dynamicRequest.accountId());
                 DynamicTask newTask = taskMapper.fromCreateRequest(dynamicRequest);
                 newTask.setAccount(account);
                 yield taskMapper.toResponse(taskService.createDynamicTask(newTask));
             }
         };
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
-    }
-
-    private Account validateAccountOwnership(Long requestedAccountId) {
-        return accountRepository.findById(requestedAccountId)
-                .map(account -> {
-                    if (!Objects.equals(account.getIdentity().getId(), requestContext.getIdentityId())) {
-                        throw new AccountAccessDeniedException("accountId is not linked to authenticated identity");
-                    }
-                    return account;
-                })
-                .orElseThrow(AccountNotFoundException::new);
     }
 
     @Operation(summary = "Get task", description = "Retrieve a single task by ID, including its labels, scopes (dynamic tasks) and dependencies.")
@@ -172,4 +158,3 @@ public class TaskController {
         taskService.deleteTask(requestContext.getIdentityId(), id);
     }
 }
-

@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import static org.mockito.ArgumentMatchers.any;
@@ -16,6 +17,8 @@ import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
 
+import de.ni0.chronoscope.exception.AccountAccessDeniedException;
+import de.ni0.chronoscope.exception.AccountNotFoundException;
 import de.ni0.chronoscope.model.Account;
 import de.ni0.chronoscope.model.Identity;
 import de.ni0.chronoscope.model.Organization;
@@ -157,6 +160,55 @@ class AccountServiceTest {
         verify(identityRepository).save(any(Identity.class));
         verify(identityRepository).delete(any(Identity.class));
         verify(organizationRepository).findByName("private");
+        verifyNoMoreInteractions(accountRepository, identityRepository, organizationRepository);
+    }
+
+    @Test
+    void validateAccountOwnership_ReturnsAccountWhenOwned() {
+        AccountService accountService = new AccountService(accountRepository, identityRepository, organizationRepository);
+
+        Identity identity = new Identity();
+        identity.setId(10L);
+
+        Account account = new Account();
+        account.setId(42L);
+        account.setIdentity(identity);
+
+        when(accountRepository.findById(42L)).thenReturn(Optional.of(account));
+
+        Account result = accountService.validateAccountOwnership(10L, 42L);
+
+        assertEquals(account, result);
+        verify(accountRepository).findById(42L);
+        verifyNoMoreInteractions(accountRepository, identityRepository, organizationRepository);
+    }
+
+    @Test
+    void validateAccountOwnership_ThrowsWhenAccountNotFound() {
+        AccountService accountService = new AccountService(accountRepository, identityRepository, organizationRepository);
+
+        when(accountRepository.findById(99L)).thenReturn(Optional.empty());
+
+        assertThrows(AccountNotFoundException.class, () -> accountService.validateAccountOwnership(10L, 99L));
+        verify(accountRepository).findById(99L);
+        verifyNoMoreInteractions(accountRepository, identityRepository, organizationRepository);
+    }
+
+    @Test
+    void validateAccountOwnership_ThrowsWhenAccountBelongsToDifferentIdentity() {
+        AccountService accountService = new AccountService(accountRepository, identityRepository, organizationRepository);
+
+        Identity otherIdentity = new Identity();
+        otherIdentity.setId(999L);
+
+        Account account = new Account();
+        account.setId(42L);
+        account.setIdentity(otherIdentity);
+
+        when(accountRepository.findById(42L)).thenReturn(Optional.of(account));
+
+        assertThrows(AccountAccessDeniedException.class, () -> accountService.validateAccountOwnership(10L, 42L));
+        verify(accountRepository).findById(42L);
         verifyNoMoreInteractions(accountRepository, identityRepository, organizationRepository);
     }
 }
