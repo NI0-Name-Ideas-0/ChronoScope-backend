@@ -21,4 +21,4 @@ logging:
     de.ni0.chronoscope: INFO
 
 cors:
-  allowed-origins: ""
+  allowed-origins: []
