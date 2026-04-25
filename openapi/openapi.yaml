@@ -551,6 +551,9 @@ components:
           name:
             type: string
             minLength: 1
+          organizationId:
+            type: integer
+            format: int64
           rrule:
             type: string
           startAt:
@@ -569,6 +572,7 @@ components:
       - maxScopeDuration
       - minScopeDuration
       - name
+      - organizationId
       - rrule
       - startAt
     DynamicTaskResponse:
@@ -614,6 +618,9 @@ components:
             type: string
           name:
             type: string
+          organizationId:
+            type: integer
+            format: int64
           rrule:
             type: string
           scopes:
@@ -661,6 +668,9 @@ components:
             type: string
             maxLength: 2147483647
             minLength: 1
+          organizationId:
+            type: integer
+            format: int64
           rrule:
             type: string
             maxLength: 2147483647
@@ -773,6 +783,9 @@ components:
           name:
             type: string
             minLength: 1
+          organizationId:
+            type: integer
+            format: int64
           rrule:
             type: string
           startAt:
@@ -787,6 +800,7 @@ components:
       - isBlocker
       - labels
       - name
+      - organizationId
       - rrule
       - startAt
     StaticTaskResponse:
@@ -816,6 +830,9 @@ components:
               $ref: "#/components/schemas/LabelResponse"
           name:
             type: string
+          organizationId:
+            type: integer
+            format: int64
           rrule:
             type: string
           startAt:
@@ -847,6 +864,9 @@ components:
             type: string
             maxLength: 2147483647
             minLength: 1
+          organizationId:
+            type: integer
+            format: int64
           rrule:
             type: string
             maxLength: 2147483647
