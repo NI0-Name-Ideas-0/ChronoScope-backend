@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import de.ni0.chronoscope.exception.AccountAccessDeniedException;
 import de.ni0.chronoscope.exception.AccountNotFoundException;
+import de.ni0.chronoscope.exception.InvalidRequestException;
 import de.ni0.chronoscope.model.Account;
 import de.ni0.chronoscope.model.Identity;
 import de.ni0.chronoscope.model.Organization;
@@ -38,6 +39,13 @@ public class AccountService {
         if (!accountRepository.existsByIdAndOrganizationsId(accountId, organizationId)) {
             throw new AccountAccessDeniedException("Account does not have access to the specified organization");
         }
+    }
+
+    public Organization resolveOrganizationForAccount(long accountId, long organizationId) {
+        Organization organization = organizationRepository.findById(organizationId)
+                .orElseThrow(() -> new InvalidRequestException("Organization not found: " + organizationId));
+        validateAccountOrgAccess(accountId, organizationId);
+        return organization;
     }
 
     public long syncAccount(String subject, List<String> organizationNames) {
