@@ -4,7 +4,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
-import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -25,10 +24,10 @@ public record DynamicTaskUpdateRequest(
     Instant startAt,
     Instant endAt,
     List<@Valid @NotNull LabelCreateRequest> labels,
-    @JsonFormat(pattern = "PT[hours]H[minutes]M[seconds]S", shape = com.fasterxml.jackson.annotation.JsonFormat.Shape.STRING) Duration duration,
-    @JsonFormat(pattern = "PT[hours]H[minutes]M[seconds]S", shape = com.fasterxml.jackson.annotation.JsonFormat.Shape.STRING) Duration elapsed,
-    @JsonFormat(pattern = "PT[hours]H[minutes]M[seconds]S", shape = com.fasterxml.jackson.annotation.JsonFormat.Shape.STRING) Duration minScopeDuration,
-    @JsonFormat(pattern = "PT[hours]H[minutes]M[seconds]S", shape = com.fasterxml.jackson.annotation.JsonFormat.Shape.STRING) Duration maxScopeDuration,
+    Duration duration,
+    Duration elapsed,
+    Duration minScopeDuration,
+    Duration maxScopeDuration,
     List<@NotNull Long> dependencies
 ) implements TaskUpdateRequest {
 

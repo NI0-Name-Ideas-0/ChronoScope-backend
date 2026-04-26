@@ -308,6 +308,61 @@ class TaskControllerIT {
     }
 
     @Test
+    void createTask_Dynamic_InvalidDurationFormat_ReturnsInvalidRequest() throws Exception {
+        String subject = createAccountSubject();
+        long accountId = createAccount(subject);
+
+        String payload = """
+            {
+              "type": "dynamic",
+              "accountId": %d,
+              "name": "Implement API endpoint",
+              "description": "Create and test endpoint",
+              "rrule": "FREQ=DAILY",
+              "difficulty": 4,
+              "startAt": "2026-04-20T08:00:00Z",
+              "endAt": "2026-04-25T18:00:00Z",
+              "labels": [],
+              "duration": "not-a-duration",
+              "minScopeDuration": "PT30M",
+              "maxScopeDuration": "PT90M",
+              "dependencies": []
+            }
+            """.formatted(accountId);
+
+        mockMvc.perform(post("/v1/tasks")
+                .with(jwt().jwt(jwt -> jwt.subject(subject)))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload))
+            .andExpect(status().isBadRequest())
+            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+            .andExpect(jsonPath("$.type").value("urn:chronoscope:error:invalid-request"))
+            .andExpect(jsonPath("$.errorCode").value("INVALID_REQUEST"))
+            .andExpect(jsonPath("$.detail").value("Request body could not be parsed"));
+    }
+
+    @Test
+    void createTask_WithMalformedJson_ReturnsInvalidRequest() throws Exception {
+        String subject = createAccountSubject();
+
+        String payload = """
+            {
+              "type": "static",
+              "name": "Write report"
+            """;
+
+        mockMvc.perform(post("/v1/tasks")
+                .with(jwt().jwt(jwt -> jwt.subject(subject)))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload))
+            .andExpect(status().isBadRequest())
+            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+            .andExpect(jsonPath("$.type").value("urn:chronoscope:error:invalid-request"))
+            .andExpect(jsonPath("$.errorCode").value("INVALID_REQUEST"))
+            .andExpect(jsonPath("$.detail").value("Request body could not be parsed"));
+    }
+
+    @Test
     void createTask_Dynamic_WithDependencies_ReturnsCreatedWithDependencyLinks() throws Exception {
         String subject = createAccountSubject();
         long accountId = createAccount(subject);

@@ -5,10 +5,13 @@ import java.util.List;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.http.converter.HttpMessageConversionException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.NoHandlerFoundException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
@@ -108,6 +111,28 @@ public class ApiExceptionHandler {
                 ApiErrorCode.VALIDATION_ERROR,
                 "Validation Failed",
                 exception.getMessage(),
+                request
+        );
+    }
+
+    @ExceptionHandler({HttpMessageNotReadableException.class, HttpMessageConversionException.class})
+    public ProblemDetail handleUnreadableRequest(Exception exception, HttpServletRequest request) {
+        return createProblemDetail(
+                HttpStatus.BAD_REQUEST,
+                ApiErrorCode.INVALID_REQUEST,
+                "Invalid Request",
+                "Request body could not be parsed",
+                request
+        );
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ProblemDetail handleTypeMismatch(MethodArgumentTypeMismatchException exception, HttpServletRequest request) {
+        return createProblemDetail(
+                HttpStatus.BAD_REQUEST,
+                ApiErrorCode.INVALID_REQUEST,
+                "Invalid Request",
+                "Invalid value for parameter '%s'".formatted(exception.getName()),
                 request
         );
     }
