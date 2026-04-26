@@ -11,6 +11,7 @@ import jakarta.validation.constraints.Size;
 
 @Schema(description = "Update request for a static (fixed-time) task")
 public record StaticTaskUpdateRequest(
+    Long accountId,
     @Size(min = 1) String name,
     @Size(min = 1) String description,
     @Size(min = 1) String rrule,

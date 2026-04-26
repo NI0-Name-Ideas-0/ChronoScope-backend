@@ -355,6 +355,7 @@ class TaskControllerTest {
         existingTask.setId(200L);
 
         StaticTaskUpdateRequest request = new StaticTaskUpdateRequest(
+            null,
             "Updated static task",
             "Updated description",
             "FREQ=WEEKLY",
@@ -402,6 +403,7 @@ class TaskControllerTest {
         existingTask.setId(300L);
 
         DynamicTaskUpdateRequest request = new DynamicTaskUpdateRequest(
+            null,
             "Dynamic name",
             "Dynamic description",
             "FREQ=DAILY",
@@ -435,6 +437,7 @@ class TaskControllerTest {
         existingTask.setId(301L);
 
         StaticTaskUpdateRequest request = new StaticTaskUpdateRequest(
+            null,
             "Static name",
             "Static description",
             "FREQ=WEEKLY",
@@ -451,6 +454,68 @@ class TaskControllerTest {
         assertEquals(InvalidRequestException.class, ignored.getClass());
 
         verify(taskService).getTaskForIdentity(99L, 301L);
+        verifyNoMoreInteractions(taskService, taskMapper, accountRepository);
+    }
+
+    @Test
+    void updateTask_Static_ChangesAccountWhenProvided() {
+        RequestContext requestContext = new RequestContext();
+        requestContext.setIdentityId(99L);
+        TaskController controller = new TaskController(taskService, taskMapper, accountRepository, requestContext);
+
+        Identity identity = new Identity();
+        identity.setId(99L);
+
+        Account targetAccount = new Account();
+        targetAccount.setId(12L);
+        targetAccount.setIdentity(identity);
+
+        StaticTask existingTask = new StaticTask();
+        existingTask.setId(400L);
+
+        StaticTask savedTask = new StaticTask();
+        savedTask.setId(400L);
+        savedTask.setAccount(targetAccount);
+
+        StaticTaskResponse expectedResponse = new StaticTaskResponse(
+            400L,
+            12L,
+            "Updated static task",
+            "Updated description",
+            2,
+            Instant.parse("2026-04-20T09:00:00Z"),
+            Instant.parse("2026-04-20T10:00:00Z"),
+            "FREQ=WEEKLY",
+            List.of(),
+            true
+        );
+
+        StaticTaskUpdateRequest request = new StaticTaskUpdateRequest(
+            12L,
+            "Updated static task",
+            "Updated description",
+            "FREQ=WEEKLY",
+            2,
+            Instant.parse("2026-04-20T09:00:00Z"),
+            Instant.parse("2026-04-20T10:00:00Z"),
+            List.of(),
+            true
+        );
+
+        when(taskService.getTaskForIdentity(99L, 400L)).thenReturn(existingTask);
+        when(accountRepository.findById(12L)).thenReturn(Optional.of(targetAccount));
+        when(taskService.updateStaticTask(400L, existingTask)).thenReturn(savedTask);
+        when(taskMapper.toResponse(savedTask)).thenReturn(expectedResponse);
+
+        TaskResponse result = controller.updateTask(400L, request);
+
+        assertEquals(expectedResponse, result);
+        assertEquals(targetAccount, existingTask.getAccount());
+        verify(taskService).getTaskForIdentity(99L, 400L);
+        verify(accountRepository).findById(12L);
+        verify(taskMapper).fromUpdateRequest(request, existingTask);
+        verify(taskService).updateStaticTask(400L, existingTask);
+        verify(taskMapper).toResponse(savedTask);
         verifyNoMoreInteractions(taskService, taskMapper, accountRepository);
     }
 }

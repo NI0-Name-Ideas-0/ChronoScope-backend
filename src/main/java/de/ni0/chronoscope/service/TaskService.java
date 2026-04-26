@@ -89,6 +89,7 @@ public class TaskService {
             throw new InvalidRequestException("Task type mismatch: expected dynamic task");
         }
 
+        managedTask.setAccount(task.getAccount());
         managedTask.setName(task.getName());
         managedTask.setDescription(task.getDescription());
         managedTask.setDifficulty(task.getDifficulty());
@@ -143,6 +144,7 @@ public class TaskService {
             throw new InvalidRequestException("Task type mismatch: expected static task");
         }
 
+        managedTask.setAccount(task.getAccount());
         managedTask.setName(task.getName());
         managedTask.setDescription(task.getDescription());
         managedTask.setDifficulty(task.getDifficulty());

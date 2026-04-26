@@ -1,18 +1,17 @@
 package de.ni0.chronoscope.service;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import de.ni0.chronoscope.exception.InvalidRequestException;
@@ -289,6 +288,46 @@ class TaskServiceTest {
     }
 
     @Test
+    void updateDynamicTask_PersistsAccountChanges() {
+        TaskService taskService = new TaskService(taskRepository);
+
+        Identity identity = new Identity();
+        identity.setId(42L);
+
+        Account currentAccount = new Account();
+        currentAccount.setId(10L);
+        currentAccount.setIdentity(identity);
+
+        Account newAccount = new Account();
+        newAccount.setId(11L);
+        newAccount.setIdentity(identity);
+
+        DynamicTask task = new DynamicTask();
+        task.setId(210L);
+        task.setAccount(newAccount);
+        task.setDependencies(new java.util.HashSet<>());
+        task.setLabels(new java.util.ArrayList<>());
+        task.setScopes(new java.util.ArrayList<>());
+
+        DynamicTask managedTask = new DynamicTask();
+        managedTask.setId(210L);
+        managedTask.setAccount(currentAccount);
+        managedTask.setDependencies(new java.util.HashSet<>());
+        managedTask.setDependents(new java.util.HashSet<>());
+        managedTask.setLabels(new java.util.ArrayList<>());
+        managedTask.setScopes(new java.util.ArrayList<>());
+
+        when(taskRepository.findById(210L)).thenReturn(Optional.of(managedTask));
+
+        DynamicTask result = taskService.updateDynamicTask(210L, task);
+
+        assertEquals(managedTask, result);
+        assertEquals(newAccount, managedTask.getAccount());
+        verify(taskRepository).findById(210L);
+        verify(taskRepository).flush();
+    }
+
+    @Test
     void updateStaticTask_PersistsAndFlushes() {
         TaskService taskService = new TaskService(taskRepository);
 
@@ -306,6 +345,41 @@ class TaskServiceTest {
 
         assertEquals(managedTask, result);
         verify(taskRepository).findById(100L);
+        verify(taskRepository).flush();
+    }
+
+    @Test
+    void updateStaticTask_PersistsAccountChanges() {
+        TaskService taskService = new TaskService(taskRepository);
+
+        Identity identity = new Identity();
+        identity.setId(42L);
+
+        Account currentAccount = new Account();
+        currentAccount.setId(10L);
+        currentAccount.setIdentity(identity);
+
+        Account newAccount = new Account();
+        newAccount.setId(11L);
+        newAccount.setIdentity(identity);
+
+        StaticTask task = new StaticTask();
+        task.setId(110L);
+        task.setAccount(newAccount);
+        task.setLabels(new java.util.ArrayList<>());
+
+        StaticTask managedTask = new StaticTask();
+        managedTask.setId(110L);
+        managedTask.setAccount(currentAccount);
+        managedTask.setLabels(new java.util.ArrayList<>());
+
+        when(taskRepository.findById(110L)).thenReturn(Optional.of(managedTask));
+
+        StaticTask result = taskService.updateStaticTask(110L, task);
+
+        assertEquals(managedTask, result);
+        assertEquals(newAccount, managedTask.getAccount());
+        verify(taskRepository).findById(110L);
         verify(taskRepository).flush();
     }
 
