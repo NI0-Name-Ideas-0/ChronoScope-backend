@@ -5,11 +5,17 @@ import de.ni0.chronoscope.algorithm.TaskGraphNode;
 import de.ni0.chronoscope.algorithm.WeightDataProvider;
 import de.ni0.chronoscope.algorithm.WorkSlotProvider;
 import de.ni0.chronoscope.algorithm.dataprovider.CPMDataProvider;
+import de.ni0.chronoscope.exception.InsufficientSlotsException;
+import de.ni0.chronoscope.exception.InvalidRequestException;
 import de.ni0.chronoscope.model.DynamicTask;
 import de.ni0.chronoscope.model.Scope;
 import de.ni0.chronoscope.model.WorkSlot;
+import de.ni0.chronoscope.repository.ScopeRepository;
+import de.ni0.chronoscope.repository.TaskRepository;
+import lombok.RequiredArgsConstructor;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -18,11 +24,44 @@ import java.util.List;
 import java.util.Map;
 
 @Service
+@RequiredArgsConstructor
 public class PlanningService {
 
-    public List<Scope> plan(List<DynamicTask> tasks, List<WorkSlot> slots) {
+    private final TaskRepository taskRepository;
+    private final ScopeRepository scopeRepository;
+    private final WorkSlotService workSlotService;
+    private final AccountService accountService;
+
+    @Transactional
+    public List<Scope> planTasksForIdentity(long identityId, long orgId) {
+        accountService.validateOrganizationAccess(identityId, orgId);
+
+        var dynamicTasks = taskRepository.findDynamicTasksByAccountIdentityIdAndOrganizationId(identityId, orgId);
+
+        if (dynamicTasks.isEmpty()) {
+            // An exception would imply something went wrong, but "nothing to plan" is not a failure.
+            // therefore we return an empty plan instead of throwing an exception in this case.
+            return List.of();
+        }
+
+        var dynamicTaskIds = dynamicTasks.stream().map(DynamicTask::getId).toList();
+        var workSlots = workSlotService.getWorkSlotsForIdentity(identityId);
+
+        var planningResult = plan(dynamicTasks, workSlots);
+
+        if (planningResult == null) {
+            throw new InsufficientSlotsException("No valid plan could be found with the available work slots");
+        }
+
+        scopeRepository.deleteByDynamicTaskIdIn(dynamicTaskIds); // Clear old scopes
+        scopeRepository.saveAll(planningResult); // Save new scopes
+
+        return planningResult;
+    }
+
+    private List<Scope> plan(List<DynamicTask> tasks, List<WorkSlot> slots) {
         if (slots == null || slots.isEmpty()) {
-            throw new IllegalArgumentException("Slots must not be null or empty");
+            throw new InsufficientSlotsException("No work slots are available for planning");
         }
 
         List<TaskGraphNode> taskNodes = toTaskGraphNodes(tasks);
@@ -37,6 +76,10 @@ public class PlanningService {
             if (dependencyCount == 0) {
                 startNodes.add(node);
             }
+        }
+
+        if (startNodes.isEmpty()) {
+            throw new InvalidRequestException("Tasks contain a dependency cycle: no task has zero dependencies");
         }
 
         List<WeightDataProvider> providers = List.of(new CPMDataProvider());
@@ -62,8 +105,8 @@ public class PlanningService {
             for (DynamicTask dependency : task.getDependencies()) {
                 TaskGraphNode dependencyNode = nodesByTask.get(dependency);
                 if (dependencyNode == null) {
-                    throw new IllegalArgumentException(
-                            "Planning relation points to a task outside the planned task set: " + dependency.getId());
+                    throw new InvalidRequestException(
+                            "Task " + task.getId() + " has a dependency (id=" + dependency.getId() + ") outside the planned organization scope");
                 }
                 node.dependencies().add(dependencyNode);
             }
@@ -71,8 +114,8 @@ public class PlanningService {
             for (DynamicTask dependent : task.getDependents()) {
                 TaskGraphNode dependentNode = nodesByTask.get(dependent);
                 if (dependentNode == null) {
-                    throw new IllegalArgumentException(
-                            "Planning relation points to a task outside the planned task set: " + dependent.getId());
+                    throw new InvalidRequestException(
+                            "Task " + task.getId() + " has a dependent (id=" + dependent.getId() + ") outside the planned organization scope");
                 }
                 node.dependents().add(dependentNode);
             }
