@@ -272,7 +272,17 @@ public class TestController {
         return scopes;
     }
 
+    private void validateOrganizationsForWorkSlots(List<Organization> organizations) {
+        if (organizations == null || organizations.size() < 2) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                HttpStatus.BAD_REQUEST,
+                "Cannot seed test work slots: at least two organizations must be configured."
+            );
+        }
+    }
+
     private List<WorkSlot> createWorkSlots(Account account, List<Organization> organizations, LocalDate startDate, ZoneId zone) {
+        validateOrganizationsForWorkSlots(organizations);
         Organization privateOrganization = organizations.get(0);
         Organization localOrganization = organizations.get(1);
 
