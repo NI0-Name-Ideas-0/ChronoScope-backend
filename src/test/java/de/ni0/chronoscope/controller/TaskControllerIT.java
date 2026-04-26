@@ -366,9 +366,9 @@ class TaskControllerIT {
                             "startAt": "2026-04-20T08:00:00Z",
                             "endAt": "2026-04-25T18:00:00Z",
                             "labels": [],
-                            "duration": 240,
-                            "minScopeDuration": 30,
-                            "maxScopeDuration": 120,
+                            "duration": "PT240M",
+                            "minScopeDuration": "PT30M",
+                            "maxScopeDuration": "PT120M",
                             "dependencies": [
                                 %d
                             ]
@@ -407,9 +407,9 @@ class TaskControllerIT {
                             "startAt": "2026-04-20T08:00:00Z",
                             "endAt": "2026-04-25T18:00:00Z",
                             "labels": [],
-                            "duration": 240,
-                            "minScopeDuration": 30,
-                            "maxScopeDuration": 120,
+                            "duration": "PT240M",
+                            "minScopeDuration": "PT30M",
+                            "maxScopeDuration": "PT120M",
                             "dependencies": [
                                 %d
                             ]
