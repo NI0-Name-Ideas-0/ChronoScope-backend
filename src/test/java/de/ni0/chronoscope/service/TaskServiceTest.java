@@ -1,5 +1,7 @@
 package de.ni0.chronoscope.service;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -28,6 +30,28 @@ class TaskServiceTest {
 
     @Mock
     private TaskRepository taskRepository;
+
+    private static void populateValidStaticFields(StaticTask task) {
+        task.setName("Valid static task");
+        task.setDescription("Valid static description");
+        task.setDifficulty(3);
+        task.setStartAt(Instant.parse("2026-04-20T09:00:00Z"));
+        task.setEndAt(Instant.parse("2026-04-20T10:00:00Z"));
+        task.setRrule("FREQ=DAILY");
+    }
+
+    private static void populateValidDynamicFields(DynamicTask task) {
+        task.setName("Valid dynamic task");
+        task.setDescription("Valid dynamic description");
+        task.setDifficulty(3);
+        task.setStartAt(Instant.parse("2026-04-20T09:00:00Z"));
+        task.setEndAt(Instant.parse("2026-04-21T10:00:00Z"));
+        task.setRrule("FREQ=DAILY");
+        task.setDuration(Duration.ofMinutes(60));
+        task.setElapsed(Duration.ZERO);
+        task.setMinScopeDuration(Duration.ofMinutes(30));
+        task.setMaxScopeDuration(Duration.ofMinutes(40));
+    }
 
     @Test
     void getTasksForIdentity_ReturnsAllTasksFromLinkedAccounts() {
@@ -164,6 +188,7 @@ class TaskServiceTest {
 
         DynamicTask newTask = new DynamicTask();
         newTask.setAccount(sourceAccount);
+        populateValidDynamicFields(newTask);
 
         DynamicTask dependency = new DynamicTask();
         dependency.setId(100L);
@@ -206,6 +231,7 @@ class TaskServiceTest {
 
         DynamicTask newTask = new DynamicTask();
         newTask.setAccount(sourceAccount);
+        populateValidDynamicFields(newTask);
 
         DynamicTask dependencyReference = new DynamicTask();
         dependencyReference.setId(100L);
@@ -264,6 +290,7 @@ class TaskServiceTest {
         DynamicTask task = new DynamicTask();
         task.setId(200L);
         task.setAccount(account);
+        populateValidDynamicFields(task);
         task.setDependencies(new java.util.HashSet<>(Set.of(dependencyRef)));
         task.setLabels(new java.util.ArrayList<>());
         task.setScopes(new java.util.ArrayList<>());
@@ -271,6 +298,7 @@ class TaskServiceTest {
         DynamicTask managedTask = new DynamicTask();
         managedTask.setId(200L);
         managedTask.setAccount(account);
+        populateValidDynamicFields(managedTask);
         managedTask.setDependencies(new java.util.HashSet<>(Set.of(dependencyRef)));
         managedTask.setDependents(new java.util.HashSet<>());
         managedTask.setLabels(new java.util.ArrayList<>());
@@ -305,6 +333,7 @@ class TaskServiceTest {
         DynamicTask task = new DynamicTask();
         task.setId(210L);
         task.setAccount(newAccount);
+        populateValidDynamicFields(task);
         task.setDependencies(new java.util.HashSet<>());
         task.setLabels(new java.util.ArrayList<>());
         task.setScopes(new java.util.ArrayList<>());
@@ -312,6 +341,7 @@ class TaskServiceTest {
         DynamicTask managedTask = new DynamicTask();
         managedTask.setId(210L);
         managedTask.setAccount(currentAccount);
+        populateValidDynamicFields(managedTask);
         managedTask.setDependencies(new java.util.HashSet<>());
         managedTask.setDependents(new java.util.HashSet<>());
         managedTask.setLabels(new java.util.ArrayList<>());
@@ -333,10 +363,12 @@ class TaskServiceTest {
 
         StaticTask task = new StaticTask();
         task.setId(100L);
+        populateValidStaticFields(task);
         task.setLabels(new java.util.ArrayList<>());
 
         StaticTask managedTask = new StaticTask();
         managedTask.setId(100L);
+        populateValidStaticFields(managedTask);
         managedTask.setLabels(new java.util.ArrayList<>());
 
         when(taskRepository.findById(100L)).thenReturn(Optional.of(managedTask));
@@ -366,11 +398,13 @@ class TaskServiceTest {
         StaticTask task = new StaticTask();
         task.setId(110L);
         task.setAccount(newAccount);
+        populateValidStaticFields(task);
         task.setLabels(new java.util.ArrayList<>());
 
         StaticTask managedTask = new StaticTask();
         managedTask.setId(110L);
         managedTask.setAccount(currentAccount);
+        populateValidStaticFields(managedTask);
         managedTask.setLabels(new java.util.ArrayList<>());
 
         when(taskRepository.findById(110L)).thenReturn(Optional.of(managedTask));
@@ -396,6 +430,7 @@ class TaskServiceTest {
 
         DynamicTask newTask = new DynamicTask();
         newTask.setAccount(sourceAccount);
+        populateValidDynamicFields(newTask);
 
         DynamicTask dependencyWithoutId = new DynamicTask();
         newTask.setDependencies(new java.util.HashSet<>(Set.of(dependencyWithoutId)));
@@ -408,5 +443,185 @@ class TaskServiceTest {
         assertEquals("Dependency task id must be provided", exception.getMessage());
         verify(taskRepository, never()).findAllById(org.mockito.ArgumentMatchers.any());
         verify(taskRepository, never()).save(newTask);
+    }
+
+    @Test
+    void createDynamicTask_CapsDurationsToDuration_WhenMinOrMaxExceedDuration() {
+        TaskService taskService = new TaskService(taskRepository);
+
+        Identity identity = new Identity();
+        identity.setId(42L);
+
+        Account account = new Account();
+        account.setId(10L);
+        account.setIdentity(identity);
+
+        DynamicTask newTask = new DynamicTask();
+        newTask.setAccount(account);
+        populateValidDynamicFields(newTask);
+        newTask.setDuration(Duration.ofMinutes(8));
+        newTask.setMinScopeDuration(Duration.ofMinutes(20));
+        newTask.setMaxScopeDuration(Duration.ofMinutes(25));
+        newTask.setDependencies(new java.util.HashSet<>());
+
+        when(taskRepository.save(newTask)).thenReturn(newTask);
+
+        DynamicTask result = taskService.createDynamicTask(newTask);
+
+        assertEquals(newTask, result);
+        assertEquals(Duration.ofMinutes(8), newTask.getMinScopeDuration());
+        assertEquals(Duration.ofMinutes(8), newTask.getMaxScopeDuration());
+        verify(taskRepository).save(newTask);
+    }
+
+    @Test
+    void createDynamicTask_ThrowsWhenMinScopeDurationBelowTenWithoutCapping() {
+        TaskService taskService = new TaskService(taskRepository);
+
+        Identity identity = new Identity();
+        identity.setId(42L);
+
+        Account account = new Account();
+        account.setId(10L);
+        account.setIdentity(identity);
+
+        DynamicTask newTask = new DynamicTask();
+        newTask.setAccount(account);
+        populateValidDynamicFields(newTask);
+        newTask.setDuration(Duration.ofMinutes(40));
+        newTask.setMinScopeDuration(Duration.ofMinutes(9));
+        newTask.setMaxScopeDuration(Duration.ofMinutes(20));
+        newTask.setDependencies(new java.util.HashSet<>());
+
+        InvalidRequestException exception = assertThrows(
+            InvalidRequestException.class,
+            () -> taskService.createDynamicTask(newTask)
+        );
+
+        assertEquals("minScopeDuration must be at least 10 minutes", exception.getMessage());
+        verify(taskRepository, never()).save(newTask);
+    }
+
+    @Test
+    void createDynamicTask_ThrowsWhenMaxScopeDurationExceedsNinety() {
+        TaskService taskService = new TaskService(taskRepository);
+
+        Identity identity = new Identity();
+        identity.setId(42L);
+
+        Account account = new Account();
+        account.setId(10L);
+        account.setIdentity(identity);
+
+        DynamicTask newTask = new DynamicTask();
+        newTask.setAccount(account);
+        populateValidDynamicFields(newTask);
+        newTask.setDuration(Duration.ofMinutes(120));
+        newTask.setMinScopeDuration(Duration.ofMinutes(30));
+        newTask.setMaxScopeDuration(Duration.ofMinutes(95));
+        newTask.setDependencies(new java.util.HashSet<>());
+
+        InvalidRequestException exception = assertThrows(
+            InvalidRequestException.class,
+            () -> taskService.createDynamicTask(newTask)
+        );
+
+        assertEquals("maxScopeDuration must be at most 90 minutes", exception.getMessage());
+        verify(taskRepository, never()).save(newTask);
+    }
+
+    @Test
+    void createDynamicTask_ThrowsWhenGapIsLessThanFiveMinutesWithoutCapping() {
+        TaskService taskService = new TaskService(taskRepository);
+
+        Identity identity = new Identity();
+        identity.setId(42L);
+
+        Account account = new Account();
+        account.setId(10L);
+        account.setIdentity(identity);
+
+        DynamicTask newTask = new DynamicTask();
+        newTask.setAccount(account);
+        populateValidDynamicFields(newTask);
+        newTask.setDuration(Duration.ofMinutes(60));
+        newTask.setMinScopeDuration(Duration.ofMinutes(30));
+        newTask.setMaxScopeDuration(Duration.ofMinutes(34));
+        newTask.setDependencies(new java.util.HashSet<>());
+
+        InvalidRequestException exception = assertThrows(
+            InvalidRequestException.class,
+            () -> taskService.createDynamicTask(newTask)
+        );
+
+        assertEquals("maxScopeDuration must be at least 5 minutes greater than minScopeDuration", exception.getMessage());
+        verify(taskRepository, never()).save(newTask);
+    }
+
+    @Test
+    void updateStaticTask_ThrowsWhenStartAtIsNotBeforeEndAt() {
+        TaskService taskService = new TaskService(taskRepository);
+
+        StaticTask task = new StaticTask();
+        task.setId(120L);
+        populateValidStaticFields(task);
+        task.setStartAt(Instant.parse("2026-04-20T11:00:00Z"));
+        task.setEndAt(Instant.parse("2026-04-20T10:00:00Z"));
+        task.setLabels(new java.util.ArrayList<>());
+
+        StaticTask managedTask = new StaticTask();
+        managedTask.setId(120L);
+        populateValidStaticFields(managedTask);
+        managedTask.setLabels(new java.util.ArrayList<>());
+
+        when(taskRepository.findById(120L)).thenReturn(Optional.of(managedTask));
+
+        InvalidRequestException exception = assertThrows(
+            InvalidRequestException.class,
+            () -> taskService.updateStaticTask(120L, task)
+        );
+
+        assertEquals("startAt must be before endAt", exception.getMessage());
+        verify(taskRepository, never()).flush();
+    }
+
+    @Test
+    void updateDynamicTask_CapsMaxScopeDurationWhenDurationIsReduced() {
+        TaskService taskService = new TaskService(taskRepository);
+
+        Identity identity = new Identity();
+        identity.setId(42L);
+
+        Account account = new Account();
+        account.setId(10L);
+        account.setIdentity(identity);
+
+        DynamicTask task = new DynamicTask();
+        task.setId(220L);
+        task.setAccount(account);
+        populateValidDynamicFields(task);
+        task.setDuration(Duration.ofMinutes(20));
+        task.setMinScopeDuration(Duration.ofMinutes(15));
+        task.setMaxScopeDuration(Duration.ofMinutes(60));
+        task.setDependencies(new java.util.HashSet<>());
+        task.setLabels(new java.util.ArrayList<>());
+        task.setScopes(new java.util.ArrayList<>());
+
+        DynamicTask managedTask = new DynamicTask();
+        managedTask.setId(220L);
+        managedTask.setAccount(account);
+        populateValidDynamicFields(managedTask);
+        managedTask.setDependencies(new java.util.HashSet<>());
+        managedTask.setDependents(new java.util.HashSet<>());
+        managedTask.setLabels(new java.util.ArrayList<>());
+        managedTask.setScopes(new java.util.ArrayList<>());
+
+        when(taskRepository.findById(220L)).thenReturn(Optional.of(managedTask));
+
+        DynamicTask result = taskService.updateDynamicTask(220L, task);
+
+        assertEquals(managedTask, result);
+        assertEquals(Duration.ofMinutes(20), managedTask.getMaxScopeDuration());
+        verify(taskRepository).flush();
     }
 }

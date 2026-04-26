@@ -204,6 +204,36 @@ class TaskControllerIT {
     }
 
     @Test
+    void createTask_Static_DifficultyAboveFive_ReturnsValidationError() throws Exception {
+        String subject = createAccountSubject();
+        long accountId = createAccount(subject);
+
+        String payload = """
+            {
+              "type": "static",
+              "accountId": %d,
+              "name": "Write report",
+              "description": "Prepare weekly summary",
+              "rrule": "FREQ=WEEKLY;BYDAY=MO",
+              "difficulty": 6,
+              "startAt": "2026-04-20T09:00:00Z",
+              "endAt": "2026-04-20T10:00:00Z",
+              "labels": [],
+              "isBlocker": false
+            }
+            """.formatted(accountId);
+
+        mockMvc.perform(post("/v1/tasks")
+                .with(jwt().jwt(jwt -> jwt.subject(subject)))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload))
+            .andExpect(status().isBadRequest())
+            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+            .andExpect(jsonPath("$.type").value("urn:chronoscope:error:validation-error"))
+            .andExpect(jsonPath("$.fieldErrors[*].field", hasItem("difficulty")));
+    }
+
+    @Test
     void createTask_Dynamic_ReturnsCreatedWithDefaults() throws Exception {
         String subject = createAccountSubject();
         long accountId = createAccount(subject);
@@ -244,6 +274,39 @@ class TaskControllerIT {
             .andExpect(jsonPath("$.dependencies").isEmpty())
             .andExpect(jsonPath("$.dependents").isArray())
             .andExpect(jsonPath("$.dependents").isEmpty());
+    }
+
+    @Test
+    void createTask_Dynamic_WithStartAtAfterEndAt_ReturnsValidationError() throws Exception {
+        String subject = createAccountSubject();
+        long accountId = createAccount(subject);
+
+        String payload = """
+            {
+              "type": "dynamic",
+              "accountId": %d,
+              "name": "Implement API endpoint",
+              "description": "Create and test endpoint",
+              "rrule": "FREQ=DAILY",
+              "difficulty": 4,
+              "startAt": "2026-04-25T18:00:00Z",
+              "endAt": "2026-04-20T08:00:00Z",
+              "labels": [],
+              "duration": "PT240M",
+              "minScopeDuration": "PT30M",
+              "maxScopeDuration": "PT120M",
+              "dependencies": []
+            }
+            """.formatted(accountId);
+
+        mockMvc.perform(post("/v1/tasks")
+                .with(jwt().jwt(jwt -> jwt.subject(subject)))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload))
+            .andExpect(status().isBadRequest())
+            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+            .andExpect(jsonPath("$.type").value("urn:chronoscope:error:validation-error"))
+            .andExpect(jsonPath("$.detail").value("startAt must be before endAt"));
     }
 
     @Test
@@ -480,6 +543,80 @@ class TaskControllerIT {
             .andExpect(jsonPath("$.description").value("Updated dynamic description"))
             .andExpect(jsonPath("$.dependencies.length()").value(1))
             .andExpect(jsonPath("$.dependencies[0]").value(predecessorId));
+    }
+
+    @Test
+    void updateTask_Static_DifficultyAboveFive_ReturnsValidationError() throws Exception {
+        String subject = createAccountSubject();
+        long accountId = createAccount(subject);
+
+        StaticTask task = new StaticTask();
+        task.setAccount(accountRepository.getReferenceById(accountId));
+        task.setName("Original static task");
+        task.setDescription("Original description");
+        task.setDifficulty(2);
+        task.setStartAt(Instant.parse("2026-04-20T09:00:00Z"));
+        task.setEndAt(Instant.parse("2026-04-20T10:00:00Z"));
+        task.setRrule("FREQ=DAILY");
+        task.setLabels(new ArrayList<>());
+        task.setIsBlocker(false);
+        long taskId = taskRepository.saveAndFlush(task).getId();
+
+        String payload = """
+            {
+              "type": "static",
+              "difficulty": 6
+            }
+            """;
+
+        mockMvc.perform(patch("/v1/tasks/{id}", taskId)
+                .with(jwt().jwt(jwt -> jwt.subject(subject)))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload))
+            .andExpect(status().isBadRequest())
+            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+            .andExpect(jsonPath("$.type").value("urn:chronoscope:error:validation-error"))
+            .andExpect(jsonPath("$.fieldErrors[*].field", hasItem("difficulty")));
+    }
+
+    @Test
+    void updateTask_Dynamic_ReducesDuration_CapsMinAndMaxScopeDurations() throws Exception {
+        String subject = createAccountSubject();
+        long accountId = createAccount(subject);
+
+        DynamicTask task = new DynamicTask();
+        task.setAccount(accountRepository.getReferenceById(accountId));
+        task.setName("Dynamic task");
+        task.setDescription("Should cap scope durations when duration is lowered");
+        task.setDifficulty(3);
+        task.setStartAt(Instant.parse("2026-04-21T08:00:00Z"));
+        task.setEndAt(Instant.parse("2026-04-24T18:00:00Z"));
+        task.setRrule("FREQ=DAILY");
+        task.setDuration(Duration.of(180, ChronoUnit.MINUTES));
+        task.setElapsed(Duration.of(10, ChronoUnit.MINUTES));
+        task.setMinScopeDuration(Duration.of(30, ChronoUnit.MINUTES));
+        task.setMaxScopeDuration(Duration.of(90, ChronoUnit.MINUTES));
+        task.setLabels(new ArrayList<>());
+        task.setScopes(new ArrayList<>());
+        task.setDependencies(new HashSet<>());
+        task.setDependents(new HashSet<>());
+        long taskId = taskRepository.saveAndFlush(task).getId();
+
+        String payload = """
+            {
+              "type": "dynamic",
+              "duration": "PT8M"
+            }
+            """;
+
+        mockMvc.perform(patch("/v1/tasks/{id}", taskId)
+                .with(jwt().jwt(jwt -> jwt.subject(subject)))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.duration").value("PT8M"))
+            .andExpect(jsonPath("$.minScopeDuration").value("PT8M"))
+            .andExpect(jsonPath("$.maxScopeDuration").value("PT8M"));
     }
 
     @Test

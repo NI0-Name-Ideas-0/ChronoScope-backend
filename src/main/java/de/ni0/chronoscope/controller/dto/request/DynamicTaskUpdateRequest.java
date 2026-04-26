@@ -9,6 +9,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
@@ -19,7 +20,7 @@ public record DynamicTaskUpdateRequest(
     @Size(min = 1) String name,
     @Size(min = 1) String description,
     @Size(min = 1) String rrule,
-    @Positive Integer difficulty,
+    @Positive @Max(5) Integer difficulty,
     Instant startAt,
     Instant endAt,
     List<@Valid @NotNull LabelCreateRequest> labels,
