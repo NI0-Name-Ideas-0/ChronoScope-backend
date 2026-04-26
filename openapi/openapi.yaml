@@ -227,6 +227,12 @@ paths:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
           description: Missing or invalid token
+        "403":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Organization not linked to account
       summary: Create task
       tags:
       - Tasks
@@ -337,6 +343,12 @@ paths:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
           description: Missing or invalid token
+        "403":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Organization not linked to account
         "404":
           content:
             '*/*':

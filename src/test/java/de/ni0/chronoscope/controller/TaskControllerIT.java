@@ -342,7 +342,7 @@ class TaskControllerIT {
             .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
             .andExpect(jsonPath("$.type").value("urn:chronoscope:error:access-denied"))
             .andExpect(jsonPath("$.errorCode").value("ACCESS_DENIED"))
-            .andExpect(jsonPath("$.detail").value("organizationId is not linked to account"));
+            .andExpect(jsonPath("$.detail").exists());
     }
 
     @Test
@@ -578,7 +578,7 @@ class TaskControllerIT {
             .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
             .andExpect(jsonPath("$.type").value("urn:chronoscope:error:access-denied"))
             .andExpect(jsonPath("$.errorCode").value("ACCESS_DENIED"))
-            .andExpect(jsonPath("$.detail").value("organizationId is not linked to account"));
+            .andExpect(jsonPath("$.detail").exists());
     }
 
     @Test

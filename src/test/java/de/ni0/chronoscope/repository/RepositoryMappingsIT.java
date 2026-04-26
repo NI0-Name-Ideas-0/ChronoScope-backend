@@ -93,14 +93,17 @@ class RepositoryMappingsIT {
     @Test
     void taskRepository_PersistsDynamicTaskDependenciesViaJoinTable() {
         Identity identity = identityRepository.saveAndFlush(new Identity());
+        Organization organization = createOrganization("repo-it-dependency-org-" + System.nanoTime());
 
         Account account = new Account();
         account.setSubject("subject-dependency-test");
         account.setIdentity(identity);
+        account.setOrganizations(Set.of(organization));
         account = accountRepository.saveAndFlush(account);
 
         DynamicTask predecessor = new DynamicTask();
         predecessor.setAccount(account);
+        predecessor.setOrganization(organization);
         predecessor.setName("Predecessor");
         predecessor.setDescription("Dependency source");
         predecessor.setDifficulty(1);
@@ -119,6 +122,7 @@ class RepositoryMappingsIT {
 
         DynamicTask dependent = new DynamicTask();
         dependent.setAccount(account);
+        dependent.setOrganization(organization);
         dependent.setName("Dependent");
         dependent.setDescription("Depends on predecessor");
         dependent.setDifficulty(2);
@@ -144,14 +148,16 @@ class RepositoryMappingsIT {
     @Test
     void scopeRepository_DeleteByDynamicTaskIdIn_DeletesOnlyMatchingScopes() {
         Identity identity = identityRepository.saveAndFlush(new Identity());
+        Organization organization = createOrganization("repo-it-scope-org-" + System.nanoTime());
 
         Account account = new Account();
         account.setSubject("repo-it-scope-subject-" + System.nanoTime());
         account.setIdentity(identity);
+        account.setOrganizations(Set.of(organization));
         account = accountRepository.saveAndFlush(account);
 
-        DynamicTask taskToDelete = buildDynamicTask(account);
-        DynamicTask taskToKeep = buildDynamicTask(account);
+        DynamicTask taskToDelete = buildDynamicTask(account, organization);
+        DynamicTask taskToKeep = buildDynamicTask(account, organization);
 
         Scope scopeToDelete = new Scope(null, taskToDelete,
                 Instant.parse("2026-04-26T08:00:00Z"), Instant.parse("2026-04-26T09:00:00Z"));
@@ -166,9 +172,16 @@ class RepositoryMappingsIT {
         assertTrue(scopeRepository.findById(scopeToKeep.getId()).isPresent());
     }
 
-    private DynamicTask buildDynamicTask(Account account) {
+    private Organization createOrganization(String name) {
+        Organization organization = new Organization();
+        organization.setName(name);
+        return organizationRepository.saveAndFlush(organization);
+    }
+
+    private DynamicTask buildDynamicTask(Account account, Organization organization) {
         DynamicTask task = new DynamicTask();
         task.setAccount(account);
+        task.setOrganization(organization);
         task.setName("repo-it-task-" + System.nanoTime());
         task.setDescription("Test task");
         task.setDifficulty(1);
