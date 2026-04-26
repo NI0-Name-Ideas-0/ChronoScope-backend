@@ -595,6 +595,7 @@ components:
           difficulty:
             type: integer
             format: int32
+            maximum: 5
           duration:
             type: string
           endAt:
@@ -690,6 +691,9 @@ components:
       - $ref: "#/components/schemas/TaskUpdateRequest"
       - type: object
         properties:
+          accountId:
+            type: integer
+            format: int64
           dependencies:
             type: array
             items:
@@ -702,6 +706,7 @@ components:
           difficulty:
             type: integer
             format: int32
+            maximum: 5
           duration:
             type: string
           elapsed:
@@ -821,6 +826,7 @@ components:
           difficulty:
             type: integer
             format: int32
+            maximum: 5
           endAt:
             type: string
             format: date-time
@@ -887,6 +893,9 @@ components:
       - $ref: "#/components/schemas/TaskUpdateRequest"
       - type: object
         properties:
+          accountId:
+            type: integer
+            format: int64
           description:
             type: string
             maxLength: 2147483647
@@ -894,6 +903,7 @@ components:
           difficulty:
             type: integer
             format: int32
+            maximum: 5
           endAt:
             type: string
             format: date-time
