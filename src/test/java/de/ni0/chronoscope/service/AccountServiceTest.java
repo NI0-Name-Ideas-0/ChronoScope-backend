@@ -236,4 +236,29 @@ class AccountServiceTest {
         verify(accountRepository).existsByIdentityIdAndOrganizationsId(10L, 20L);
         verifyNoMoreInteractions(accountRepository, identityRepository, organizationRepository);
     }
+
+    @Test
+    void validateAccountOrgAccess_DoesNotThrow_WhenAccountHasOrganizationAccess() {
+        AccountService accountService = new AccountService(accountRepository, identityRepository, organizationRepository);
+
+        when(accountRepository.existsByIdAndOrganizationsId(10L, 20L)).thenReturn(true);
+
+        accountService.validateAccountOrgAccess(10L, 20L);
+
+        verify(accountRepository).existsByIdAndOrganizationsId(10L, 20L);
+        verifyNoMoreInteractions(accountRepository, identityRepository, organizationRepository);
+    }
+
+    @Test
+    void validateAccountOrgAccess_ThrowsAccountAccessDeniedException_WhenAccountLacksOrganizationAccess() {
+        AccountService accountService = new AccountService(accountRepository, identityRepository, organizationRepository);
+
+        when(accountRepository.existsByIdAndOrganizationsId(10L, 20L)).thenReturn(false);
+
+        assertThrows(AccountAccessDeniedException.class,
+                () -> accountService.validateAccountOrgAccess(10L, 20L));
+
+        verify(accountRepository).existsByIdAndOrganizationsId(10L, 20L);
+        verifyNoMoreInteractions(accountRepository, identityRepository, organizationRepository);
+    }
 }

@@ -133,6 +133,41 @@ class PlanControllerIT {
     }
 
     @Test
+    void plan_Returns400_WhenAccountIdMissing() throws Exception {
+        String subject = uniqueSubject();
+        String orgName = uniqueOrgName();
+
+        mockMvc.perform(post("/v1/plan")
+                        .with(jwt().jwt(jwt -> jwt.subject(subject).claim("organization", List.of(orgName))))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                { "organizationId": 1 }
+                                """))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void plan_Returns403_WhenAccountDoesNotBelongToIdentity() throws Exception {
+        String subjectA = uniqueSubject();
+        String subjectB = uniqueSubject();
+        String orgName = uniqueOrgName();
+
+        createAccount(subjectA);
+        AccountInfo infoB = createAccount(subjectB);
+        long orgId = createOrganization(orgName);
+
+        String payload = """
+                { "accountId": %d, "organizationId": %d }
+                """.formatted(infoB.accountId(), orgId);
+
+        mockMvc.perform(post("/v1/plan")
+                        .with(jwt().jwt(jwt -> jwt.subject(subjectA).claim("organization", List.of(orgName))))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void plan_Returns200WithEmptyList_WhenNoTasksForOrganization() throws Exception {
         String subject = uniqueSubject();
         String orgName = uniqueOrgName();

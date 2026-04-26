@@ -33,10 +33,10 @@ public class PlanningService {
     private final AccountService accountService;
 
     @Transactional
-    public List<Scope> planTasksForIdentity(long identityId, long orgId) {
-        accountService.validateOrganizationAccess(identityId, orgId);
+    public List<Scope> planTasksForAccount(long accountId, long orgId) {
+        accountService.validateAccountOrgAccess(accountId, orgId);
 
-        var dynamicTasks = taskRepository.findDynamicTasksByAccountIdentityIdAndOrganizationId(identityId, orgId);
+        var dynamicTasks = taskRepository.findDynamicTasksByAccountIdAndOrganizationId(accountId, orgId);
 
         if (dynamicTasks.isEmpty()) {
             // An exception would imply something went wrong, but "nothing to plan" is not a failure.
@@ -45,7 +45,7 @@ public class PlanningService {
         }
 
         var dynamicTaskIds = dynamicTasks.stream().map(DynamicTask::getId).toList();
-        var workSlots = workSlotService.getWorkSlotsForIdentity(identityId);
+        var workSlots = workSlotService.getWorkSlotsForAccount(accountId);
 
         var planningResult = plan(dynamicTasks, workSlots);
 

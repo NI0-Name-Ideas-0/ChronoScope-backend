@@ -8,4 +8,6 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
     java.util.Optional<Account> findBySubject(String subject);
 
     boolean existsByIdentityIdAndOrganizationsId(long identityId, long organizationId);
+
+    boolean existsByIdAndOrganizationsId(long accountId, long organizationId);
 }

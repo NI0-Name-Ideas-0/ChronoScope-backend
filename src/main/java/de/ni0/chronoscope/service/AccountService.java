@@ -40,6 +40,12 @@ public class AccountService {
         }
     }
 
+    public void validateAccountOrgAccess(long accountId, long organizationId) {
+        if (!accountRepository.existsByIdAndOrganizationsId(accountId, organizationId)) {
+            throw new AccountAccessDeniedException("Account does not have access to the specified organization");
+        }
+    }
+
     public long syncAccount(String subject, List<String> organizationNames) {
         // Find or create account by subject
         Account account = findOrCreateAccount(subject);

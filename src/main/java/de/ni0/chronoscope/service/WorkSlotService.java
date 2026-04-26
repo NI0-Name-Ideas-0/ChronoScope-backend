@@ -22,6 +22,11 @@ public class WorkSlotService {
         return workSlotRepository.findByAccountIdentityId(identityId);
     }
 
+    @Transactional(readOnly = true)
+    public List<WorkSlot> getWorkSlotsForAccount(long accountId) {
+        return workSlotRepository.findByAccountId(accountId);
+    }
+
     public WorkSlot createWorkSlot(WorkSlot workSlot) {
         return workSlotRepository.save(workSlot);
     }

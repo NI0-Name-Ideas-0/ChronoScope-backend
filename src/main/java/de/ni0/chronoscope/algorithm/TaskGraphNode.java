@@ -3,6 +3,7 @@ package de.ni0.chronoscope.algorithm;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Objects;
 
 import de.ni0.chronoscope.model.DynamicTask;
 
@@ -12,17 +13,17 @@ public record TaskGraphNode(DynamicTask task, List<TaskGraphNode> dependencies, 
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof TaskGraphNode other)) return false;
-        return this.task.getId() == other.task.getId();
+        return Objects.equals(this.task.getId(), other.task.getId());
     }
 
     @Override
     public int hashCode() {
-        return Long.hashCode(this.task.getId());
+        return Objects.hashCode(this.task.getId());
     }
 
     @Override
     public String toString() {
-        return Long.toString(this.task.getId());
+        return Objects.toString(this.task.getId(), "null");
     }
 
     public Instant getStartAt() {

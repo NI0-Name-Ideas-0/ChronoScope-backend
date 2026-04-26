@@ -106,8 +106,8 @@ paths:
       - Identity
   /v1/plan:
     post:
-      description: Run the planning algorithm for the given account. Returns the updated
-        work slots with planned task assignments.
+      description: Run the planning algorithm for the given account. Returns planned
+        task scopes.
       operationId: plan
       requestBody:
         content:

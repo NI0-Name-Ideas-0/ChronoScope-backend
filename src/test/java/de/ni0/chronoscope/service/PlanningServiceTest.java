@@ -48,54 +48,54 @@ class PlanningServiceTest {
     private AccountService accountService;
 
     @Test
-    void planTasksForIdentity_ReturnsEmptyList_WhenNoTasksForOrganization() {
+    void planTasksForAccount_ReturnsEmptyList_WhenNoTasksForOrganization() {
         PlanningService service = new PlanningService(taskRepository, scopeRepository, workSlotService, accountService);
 
-        doNothing().when(accountService).validateOrganizationAccess(10L, 20L);
-        when(taskRepository.findDynamicTasksByAccountIdentityIdAndOrganizationId(10L, 20L)).thenReturn(List.of());
+        doNothing().when(accountService).validateAccountOrgAccess(10L, 20L);
+        when(taskRepository.findDynamicTasksByAccountIdAndOrganizationId(10L, 20L)).thenReturn(List.of());
 
-        List<Scope> result = service.planTasksForIdentity(10L, 20L);
+        List<Scope> result = service.planTasksForAccount(10L, 20L);
 
         assertTrue(result.isEmpty());
-        verify(accountService).validateOrganizationAccess(10L, 20L);
-        verify(taskRepository).findDynamicTasksByAccountIdentityIdAndOrganizationId(10L, 20L);
-        verify(workSlotService, never()).getWorkSlotsForIdentity(anyLong());
+        verify(accountService).validateAccountOrgAccess(10L, 20L);
+        verify(taskRepository).findDynamicTasksByAccountIdAndOrganizationId(10L, 20L);
+        verify(workSlotService, never()).getWorkSlotsForAccount(anyLong());
         verify(scopeRepository, never()).deleteByDynamicTaskIdIn(anyList());
         verify(scopeRepository, never()).saveAll(anyList());
         verifyNoMoreInteractions(taskRepository, scopeRepository, workSlotService, accountService);
     }
 
     @Test
-    void planTasksForIdentity_PropagatesException_WhenOrganizationAccessDenied() {
+    void planTasksForAccount_PropagatesException_WhenOrganizationAccessDenied() {
         PlanningService service = new PlanningService(taskRepository, scopeRepository, workSlotService, accountService);
 
         doThrow(new AccountAccessDeniedException("no access"))
-                .when(accountService).validateOrganizationAccess(10L, 20L);
+                .when(accountService).validateAccountOrgAccess(10L, 20L);
 
-        assertThrows(AccountAccessDeniedException.class, () -> service.planTasksForIdentity(10L, 20L));
+        assertThrows(AccountAccessDeniedException.class, () -> service.planTasksForAccount(10L, 20L));
 
-        verify(accountService).validateOrganizationAccess(10L, 20L);
-        verify(taskRepository, never()).findDynamicTasksByAccountIdentityIdAndOrganizationId(anyLong(), anyLong());
+        verify(accountService).validateAccountOrgAccess(10L, 20L);
+        verify(taskRepository, never()).findDynamicTasksByAccountIdAndOrganizationId(anyLong(), anyLong());
         verifyNoMoreInteractions(taskRepository, scopeRepository, workSlotService, accountService);
     }
 
     @Test
-    void planTasksForIdentity_ThrowsInsufficientSlotsException_WhenNoWorkSlotsAvailable() {
+    void planTasksForAccount_ThrowsInsufficientSlotsException_WhenNoWorkSlotsAvailable() {
         PlanningService service = new PlanningService(taskRepository, scopeRepository, workSlotService, accountService);
 
-        doNothing().when(accountService).validateOrganizationAccess(10L, 20L);
-        when(taskRepository.findDynamicTasksByAccountIdentityIdAndOrganizationId(10L, 20L))
+        doNothing().when(accountService).validateAccountOrgAccess(10L, 20L);
+        when(taskRepository.findDynamicTasksByAccountIdAndOrganizationId(10L, 20L))
                 .thenReturn(List.of(buildTask(1L, Duration.ofHours(1))));
-        when(workSlotService.getWorkSlotsForIdentity(10L)).thenReturn(List.of());
+        when(workSlotService.getWorkSlotsForAccount(10L)).thenReturn(List.of());
 
-        assertThrows(InsufficientSlotsException.class, () -> service.planTasksForIdentity(10L, 20L));
+        assertThrows(InsufficientSlotsException.class, () -> service.planTasksForAccount(10L, 20L));
 
         verify(scopeRepository, never()).deleteByDynamicTaskIdIn(anyList());
         verify(scopeRepository, never()).saveAll(anyList());
     }
 
     @Test
-    void planTasksForIdentity_ThrowsInvalidRequestException_WhenTasksFormACycle() {
+    void planTasksForAccount_ThrowsInvalidRequestException_WhenTasksFormACycle() {
         PlanningService service = new PlanningService(taskRepository, scopeRepository, workSlotService, accountService);
 
         DynamicTask taskA = buildTask(1L, Duration.ofHours(1));
@@ -107,19 +107,19 @@ class PlanningServiceTest {
                 Instant.parse("2026-04-26T08:00:00Z"),
                 Instant.parse("2026-04-26T18:00:00Z"));
 
-        doNothing().when(accountService).validateOrganizationAccess(10L, 20L);
-        when(taskRepository.findDynamicTasksByAccountIdentityIdAndOrganizationId(10L, 20L))
+        doNothing().when(accountService).validateAccountOrgAccess(10L, 20L);
+        when(taskRepository.findDynamicTasksByAccountIdAndOrganizationId(10L, 20L))
                 .thenReturn(List.of(taskA, taskB));
-        when(workSlotService.getWorkSlotsForIdentity(10L)).thenReturn(List.of(slot));
+        when(workSlotService.getWorkSlotsForAccount(10L)).thenReturn(List.of(slot));
 
-        assertThrows(InvalidRequestException.class, () -> service.planTasksForIdentity(10L, 20L));
+        assertThrows(InvalidRequestException.class, () -> service.planTasksForAccount(10L, 20L));
 
         verify(scopeRepository, never()).deleteByDynamicTaskIdIn(anyList());
         verify(scopeRepository, never()).saveAll(anyList());
     }
 
     @Test
-    void planTasksForIdentity_ThrowsInsufficientSlotsException_WhenDeadlineCannotBeMet() {
+    void planTasksForAccount_ThrowsInsufficientSlotsException_WhenDeadlineCannotBeMet() {
         PlanningService service = new PlanningService(taskRepository, scopeRepository, workSlotService, accountService);
 
         // Task needs 2 hours but its deadline is only 1 hour from slot start
@@ -131,19 +131,19 @@ class PlanningServiceTest {
                 Instant.parse("2026-04-26T08:00:00Z"),
                 Instant.parse("2026-04-26T18:00:00Z"));
 
-        doNothing().when(accountService).validateOrganizationAccess(10L, 20L);
-        when(taskRepository.findDynamicTasksByAccountIdentityIdAndOrganizationId(10L, 20L))
+        doNothing().when(accountService).validateAccountOrgAccess(10L, 20L);
+        when(taskRepository.findDynamicTasksByAccountIdAndOrganizationId(10L, 20L))
                 .thenReturn(List.of(task));
-        when(workSlotService.getWorkSlotsForIdentity(10L)).thenReturn(List.of(slot));
+        when(workSlotService.getWorkSlotsForAccount(10L)).thenReturn(List.of(slot));
 
-        assertThrows(InsufficientSlotsException.class, () -> service.planTasksForIdentity(10L, 20L));
+        assertThrows(InsufficientSlotsException.class, () -> service.planTasksForAccount(10L, 20L));
 
         verify(scopeRepository, never()).deleteByDynamicTaskIdIn(anyList());
         verify(scopeRepository, never()).saveAll(anyList());
     }
 
     @Test
-    void planTasksForIdentity_DeletesOldScopesAndReturnsNewScopes_WhenPlanSucceeds() {
+    void planTasksForAccount_DeletesOldScopesAndReturnsNewScopes_WhenPlanSucceeds() {
         PlanningService service = new PlanningService(taskRepository, scopeRepository, workSlotService, accountService);
 
         DynamicTask task = buildTask(1L, Duration.ofHours(1));
@@ -151,14 +151,14 @@ class PlanningServiceTest {
                 Instant.parse("2026-04-26T08:00:00Z"),
                 Instant.parse("2026-04-26T18:00:00Z"));
 
-        doNothing().when(accountService).validateOrganizationAccess(10L, 20L);
-        when(taskRepository.findDynamicTasksByAccountIdentityIdAndOrganizationId(10L, 20L))
+        doNothing().when(accountService).validateAccountOrgAccess(10L, 20L);
+        when(taskRepository.findDynamicTasksByAccountIdAndOrganizationId(10L, 20L))
                 .thenReturn(List.of(task));
-        when(workSlotService.getWorkSlotsForIdentity(10L)).thenReturn(List.of(slot));
+        when(workSlotService.getWorkSlotsForAccount(10L)).thenReturn(List.of(slot));
         when(scopeRepository.deleteByDynamicTaskIdIn(List.of(1L))).thenReturn(0L);
         when(scopeRepository.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        List<Scope> result = service.planTasksForIdentity(10L, 20L);
+        List<Scope> result = service.planTasksForAccount(10L, 20L);
 
         assertEquals(1, result.size());
         assertEquals(task, result.getFirst().getDynamicTask());
