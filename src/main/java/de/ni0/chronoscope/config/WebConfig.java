@@ -15,6 +15,7 @@ public class WebConfig {
 
     private static final List<String> ALLOWED_METHODS = List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS");
     private static final List<String> ALLOWED_HEADERS = List.of(CorsConfiguration.ALL);
+    private static final String API_PATH_PATTERN = "/v1/**";
     private static final long MAX_AGE_SECONDS = 3600L;
 
     @Bean
@@ -35,7 +36,7 @@ public class WebConfig {
             configuration.setAllowCredentials(true);
             configuration.setMaxAge(MAX_AGE_SECONDS);
 
-            source.registerCorsConfiguration("/**", configuration);
+            source.registerCorsConfiguration(API_PATH_PATTERN, configuration);
         }
 
         return source;
