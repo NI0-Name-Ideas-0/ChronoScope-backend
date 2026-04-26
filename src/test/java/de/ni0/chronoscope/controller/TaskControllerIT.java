@@ -14,7 +14,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.http.MediaType;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import org.springframework.test.web.servlet.MockMvc;
@@ -41,7 +40,6 @@ import jakarta.persistence.PersistenceContext;
 
 @SpringBootTest
 @AutoConfigureMockMvc
-@ComponentScan(basePackages = "de.ni0.chronoscope.mapper")
 @Transactional
 class TaskControllerIT {
 
@@ -251,7 +249,7 @@ class TaskControllerIT {
               "labels": [],
               "duration": "PT240M",
               "minScopeDuration": "PT30M",
-              "maxScopeDuration": "PT120M",
+                            "maxScopeDuration": "PT90M",
               "dependencies": []
             }
             """.formatted(accountId);
@@ -267,7 +265,7 @@ class TaskControllerIT {
             .andExpect(jsonPath("$.duration").value("PT4H"))
             .andExpect(jsonPath("$.elapsed").value("PT0S"))
             .andExpect(jsonPath("$.minScopeDuration").value("PT30M"))
-            .andExpect(jsonPath("$.maxScopeDuration").value("PT2H"))
+            .andExpect(jsonPath("$.maxScopeDuration").value("PT1H30M"))
             .andExpect(jsonPath("$.scopes").isArray())
             .andExpect(jsonPath("$.scopes").isEmpty())
             .andExpect(jsonPath("$.dependencies").isArray())
@@ -294,7 +292,7 @@ class TaskControllerIT {
               "labels": [],
               "duration": "PT240M",
               "minScopeDuration": "PT30M",
-              "maxScopeDuration": "PT120M",
+                            "maxScopeDuration": "PT90M",
               "dependencies": []
             }
             """.formatted(accountId);
@@ -328,7 +326,7 @@ class TaskControllerIT {
               "labels": [],
               "duration": "PT240M",
               "minScopeDuration": "PT30M",
-              "maxScopeDuration": "PT120M",
+                            "maxScopeDuration": "PT90M",
               "dependencies": [
                                 %d
               ]
@@ -368,7 +366,7 @@ class TaskControllerIT {
                             "labels": [],
                             "duration": "PT240M",
                             "minScopeDuration": "PT30M",
-                            "maxScopeDuration": "PT120M",
+                            "maxScopeDuration": "PT90M",
                             "dependencies": [
                                 %d
                             ]
@@ -409,7 +407,7 @@ class TaskControllerIT {
                             "labels": [],
                             "duration": "PT240M",
                             "minScopeDuration": "PT30M",
-                            "maxScopeDuration": "PT120M",
+                            "maxScopeDuration": "PT90M",
                             "dependencies": [
                                 %d
                             ]
@@ -963,7 +961,7 @@ class TaskControllerIT {
               "labels": [],
               "duration": "PT240M",
               "minScopeDuration": "PT30M",
-              "maxScopeDuration": "PT120M"
+              "maxScopeDuration": "PT90M"
             }
             """.formatted(accountId);
 
