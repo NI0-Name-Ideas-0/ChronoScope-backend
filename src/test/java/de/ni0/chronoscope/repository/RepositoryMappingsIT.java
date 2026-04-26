@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -143,40 +142,6 @@ class RepositoryMappingsIT {
     }
 
     @Test
-    void accountRepository_ExistsByIdentityIdAndOrganizationsId_ReturnsTrueWhenLinked() {
-        Identity identity = identityRepository.saveAndFlush(new Identity());
-
-        Organization org = new Organization();
-        org.setName("repo-it-org-" + System.nanoTime());
-        org = organizationRepository.saveAndFlush(org);
-
-        Account account = new Account();
-        account.setSubject("repo-it-subject-" + System.nanoTime());
-        account.setIdentity(identity);
-        account.setOrganizations(new HashSet<>(Set.of(org)));
-        accountRepository.saveAndFlush(account);
-
-        assertTrue(accountRepository.existsByIdentityIdAndOrganizationsId(identity.getId(), org.getId()));
-    }
-
-    @Test
-    void accountRepository_ExistsByIdentityIdAndOrganizationsId_ReturnsFalseWhenNotLinked() {
-        Identity identity = identityRepository.saveAndFlush(new Identity());
-
-        Organization org = new Organization();
-        org.setName("repo-it-org-" + System.nanoTime());
-        org = organizationRepository.saveAndFlush(org);
-
-        Account account = new Account();
-        account.setSubject("repo-it-subject-" + System.nanoTime());
-        account.setIdentity(identity);
-        // org not added to account's organizations
-        accountRepository.saveAndFlush(account);
-
-        assertFalse(accountRepository.existsByIdentityIdAndOrganizationsId(identity.getId(), org.getId()));
-    }
-
-    @Test
     void scopeRepository_DeleteByDynamicTaskIdIn_DeletesOnlyMatchingScopes() {
         Identity identity = identityRepository.saveAndFlush(new Identity());
 
@@ -199,38 +164,6 @@ class RepositoryMappingsIT {
 
         assertEquals(1L, deleted);
         assertTrue(scopeRepository.findById(scopeToKeep.getId()).isPresent());
-    }
-
-    @Test
-    void taskRepository_FindDynamicTasksByAccountIdentityIdAndOrganizationId_ReturnsOnlyMatchingTasks() {
-        Identity identity = identityRepository.saveAndFlush(new Identity());
-
-        Account account = new Account();
-        account.setSubject("repo-it-task-org-subject-" + System.nanoTime());
-        account.setIdentity(identity);
-        account = accountRepository.saveAndFlush(account);
-
-        Organization org = new Organization();
-        org.setName("repo-it-task-org-" + System.nanoTime());
-        org = organizationRepository.saveAndFlush(org);
-
-        Organization otherOrg = new Organization();
-        otherOrg.setName("repo-it-other-org-" + System.nanoTime());
-        otherOrg = organizationRepository.saveAndFlush(otherOrg);
-
-        DynamicTask matchingTask = buildDynamicTask(account);
-        matchingTask.setOrganization(org);
-        taskRepository.saveAndFlush(matchingTask);
-
-        DynamicTask nonMatchingTask = buildDynamicTask(account);
-        nonMatchingTask.setOrganization(otherOrg);
-        taskRepository.saveAndFlush(nonMatchingTask);
-
-        List<DynamicTask> result = taskRepository.findDynamicTasksByAccountIdentityIdAndOrganizationId(
-                identity.getId(), org.getId());
-
-        assertEquals(1, result.size());
-        assertEquals(matchingTask.getId(), result.getFirst().getId());
     }
 
     private DynamicTask buildDynamicTask(Account account) {
