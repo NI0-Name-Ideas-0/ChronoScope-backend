@@ -5,9 +5,11 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,6 +21,7 @@ import de.ni0.chronoscope.model.DynamicTask;
 import de.ni0.chronoscope.model.Identity;
 import de.ni0.chronoscope.model.Label;
 import de.ni0.chronoscope.model.Organization;
+import de.ni0.chronoscope.model.Scope;
 
 @SpringBootTest
 @Transactional
@@ -38,6 +41,9 @@ class RepositoryMappingsIT {
 
     @Autowired
     private TaskRepository taskRepository;
+
+    @Autowired
+    private ScopeRepository scopeRepository;
 
     @Test
     void accountRepository_FindsAccountBySubject() {
@@ -134,5 +140,116 @@ class RepositoryMappingsIT {
 
         assertEquals(1, reloadedDependent.getDependencies().size());
         assertEquals(predecessor.getId(), reloadedDependent.getDependencies().iterator().next().getId());
+    }
+
+    @Test
+    void accountRepository_ExistsByIdentityIdAndOrganizationsId_ReturnsTrueWhenLinked() {
+        Identity identity = identityRepository.saveAndFlush(new Identity());
+
+        Organization org = new Organization();
+        org.setName("repo-it-org-" + System.nanoTime());
+        org = organizationRepository.saveAndFlush(org);
+
+        Account account = new Account();
+        account.setSubject("repo-it-subject-" + System.nanoTime());
+        account.setIdentity(identity);
+        account.setOrganizations(new HashSet<>(Set.of(org)));
+        accountRepository.saveAndFlush(account);
+
+        assertTrue(accountRepository.existsByIdentityIdAndOrganizationsId(identity.getId(), org.getId()));
+    }
+
+    @Test
+    void accountRepository_ExistsByIdentityIdAndOrganizationsId_ReturnsFalseWhenNotLinked() {
+        Identity identity = identityRepository.saveAndFlush(new Identity());
+
+        Organization org = new Organization();
+        org.setName("repo-it-org-" + System.nanoTime());
+        org = organizationRepository.saveAndFlush(org);
+
+        Account account = new Account();
+        account.setSubject("repo-it-subject-" + System.nanoTime());
+        account.setIdentity(identity);
+        // org not added to account's organizations
+        accountRepository.saveAndFlush(account);
+
+        assertFalse(accountRepository.existsByIdentityIdAndOrganizationsId(identity.getId(), org.getId()));
+    }
+
+    @Test
+    void scopeRepository_DeleteByDynamicTaskIdIn_DeletesOnlyMatchingScopes() {
+        Identity identity = identityRepository.saveAndFlush(new Identity());
+
+        Account account = new Account();
+        account.setSubject("repo-it-scope-subject-" + System.nanoTime());
+        account.setIdentity(identity);
+        account = accountRepository.saveAndFlush(account);
+
+        DynamicTask taskToDelete = buildDynamicTask(account);
+        DynamicTask taskToKeep = buildDynamicTask(account);
+
+        Scope scopeToDelete = new Scope(null, taskToDelete,
+                Instant.parse("2026-04-26T08:00:00Z"), Instant.parse("2026-04-26T09:00:00Z"));
+        Scope scopeToKeep = new Scope(null, taskToKeep,
+                Instant.parse("2026-04-26T09:00:00Z"), Instant.parse("2026-04-26T10:00:00Z"));
+        scopeRepository.saveAndFlush(scopeToDelete);
+        scopeRepository.saveAndFlush(scopeToKeep);
+
+        long deleted = scopeRepository.deleteByDynamicTaskIdIn(List.of(taskToDelete.getId()));
+
+        assertEquals(1L, deleted);
+        assertTrue(scopeRepository.findById(scopeToKeep.getId()).isPresent());
+    }
+
+    @Test
+    void taskRepository_FindDynamicTasksByAccountIdentityIdAndOrganizationId_ReturnsOnlyMatchingTasks() {
+        Identity identity = identityRepository.saveAndFlush(new Identity());
+
+        Account account = new Account();
+        account.setSubject("repo-it-task-org-subject-" + System.nanoTime());
+        account.setIdentity(identity);
+        account = accountRepository.saveAndFlush(account);
+
+        Organization org = new Organization();
+        org.setName("repo-it-task-org-" + System.nanoTime());
+        org = organizationRepository.saveAndFlush(org);
+
+        Organization otherOrg = new Organization();
+        otherOrg.setName("repo-it-other-org-" + System.nanoTime());
+        otherOrg = organizationRepository.saveAndFlush(otherOrg);
+
+        DynamicTask matchingTask = buildDynamicTask(account);
+        matchingTask.setOrganization(org);
+        taskRepository.saveAndFlush(matchingTask);
+
+        DynamicTask nonMatchingTask = buildDynamicTask(account);
+        nonMatchingTask.setOrganization(otherOrg);
+        taskRepository.saveAndFlush(nonMatchingTask);
+
+        List<DynamicTask> result = taskRepository.findDynamicTasksByAccountIdentityIdAndOrganizationId(
+                identity.getId(), org.getId());
+
+        assertEquals(1, result.size());
+        assertEquals(matchingTask.getId(), result.getFirst().getId());
+    }
+
+    private DynamicTask buildDynamicTask(Account account) {
+        DynamicTask task = new DynamicTask();
+        task.setAccount(account);
+        task.setName("repo-it-task-" + System.nanoTime());
+        task.setDescription("Test task");
+        task.setDifficulty(1);
+        task.setStartAt(Instant.parse("2026-04-26T08:00:00Z"));
+        task.setEndAt(Instant.parse("2026-04-26T18:00:00Z"));
+        task.setRrule("FREQ=DAILY");
+        task.setDuration(Duration.of(60, ChronoUnit.MINUTES));
+        task.setElapsed(Duration.of(0, ChronoUnit.MINUTES));
+        task.setMinScopeDuration(Duration.of(30, ChronoUnit.MINUTES));
+        task.setMaxScopeDuration(Duration.of(60, ChronoUnit.MINUTES));
+        task.setLabels(new ArrayList<>());
+        task.setScopes(new ArrayList<>());
+        task.setDependencies(new HashSet<>());
+        task.setDependents(new HashSet<>());
+        return taskRepository.saveAndFlush(task);
     }
 }
