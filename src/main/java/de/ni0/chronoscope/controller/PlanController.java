@@ -1,8 +1,9 @@
 package de.ni0.chronoscope.controller;
 
+import de.ni0.chronoscope.config.RequestContext;
 import de.ni0.chronoscope.controller.dto.request.PlanRequest;
-import de.ni0.chronoscope.controller.dto.response.WorkSlotResponse;
-import de.ni0.chronoscope.exception.ApiNotImplementedException;
+import de.ni0.chronoscope.controller.dto.response.ScopeResponse;
+import de.ni0.chronoscope.mapper.ScopeMapper;
 import de.ni0.chronoscope.service.PlanningService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -28,6 +29,10 @@ public class PlanController {
 
     private final PlanningService planningService;
 
+    private final ScopeMapper scopeMapper;
+
+    private final RequestContext requestContext;
+
     @Operation(summary = "Generate plan", description = "Run the planning algorithm for the given account. Returns the updated work slots with planned task assignments.")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Plan generated successfully"),
@@ -36,7 +41,8 @@ public class PlanController {
         @ApiResponse(responseCode = "409", description = "Not enough work slots to accommodate all tasks", content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     })
     @PostMapping
-    public List<WorkSlotResponse> plan(@Valid @RequestBody PlanRequest request) {
-        throw new ApiNotImplementedException();
+    public List<ScopeResponse> plan(@Valid @RequestBody PlanRequest request) {
+        var result = planningService.planTasksForIdentity(requestContext.getIdentityId(), request.organizationId());
+        return result.stream().map(scopeMapper::toResponse).toList();
     }
 }
