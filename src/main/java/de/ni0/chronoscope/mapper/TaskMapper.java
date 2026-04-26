@@ -22,7 +22,7 @@ import de.ni0.chronoscope.model.StaticTask;
 
 @Mapper(
     componentModel = MappingConstants.ComponentModel.SPRING,
-    uses = {LabelMapper.class, ScopeMapper.class, TaskProxyProvider.class, OrganizationProxyProvider.class},
+    uses = {LabelMapper.class, ScopeMapper.class, TaskProxyProvider.class},
     unmappedTargetPolicy = ReportingPolicy.ERROR
 )
 public interface TaskMapper {
@@ -31,7 +31,8 @@ public interface TaskMapper {
     @Mapping(target = "id", ignore = true)
     // Account is validated and assigned by controller logic after request parsing.
     @Mapping(target = "account", ignore = true)
-    @Mapping(target = "organization", source = "organizationId", qualifiedByName = "organizationProxy")
+    // Organization is validated and assigned by controller logic after request parsing.
+    @Mapping(target = "organization", ignore = true)
     @Mapping(target = "name", source = "name")
     @Mapping(target = "description", source = "description")
     @Mapping(target = "difficulty", source = "difficulty")
@@ -46,7 +47,8 @@ public interface TaskMapper {
     @Mapping(target = "id", ignore = true)
     // Account is validated and assigned by controller logic after request parsing.
     @Mapping(target = "account", ignore = true)
-    @Mapping(target = "organization", source = "organizationId", qualifiedByName = "organizationProxy")
+    // Organization is validated and assigned by controller logic after request parsing.
+    @Mapping(target = "organization", ignore = true)
     @Mapping(target = "name", source = "name")
     @Mapping(target = "description", source = "description")
     @Mapping(target = "difficulty", source = "difficulty")
@@ -67,7 +69,8 @@ public interface TaskMapper {
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "account", ignore = true)
-    @Mapping(target = "organization", source = "organizationId", qualifiedByName = "organizationProxy")
+    // Organization updates are validated and assigned by service logic.
+    @Mapping(target = "organization", ignore = true)
     @Mapping(target = "labels", source = "labels")
     @Mapping(target = "name", source = "name")
     @Mapping(target = "description", source = "description")
@@ -82,7 +85,8 @@ public interface TaskMapper {
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "account", ignore = true)
-    @Mapping(target = "organization", source = "organizationId", qualifiedByName = "organizationProxy")
+    // Organization updates are validated and assigned by service logic.
+    @Mapping(target = "organization", ignore = true)
     @Mapping(target = "labels", source = "labels")
     @Mapping(target = "scopes", ignore = true)
     @Mapping(target = "dependencies", ignore = true)

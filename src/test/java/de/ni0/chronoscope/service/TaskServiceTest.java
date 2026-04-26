@@ -20,6 +20,7 @@ import de.ni0.chronoscope.exception.ResourceNotFoundException;
 import de.ni0.chronoscope.model.Account;
 import de.ni0.chronoscope.model.DynamicTask;
 import de.ni0.chronoscope.model.Identity;
+import de.ni0.chronoscope.model.Organization;
 import de.ni0.chronoscope.model.StaticTask;
 import de.ni0.chronoscope.model.Task;
 import de.ni0.chronoscope.repository.TaskRepository;
@@ -30,9 +31,12 @@ class TaskServiceTest {
     @Mock
     private TaskRepository taskRepository;
 
+    @Mock
+    private AccountService accountService;
+
     @Test
     void getTasksForIdentity_ReturnsAllTasksFromLinkedAccounts() {
-        TaskService taskService = new TaskService(taskRepository);
+        TaskService taskService = new TaskService(taskRepository, accountService);
         long identityId = 42L;
         List<Task> expectedTasks = List.of();
 
@@ -48,7 +52,7 @@ class TaskServiceTest {
 
     @Test
     void getTaskForIdentity_ReturnsTaskWhenFound() {
-        TaskService taskService = new TaskService(taskRepository);
+        TaskService taskService = new TaskService(taskRepository, accountService);
         long identityId = 42L;
         long taskId = 101L;
         Task expectedTask = new StaticTask();
@@ -64,7 +68,7 @@ class TaskServiceTest {
 
     @Test
     void getTaskForIdentity_ThrowsWhenNotFound() {
-        TaskService taskService = new TaskService(taskRepository);
+        TaskService taskService = new TaskService(taskRepository, accountService);
         long identityId = 42L;
         long taskId = 101L;
 
@@ -78,7 +82,7 @@ class TaskServiceTest {
 
     @Test
     void deleteTask_DeletesStaticTaskByIdentityScopedLookup() {
-        TaskService taskService = new TaskService(taskRepository);
+        TaskService taskService = new TaskService(taskRepository, accountService);
         long identityId = 42L;
         long taskId = 10L;
 
@@ -97,7 +101,7 @@ class TaskServiceTest {
 
     @Test
     void deleteTask_DeletesDynamicTaskAndClearsDependencyRelations() {
-        TaskService taskService = new TaskService(taskRepository);
+        TaskService taskService = new TaskService(taskRepository, accountService);
         long identityId = 42L;
         long taskId = 11L;
 
@@ -137,7 +141,7 @@ class TaskServiceTest {
 
     @Test
     void deleteTask_ThrowsWhenTaskNotFoundForIdentity() {
-        TaskService taskService = new TaskService(taskRepository);
+        TaskService taskService = new TaskService(taskRepository, accountService);
         long identityId = 42L;
         long taskId = 999L;
 
@@ -154,7 +158,7 @@ class TaskServiceTest {
 
     @Test
     void createDynamicTask_AllowsDependenciesFromDifferentAccountWithSameIdentity() {
-        TaskService taskService = new TaskService(taskRepository);
+        TaskService taskService = new TaskService(taskRepository, accountService);
 
         Identity identity = new Identity();
         identity.setId(42L);
@@ -190,7 +194,7 @@ class TaskServiceTest {
 
     @Test
     void createDynamicTask_ThrowsWhenDependencyBelongsToDifferentIdentity() {
-        TaskService taskService = new TaskService(taskRepository);
+        TaskService taskService = new TaskService(taskRepository, accountService);
 
         Identity sourceIdentity = new Identity();
         sourceIdentity.setId(42L);
@@ -230,7 +234,7 @@ class TaskServiceTest {
 
     @Test
     void updateStaticTask_ThrowsWhenPathIdDoesNotMatchTaskId() {
-        TaskService taskService = new TaskService(taskRepository);
+        TaskService taskService = new TaskService(taskRepository, accountService);
 
         StaticTask task = new StaticTask();
         task.setId(100L);
@@ -246,7 +250,7 @@ class TaskServiceTest {
 
     @Test
     void updateDynamicTask_ValidatesDependenciesBeforeSave() {
-        TaskService taskService = new TaskService(taskRepository);
+        TaskService taskService = new TaskService(taskRepository, accountService);
 
         Identity identity = new Identity();
         identity.setId(42L);
@@ -290,7 +294,7 @@ class TaskServiceTest {
 
     @Test
     void updateStaticTask_PersistsAndFlushes() {
-        TaskService taskService = new TaskService(taskRepository);
+        TaskService taskService = new TaskService(taskRepository, accountService);
 
         StaticTask task = new StaticTask();
         task.setId(100L);
@@ -310,8 +314,74 @@ class TaskServiceTest {
     }
 
     @Test
+    void updateStaticTask_ValidatesOrganizationBeforeAssigning() {
+        TaskService taskService = new TaskService(taskRepository, accountService);
+
+        Account account = new Account();
+        account.setId(10L);
+
+        Organization organization = new Organization();
+        organization.setId(7L);
+
+        StaticTask task = new StaticTask();
+        task.setId(100L);
+        task.setLabels(new java.util.ArrayList<>());
+
+        StaticTask managedTask = new StaticTask();
+        managedTask.setId(100L);
+        managedTask.setAccount(account);
+        managedTask.setLabels(new java.util.ArrayList<>());
+
+        when(taskRepository.findById(100L)).thenReturn(Optional.of(managedTask));
+        when(accountService.validateOrganizationAccess(account, 7L)).thenReturn(organization);
+
+        StaticTask result = taskService.updateStaticTask(100L, task, 7L);
+
+        assertEquals(managedTask, result);
+        assertEquals(organization, managedTask.getOrganization());
+        verify(taskRepository).findById(100L);
+        verify(accountService).validateOrganizationAccess(account, 7L);
+        verify(taskRepository).flush();
+    }
+
+    @Test
+    void updateDynamicTask_ValidatesOrganizationBeforeAssigning() {
+        TaskService taskService = new TaskService(taskRepository, accountService);
+
+        Account account = new Account();
+        account.setId(10L);
+
+        Organization organization = new Organization();
+        organization.setId(7L);
+
+        DynamicTask task = new DynamicTask();
+        task.setId(200L);
+        task.setLabels(new java.util.ArrayList<>());
+        task.setScopes(new java.util.ArrayList<>());
+
+        DynamicTask managedTask = new DynamicTask();
+        managedTask.setId(200L);
+        managedTask.setAccount(account);
+        managedTask.setDependencies(new java.util.HashSet<>());
+        managedTask.setDependents(new java.util.HashSet<>());
+        managedTask.setLabels(new java.util.ArrayList<>());
+        managedTask.setScopes(new java.util.ArrayList<>());
+
+        when(taskRepository.findById(200L)).thenReturn(Optional.of(managedTask));
+        when(accountService.validateOrganizationAccess(account, 7L)).thenReturn(organization);
+
+        DynamicTask result = taskService.updateDynamicTask(200L, task, null, 7L);
+
+        assertEquals(managedTask, result);
+        assertEquals(organization, managedTask.getOrganization());
+        verify(taskRepository).findById(200L);
+        verify(accountService).validateOrganizationAccess(account, 7L);
+        verify(taskRepository).flush();
+    }
+
+    @Test
     void createDynamicTask_ThrowsWhenDependencyIdIsNull() {
-        TaskService taskService = new TaskService(taskRepository);
+        TaskService taskService = new TaskService(taskRepository, accountService);
 
         Identity identity = new Identity();
         identity.setId(42L);

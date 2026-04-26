@@ -32,6 +32,7 @@ import de.ni0.chronoscope.exception.InvalidRequestException;
 import de.ni0.chronoscope.mapper.TaskMapper;
 import de.ni0.chronoscope.model.Account;
 import de.ni0.chronoscope.model.DynamicTask;
+import de.ni0.chronoscope.model.Organization;
 import de.ni0.chronoscope.model.StaticTask;
 import de.ni0.chronoscope.service.AccountService;
 import de.ni0.chronoscope.service.TaskService;
@@ -116,6 +117,9 @@ class TaskControllerTest {
         Account account = new Account();
         account.setId(10L);
 
+        Organization organization = new Organization();
+        organization.setId(1L);
+
         StaticTaskCreateRequest request = new StaticTaskCreateRequest(
             10L,
             1L,
@@ -152,6 +156,7 @@ class TaskControllerTest {
         );
 
         when(accountService.validateAccountOwnership(99L, 10L)).thenReturn(account);
+        when(accountService.validateOrganizationAccess(account, 1L)).thenReturn(organization);
         when(taskMapper.fromCreateRequest(request)).thenReturn(mappedTask);
         when(taskService.createStaticTask(any(StaticTask.class))).thenReturn(savedTask);
         when(taskMapper.toResponse(savedTask)).thenReturn(expectedResponse);
@@ -161,7 +166,9 @@ class TaskControllerTest {
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         assertEquals(expectedResponse, response.getBody());
         verify(accountService).validateAccountOwnership(99L, 10L);
-        verify(taskService).createStaticTask(any(StaticTask.class));
+        verify(accountService).validateOrganizationAccess(account, 1L);
+        verify(taskMapper).fromCreateRequest(request);
+        verify(taskService).createStaticTask(mappedTask);
         verify(taskMapper).toResponse(savedTask);
         verifyNoMoreInteractions(taskMapper, taskService, accountService);
     }
@@ -174,6 +181,9 @@ class TaskControllerTest {
 
         Account account = new Account();
         account.setId(11L);
+
+        Organization organization = new Organization();
+        organization.setId(1L);
 
         DynamicTaskCreateRequest request = new DynamicTaskCreateRequest(
             11L,
@@ -220,6 +230,7 @@ class TaskControllerTest {
         );
 
         when(accountService.validateAccountOwnership(99L, 11L)).thenReturn(account);
+        when(accountService.validateOrganizationAccess(account, 1L)).thenReturn(organization);
         when(taskMapper.fromCreateRequest(request)).thenReturn(mappedTask);
         when(taskService.createDynamicTask(any(DynamicTask.class))).thenReturn(savedTask);
         when(taskMapper.toResponse(savedTask)).thenReturn(expectedResponse);
@@ -229,7 +240,9 @@ class TaskControllerTest {
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         assertEquals(expectedResponse, response.getBody());
         verify(accountService).validateAccountOwnership(99L, 11L);
-        verify(taskService).createDynamicTask(any(DynamicTask.class));
+        verify(accountService).validateOrganizationAccess(account, 1L);
+        verify(taskMapper).fromCreateRequest(request);
+        verify(taskService).createDynamicTask(mappedTask);
         verify(taskMapper).toResponse(savedTask);
         verifyNoMoreInteractions(taskMapper, taskService, accountService);
     }
@@ -376,7 +389,7 @@ class TaskControllerTest {
         );
 
         when(taskService.getTaskForIdentity(99L, 200L)).thenReturn(existingTask);
-        when(taskService.updateStaticTask(200L, existingTask)).thenReturn(existingTask);
+        when(taskService.updateStaticTask(200L, existingTask, null)).thenReturn(existingTask);
         when(taskMapper.toResponse(existingTask)).thenReturn(expectedResponse);
 
         TaskResponse result = controller.updateTask(200L, request);
@@ -384,7 +397,7 @@ class TaskControllerTest {
         assertEquals(expectedResponse, result);
         verify(taskService).getTaskForIdentity(99L, 200L);
         verify(taskMapper).fromUpdateRequest(request, existingTask);
-        verify(taskService).updateStaticTask(200L, existingTask);
+        verify(taskService).updateStaticTask(200L, existingTask, null);
         verify(taskMapper).toResponse(existingTask);
         verifyNoMoreInteractions(taskService, taskMapper, accountService);
     }
