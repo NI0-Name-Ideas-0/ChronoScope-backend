@@ -1,3 +1,15 @@
-cors:
-  allowed-origins: "http://localhost:4200"
+logging:
+  level:
+    de.ni0.chronoscope: DEBUG
 
+cors:
+  allowed-origins:
+    - "*"
+
+chronoscope:
+  dev-auth:
+    token: local-test-user
+    subject: local-test-user
+    organizations:
+      - private
+      - chronoscope-local
