@@ -4,7 +4,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
-import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -33,9 +32,8 @@ import de.ni0.chronoscope.exception.InvalidRequestException;
 import de.ni0.chronoscope.mapper.TaskMapper;
 import de.ni0.chronoscope.model.Account;
 import de.ni0.chronoscope.model.DynamicTask;
-import de.ni0.chronoscope.model.Identity;
 import de.ni0.chronoscope.model.StaticTask;
-import de.ni0.chronoscope.repository.AccountRepository;
+import de.ni0.chronoscope.service.AccountService;
 import de.ni0.chronoscope.service.TaskService;
 
 @ExtendWith(MockitoExtension.class)
@@ -48,13 +46,13 @@ class TaskControllerTest {
     private TaskMapper taskMapper;
 
     @Mock
-    private AccountRepository accountRepository;
+    private AccountService accountService;
 
     @Test
     void getTasks_UsesCurrentIdentityAndMapsPolymorphicResponses() {
         RequestContext requestContext = new RequestContext();
         requestContext.setIdentityId(99L);
-        TaskController controller = new TaskController(taskService, taskMapper, accountRepository, requestContext);
+        TaskController controller = new TaskController(taskService, taskMapper, accountService, requestContext);
 
         StaticTask staticTask = new StaticTask();
         staticTask.setName("Static task");
@@ -111,13 +109,10 @@ class TaskControllerTest {
     void createTask_Static_CreatesStaticTaskWhenAuthorized() {
         RequestContext requestContext = new RequestContext();
         requestContext.setIdentityId(99L);
-        TaskController controller = new TaskController(taskService, taskMapper, accountRepository, requestContext);
+        TaskController controller = new TaskController(taskService, taskMapper, accountService, requestContext);
 
         Account account = new Account();
-        Identity identity = new Identity();
-        identity.setId(99L);
         account.setId(10L);
-        account.setIdentity(identity);
 
         StaticTaskCreateRequest request = new StaticTaskCreateRequest(
             10L,
@@ -152,7 +147,7 @@ class TaskControllerTest {
             false
         );
 
-        when(accountRepository.findById(10L)).thenReturn(Optional.of(account));
+        when(accountService.validateAccountOwnership(99L, 10L)).thenReturn(account);
         when(taskMapper.fromCreateRequest(request)).thenReturn(mappedTask);
         when(taskService.createStaticTask(any(StaticTask.class))).thenReturn(savedTask);
         when(taskMapper.toResponse(savedTask)).thenReturn(expectedResponse);
@@ -161,23 +156,20 @@ class TaskControllerTest {
 
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         assertEquals(expectedResponse, response.getBody());
-        verify(accountRepository).findById(10L);
+        verify(accountService).validateAccountOwnership(99L, 10L);
         verify(taskService).createStaticTask(any(StaticTask.class));
         verify(taskMapper).toResponse(savedTask);
-        verifyNoMoreInteractions(taskMapper, taskService, accountRepository);
+        verifyNoMoreInteractions(taskMapper, taskService, accountService);
     }
 
     @Test
     void createTask_Dynamic_CreatesDynamicTaskWhenAuthorized() {
         RequestContext requestContext = new RequestContext();
         requestContext.setIdentityId(99L);
-        TaskController controller = new TaskController(taskService, taskMapper, accountRepository, requestContext);
+        TaskController controller = new TaskController(taskService, taskMapper, accountService, requestContext);
 
         Account account = new Account();
-        Identity identity = new Identity();
-        identity.setId(99L);
         account.setId(11L);
-        account.setIdentity(identity);
 
         DynamicTaskCreateRequest request = new DynamicTaskCreateRequest(
             11L,
@@ -221,7 +213,7 @@ class TaskControllerTest {
             List.of()
         );
 
-        when(accountRepository.findById(11L)).thenReturn(Optional.of(account));
+        when(accountService.validateAccountOwnership(99L, 11L)).thenReturn(account);
         when(taskMapper.fromCreateRequest(request)).thenReturn(mappedTask);
         when(taskService.createDynamicTask(any(DynamicTask.class))).thenReturn(savedTask);
         when(taskMapper.toResponse(savedTask)).thenReturn(expectedResponse);
@@ -230,17 +222,17 @@ class TaskControllerTest {
 
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         assertEquals(expectedResponse, response.getBody());
-        verify(accountRepository).findById(11L);
+        verify(accountService).validateAccountOwnership(99L, 11L);
         verify(taskService).createDynamicTask(any(DynamicTask.class));
         verify(taskMapper).toResponse(savedTask);
-        verifyNoMoreInteractions(taskMapper, taskService, accountRepository);
+        verifyNoMoreInteractions(taskMapper, taskService, accountService);
     }
 
     @Test
     void createTask_ThrowsWhenAccountNotFound() {
         RequestContext requestContext = new RequestContext();
         requestContext.setIdentityId(99L);
-        TaskController controller = new TaskController(taskService, taskMapper, accountRepository, requestContext);
+        TaskController controller = new TaskController(taskService, taskMapper, accountService, requestContext);
 
         StaticTaskCreateRequest request = new StaticTaskCreateRequest(
             12L,
@@ -254,25 +246,19 @@ class TaskControllerTest {
             false
         );
 
-        when(accountRepository.findById(12L)).thenReturn(Optional.empty());
+        when(accountService.validateAccountOwnership(99L, 12L)).thenThrow(new AccountNotFoundException());
 
         AccountNotFoundException ignored = assertThrows(AccountNotFoundException.class, () -> controller.createTask(request));
         assertEquals(AccountNotFoundException.class, ignored.getClass());
-        verify(accountRepository).findById(12L);
-        verifyNoMoreInteractions(taskMapper, taskService, accountRepository);
+        verify(accountService).validateAccountOwnership(99L, 12L);
+        verifyNoMoreInteractions(taskMapper, taskService, accountService);
     }
 
     @Test
     void createTask_ThrowsWhenAccountBelongsToDifferentIdentity() {
         RequestContext requestContext = new RequestContext();
         requestContext.setIdentityId(99L);
-        TaskController controller = new TaskController(taskService, taskMapper, accountRepository, requestContext);
-
-        Account account = new Account();
-        Identity identity = new Identity();
-        identity.setId(123L);
-        account.setId(13L);
-        account.setIdentity(identity);
+        TaskController controller = new TaskController(taskService, taskMapper, accountService, requestContext);
 
         StaticTaskCreateRequest request = new StaticTaskCreateRequest(
             13L,
@@ -286,31 +272,31 @@ class TaskControllerTest {
             false
         );
 
-        when(accountRepository.findById(13L)).thenReturn(Optional.of(account));
+        when(accountService.validateAccountOwnership(99L, 13L)).thenThrow(new AccountAccessDeniedException("accountId is not linked to authenticated identity"));
 
         AccountAccessDeniedException ignored = assertThrows(AccountAccessDeniedException.class, () -> controller.createTask(request));
         assertEquals(AccountAccessDeniedException.class, ignored.getClass());
-        verify(accountRepository).findById(13L);
-        verifyNoMoreInteractions(taskMapper, taskService, accountRepository);
+        verify(accountService).validateAccountOwnership(99L, 13L);
+        verifyNoMoreInteractions(taskMapper, taskService, accountService);
     }
 
     @Test
     void deleteTask_DelegatesToServiceWithCurrentIdentity() {
         RequestContext requestContext = new RequestContext();
         requestContext.setIdentityId(99L);
-        TaskController controller = new TaskController(taskService, taskMapper, accountRepository, requestContext);
+        TaskController controller = new TaskController(taskService, taskMapper, accountService, requestContext);
 
         controller.deleteTask(123L);
 
         verify(taskService).deleteTask(99L, 123L);
-        verifyNoMoreInteractions(taskService, taskMapper, accountRepository);
+        verifyNoMoreInteractions(taskService, taskMapper, accountService);
     }
 
     @Test
     void getTask_Dynamic_UsesIdentityScopedLookupAndReturnsMappedResponse() {
         RequestContext requestContext = new RequestContext();
         requestContext.setIdentityId(99L);
-        TaskController controller = new TaskController(taskService, taskMapper, accountRepository, requestContext);
+        TaskController controller = new TaskController(taskService, taskMapper, accountService, requestContext);
 
         DynamicTask dynamicTask = new DynamicTask();
         dynamicTask.setId(500L);
@@ -342,14 +328,14 @@ class TaskControllerTest {
         assertEquals(expectedResponse, result);
         verify(taskService).getTaskForIdentity(99L, 500L);
         verify(taskMapper).toResponse(dynamicTask);
-        verifyNoMoreInteractions(taskService, taskMapper, accountRepository);
+        verifyNoMoreInteractions(taskService, taskMapper, accountService);
     }
 
     @Test
     void updateTask_Static_UpdatesAndMapsResponse() {
         RequestContext requestContext = new RequestContext();
         requestContext.setIdentityId(99L);
-        TaskController controller = new TaskController(taskService, taskMapper, accountRepository, requestContext);
+        TaskController controller = new TaskController(taskService, taskMapper, accountService, requestContext);
 
         StaticTask existingTask = new StaticTask();
         existingTask.setId(200L);
@@ -389,14 +375,14 @@ class TaskControllerTest {
         verify(taskMapper).fromUpdateRequest(request, existingTask);
         verify(taskService).updateStaticTask(200L, existingTask);
         verify(taskMapper).toResponse(existingTask);
-        verifyNoMoreInteractions(taskService, taskMapper, accountRepository);
+        verifyNoMoreInteractions(taskService, taskMapper, accountService);
     }
 
     @Test
     void updateTask_ThrowsWhenTypeDoesNotMatchPersistedTask() {
         RequestContext requestContext = new RequestContext();
         requestContext.setIdentityId(99L);
-        TaskController controller = new TaskController(taskService, taskMapper, accountRepository, requestContext);
+        TaskController controller = new TaskController(taskService, taskMapper, accountService, requestContext);
 
         StaticTask existingTask = new StaticTask();
         existingTask.setId(300L);
@@ -422,14 +408,14 @@ class TaskControllerTest {
         assertEquals(InvalidRequestException.class, ignored.getClass());
 
         verify(taskService).getTaskForIdentity(99L, 300L);
-        verifyNoMoreInteractions(taskService, taskMapper, accountRepository);
+        verifyNoMoreInteractions(taskService, taskMapper, accountService);
     }
 
     @Test
     void updateTask_ThrowsWhenStaticPayloadTargetsDynamicTask() {
         RequestContext requestContext = new RequestContext();
         requestContext.setIdentityId(99L);
-        TaskController controller = new TaskController(taskService, taskMapper, accountRepository, requestContext);
+        TaskController controller = new TaskController(taskService, taskMapper, accountService, requestContext);
 
         DynamicTask existingTask = new DynamicTask();
         existingTask.setId(301L);
@@ -451,6 +437,6 @@ class TaskControllerTest {
         assertEquals(InvalidRequestException.class, ignored.getClass());
 
         verify(taskService).getTaskForIdentity(99L, 301L);
-        verifyNoMoreInteractions(taskService, taskMapper, accountRepository);
+        verifyNoMoreInteractions(taskService, taskMapper, accountService);
     }
 }
