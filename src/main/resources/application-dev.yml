@@ -6,6 +6,10 @@ cors:
   allowed-origins:
     - "*"
 
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1
+
 chronoscope:
   dev-auth:
     token: local-test-user
