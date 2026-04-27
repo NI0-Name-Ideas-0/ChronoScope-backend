@@ -116,7 +116,7 @@ public class ApiExceptionHandler {
     }
 
     @ExceptionHandler({HttpMessageNotReadableException.class, HttpMessageConversionException.class})
-    public ProblemDetail handleUnreadableRequest(Exception exception, HttpServletRequest request) {
+    public ProblemDetail handleUnreadableRequest(HttpServletRequest request) {
         return createProblemDetail(
                 HttpStatus.BAD_REQUEST,
                 ApiErrorCode.INVALID_REQUEST,
