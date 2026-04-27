@@ -35,18 +35,16 @@ public class AccountService {
         return account;
     }
 
-    public Organization validateOrganizationAccess(Account account, Long organizationId) {
-        if (organizationId == null) {
-            throw new InvalidRequestException("organizationId must be provided");
+    public void validateAccountOrgAccess(long accountId, long organizationId) {
+        if (!accountRepository.existsByIdAndOrganizationsId(accountId, organizationId)) {
+            throw new AccountAccessDeniedException("Account does not have access to the specified organization");
         }
+    }
 
+    public Organization resolveOrganizationForAccount(long accountId, long organizationId) {
         Organization organization = organizationRepository.findById(organizationId)
                 .orElseThrow(() -> new InvalidRequestException("Organization not found: " + organizationId));
-
-        if (!accountRepository.existsByIdAndOrganizations_Id(account.getId(), organizationId)) {
-            throw new AccountAccessDeniedException("organizationId is not linked to account");
-        }
-
+        validateAccountOrgAccess(accountId, organizationId);
         return organization;
     }
 

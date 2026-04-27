@@ -156,7 +156,7 @@ class TaskControllerTest {
         );
 
         when(accountService.validateAccountOwnership(99L, 10L)).thenReturn(account);
-        when(accountService.validateOrganizationAccess(account, 1L)).thenReturn(organization);
+        when(accountService.resolveOrganizationForAccount(10L, 1L)).thenReturn(organization);
         when(taskMapper.fromCreateRequest(request)).thenReturn(mappedTask);
         when(taskService.createStaticTask(any(StaticTask.class))).thenReturn(savedTask);
         when(taskMapper.toResponse(savedTask)).thenReturn(expectedResponse);
@@ -166,7 +166,7 @@ class TaskControllerTest {
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         assertEquals(expectedResponse, response.getBody());
         verify(accountService).validateAccountOwnership(99L, 10L);
-        verify(accountService).validateOrganizationAccess(account, 1L);
+        verify(accountService).resolveOrganizationForAccount(10L, 1L);
         verify(taskMapper).fromCreateRequest(request);
         verify(taskService).createStaticTask(mappedTask);
         verify(taskMapper).toResponse(savedTask);
@@ -230,7 +230,7 @@ class TaskControllerTest {
         );
 
         when(accountService.validateAccountOwnership(99L, 11L)).thenReturn(account);
-        when(accountService.validateOrganizationAccess(account, 1L)).thenReturn(organization);
+        when(accountService.resolveOrganizationForAccount(11L, 1L)).thenReturn(organization);
         when(taskMapper.fromCreateRequest(request)).thenReturn(mappedTask);
         when(taskService.createDynamicTask(any(DynamicTask.class))).thenReturn(savedTask);
         when(taskMapper.toResponse(savedTask)).thenReturn(expectedResponse);
@@ -240,7 +240,7 @@ class TaskControllerTest {
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         assertEquals(expectedResponse, response.getBody());
         verify(accountService).validateAccountOwnership(99L, 11L);
-        verify(accountService).validateOrganizationAccess(account, 1L);
+        verify(accountService).resolveOrganizationForAccount(11L, 1L);
         verify(taskMapper).fromCreateRequest(request);
         verify(taskService).createDynamicTask(mappedTask);
         verify(taskMapper).toResponse(savedTask);

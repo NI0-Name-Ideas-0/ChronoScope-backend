@@ -1,8 +1,10 @@
 package de.ni0.chronoscope.controller;
 
+import de.ni0.chronoscope.config.RequestContext;
 import de.ni0.chronoscope.controller.dto.request.PlanRequest;
-import de.ni0.chronoscope.controller.dto.response.WorkSlotResponse;
-import de.ni0.chronoscope.exception.ApiNotImplementedException;
+import de.ni0.chronoscope.controller.dto.response.ScopeResponse;
+import de.ni0.chronoscope.mapper.ScopeMapper;
+import de.ni0.chronoscope.service.AccountService;
 import de.ni0.chronoscope.service.PlanningService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -28,7 +30,13 @@ public class PlanController {
 
     private final PlanningService planningService;
 
-    @Operation(summary = "Generate plan", description = "Run the planning algorithm for the given account. Returns the updated work slots with planned task assignments.")
+    private final ScopeMapper scopeMapper;
+
+    private final AccountService accountService;
+
+    private final RequestContext requestContext;
+
+    @Operation(summary = "Generate plan", description = "Run the planning algorithm for the given account. Returns planned task scopes.")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Plan generated successfully"),
         @ApiResponse(responseCode = "400", description = "Validation error", content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
@@ -36,7 +44,9 @@ public class PlanController {
         @ApiResponse(responseCode = "409", description = "Not enough work slots to accommodate all tasks", content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     })
     @PostMapping
-    public List<WorkSlotResponse> plan(@Valid @RequestBody PlanRequest request) {
-        throw new ApiNotImplementedException();
+    public List<ScopeResponse> plan(@Valid @RequestBody PlanRequest request) {
+        accountService.validateAccountOwnership(requestContext.getIdentityId(), request.accountId());
+        var result = planningService.planTasksForAccount(request.accountId(), request.organizationId());
+        return result.stream().map(scopeMapper::toResponse).toList();
     }
 }

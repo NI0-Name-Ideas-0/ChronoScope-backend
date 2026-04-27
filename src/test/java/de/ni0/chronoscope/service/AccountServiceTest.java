@@ -214,38 +214,57 @@ class AccountServiceTest {
     }
 
     @Test
-    void validateOrganizationAccess_ReturnsOrganizationWhenLinkedToAccount() {
+    void validateAccountOrgAccess_DoesNotThrow_WhenAccountHasOrganizationAccess() {
         AccountService accountService = new AccountService(accountRepository, identityRepository, organizationRepository);
 
-        Account account = new Account();
-        account.setId(42L);
+        when(accountRepository.existsByIdAndOrganizationsId(10L, 20L)).thenReturn(true);
+
+        accountService.validateAccountOrgAccess(10L, 20L);
+
+        verify(accountRepository).existsByIdAndOrganizationsId(10L, 20L);
+        verifyNoMoreInteractions(accountRepository, identityRepository, organizationRepository);
+    }
+
+    @Test
+    void validateAccountOrgAccess_ThrowsAccountAccessDeniedException_WhenAccountLacksOrganizationAccess() {
+        AccountService accountService = new AccountService(accountRepository, identityRepository, organizationRepository);
+
+        when(accountRepository.existsByIdAndOrganizationsId(10L, 20L)).thenReturn(false);
+
+        assertThrows(AccountAccessDeniedException.class,
+                () -> accountService.validateAccountOrgAccess(10L, 20L));
+
+        verify(accountRepository).existsByIdAndOrganizationsId(10L, 20L);
+        verifyNoMoreInteractions(accountRepository, identityRepository, organizationRepository);
+    }
+
+    @Test
+    void resolveOrganizationForAccount_ReturnsOrganizationWhenLinkedToAccount() {
+        AccountService accountService = new AccountService(accountRepository, identityRepository, organizationRepository);
 
         Organization organization = new Organization();
         organization.setId(7L);
 
         when(organizationRepository.findById(7L)).thenReturn(Optional.of(organization));
-        when(accountRepository.existsByIdAndOrganizations_Id(42L, 7L)).thenReturn(true);
+        when(accountRepository.existsByIdAndOrganizationsId(42L, 7L)).thenReturn(true);
 
-        Organization result = accountService.validateOrganizationAccess(account, 7L);
+        Organization result = accountService.resolveOrganizationForAccount(42L, 7L);
 
         assertEquals(organization, result);
         verify(organizationRepository).findById(7L);
-        verify(accountRepository).existsByIdAndOrganizations_Id(42L, 7L);
+        verify(accountRepository).existsByIdAndOrganizationsId(42L, 7L);
         verifyNoMoreInteractions(accountRepository, identityRepository, organizationRepository);
     }
 
     @Test
-    void validateOrganizationAccess_ThrowsValidationErrorWhenOrganizationDoesNotExist() {
+    void resolveOrganizationForAccount_ThrowsValidationErrorWhenOrganizationDoesNotExist() {
         AccountService accountService = new AccountService(accountRepository, identityRepository, organizationRepository);
-
-        Account account = new Account();
-        account.setId(42L);
 
         when(organizationRepository.findById(7L)).thenReturn(Optional.empty());
 
         InvalidRequestException exception = assertThrows(
             InvalidRequestException.class,
-            () -> accountService.validateOrganizationAccess(account, 7L)
+            () -> accountService.resolveOrganizationForAccount(42L, 7L)
         );
 
         assertEquals("Organization not found: 7", exception.getMessage());
@@ -254,26 +273,21 @@ class AccountServiceTest {
     }
 
     @Test
-    void validateOrganizationAccess_ThrowsAccessDeniedWhenOrganizationIsNotLinkedToAccount() {
+    void resolveOrganizationForAccount_ThrowsAccessDeniedWhenOrganizationIsNotLinkedToAccount() {
         AccountService accountService = new AccountService(accountRepository, identityRepository, organizationRepository);
-
-        Account account = new Account();
-        account.setId(42L);
 
         Organization organization = new Organization();
         organization.setId(7L);
 
         when(organizationRepository.findById(7L)).thenReturn(Optional.of(organization));
-        when(accountRepository.existsByIdAndOrganizations_Id(42L, 7L)).thenReturn(false);
+        when(accountRepository.existsByIdAndOrganizationsId(42L, 7L)).thenReturn(false);
 
-        AccountAccessDeniedException exception = assertThrows(
-            AccountAccessDeniedException.class,
-            () -> accountService.validateOrganizationAccess(account, 7L)
+        assertThrows(AccountAccessDeniedException.class,
+            () -> accountService.resolveOrganizationForAccount(42L, 7L)
         );
 
-        assertEquals("organizationId is not linked to account", exception.getMessage());
         verify(organizationRepository).findById(7L);
-        verify(accountRepository).existsByIdAndOrganizations_Id(42L, 7L);
+        verify(accountRepository).existsByIdAndOrganizationsId(42L, 7L);
         verifyNoMoreInteractions(accountRepository, identityRepository, organizationRepository);
     }
 }

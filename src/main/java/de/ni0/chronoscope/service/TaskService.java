@@ -55,7 +55,7 @@ public class TaskService {
             .orElseThrow(() -> new ResourceNotFoundException("Task not found: " + taskId));
 
         if (task instanceof DynamicTask dynamicTask) {
-            List<DynamicTask> dependents = this.taskRepository.findDynamicTasksByDependencyIdAndIdentityId(taskId, identityId);
+            List<DynamicTask> dependents = this.taskRepository.findDependentsByDependencyIdAndAccountIdentityId(taskId, identityId);
 
             for (DynamicTask dependency : new HashSet<>(dynamicTask.getDependencies())) {
                 dependency.getDependents().remove(dynamicTask);
@@ -188,7 +188,7 @@ public class TaskService {
         if (organizationId == null) {
             return null;
         }
-        return this.accountService.validateOrganizationAccess(task.getAccount(), organizationId);
+        return this.accountService.resolveOrganizationForAccount(task.getAccount().getId(), organizationId);
     }
 
     private Set<DynamicTask> resolveAndValidateDependencies(DynamicTask task, List<Long> dependencyIds) {

@@ -90,7 +90,7 @@ public class TaskController {
         TaskResponse response = switch (request) {
             case StaticTaskCreateRequest staticRequest -> {
                 Account account = accountService.validateAccountOwnership(requestContext.getIdentityId(), staticRequest.accountId());
-                Organization organization = accountService.validateOrganizationAccess(account, staticRequest.organizationId());
+                Organization organization = accountService.resolveOrganizationForAccount(account.getId(), staticRequest.organizationId());
                 StaticTask newTask = taskMapper.fromCreateRequest(staticRequest);
                 newTask.setAccount(account);
                 newTask.setOrganization(organization);
@@ -98,7 +98,7 @@ public class TaskController {
             }
             case DynamicTaskCreateRequest dynamicRequest -> {
                 Account account = accountService.validateAccountOwnership(requestContext.getIdentityId(), dynamicRequest.accountId());
-                Organization organization = accountService.validateOrganizationAccess(account, dynamicRequest.organizationId());
+                Organization organization = accountService.resolveOrganizationForAccount(account.getId(), dynamicRequest.organizationId());
                 DynamicTask newTask = taskMapper.fromCreateRequest(dynamicRequest);
                 newTask.setAccount(account);
                 newTask.setOrganization(organization);

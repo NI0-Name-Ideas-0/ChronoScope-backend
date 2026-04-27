@@ -7,5 +7,5 @@ import de.ni0.chronoscope.model.Account;
 public interface AccountRepository extends JpaRepository<Account, Long> {
     java.util.Optional<Account> findBySubject(String subject);
 
-    boolean existsByIdAndOrganizations_Id(Long accountId, Long organizationId);
+    boolean existsByIdAndOrganizationsId(long accountId, long organizationId);
 }

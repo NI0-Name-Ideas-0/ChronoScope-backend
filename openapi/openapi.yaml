@@ -106,8 +106,8 @@ paths:
       - Identity
   /v1/plan:
     post:
-      description: Run the planning algorithm for the given account. Returns the updated
-        work slots with planned task assignments.
+      description: Run the planning algorithm for the given account. Returns planned
+        task scopes.
       operationId: plan
       requestBody:
         content:
@@ -122,7 +122,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/WorkSlotResponse"
+                  $ref: "#/components/schemas/ScopeResponse"
           description: Plan generated successfully
         "400":
           content:
@@ -227,6 +227,12 @@ paths:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
           description: Missing or invalid token
+        "403":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Organization not linked to account
       summary: Create task
       tags:
       - Tasks
@@ -337,6 +343,12 @@ paths:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
           description: Missing or invalid token
+        "403":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Organization not linked to account
         "404":
           content:
             '*/*':
@@ -722,8 +734,12 @@ components:
         accountId:
           type: integer
           format: int64
+        organizationId:
+          type: integer
+          format: int64
       required:
       - accountId
+      - organizationId
     ProblemDetail:
       type: object
       properties:

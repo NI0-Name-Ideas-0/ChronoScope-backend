@@ -94,7 +94,7 @@ class TaskServiceTest {
         taskService.deleteTask(identityId, taskId);
 
         verify(taskRepository).findByIdAndAccountIdentityId(taskId, identityId);
-        verify(taskRepository, never()).findDynamicTasksByDependencyIdAndIdentityId(taskId, identityId);
+        verify(taskRepository, never()).findDependentsByDependencyIdAndAccountIdentityId(taskId, identityId);
         verify(taskRepository).delete(task);
         verify(taskRepository).flush();
     }
@@ -126,7 +126,7 @@ class TaskServiceTest {
         task.setDependents(new java.util.HashSet<>(task.getDependents()));
 
         when(taskRepository.findByIdAndAccountIdentityId(taskId, identityId)).thenReturn(Optional.of(task));
-        when(taskRepository.findDynamicTasksByDependencyIdAndIdentityId(taskId, identityId)).thenReturn(List.of(dependent));
+        when(taskRepository.findDependentsByDependencyIdAndAccountIdentityId(taskId, identityId)).thenReturn(List.of(dependent));
 
         taskService.deleteTask(identityId, taskId);
 
@@ -134,7 +134,7 @@ class TaskServiceTest {
         assertEquals(0, task.getDependents().size());
         assertEquals(0, predecessor.getDependents().size());
         assertEquals(0, dependent.getDependencies().size());
-        verify(taskRepository).findDynamicTasksByDependencyIdAndIdentityId(taskId, identityId);
+        verify(taskRepository).findDependentsByDependencyIdAndAccountIdentityId(taskId, identityId);
         verify(taskRepository).delete(task);
         verify(taskRepository).flush();
     }
@@ -151,7 +151,7 @@ class TaskServiceTest {
         assertEquals(ResourceNotFoundException.class, ignored.getClass());
 
         verify(taskRepository).findByIdAndAccountIdentityId(taskId, identityId);
-        verify(taskRepository, never()).findDynamicTasksByDependencyIdAndIdentityId(taskId, identityId);
+        verify(taskRepository, never()).findDependentsByDependencyIdAndAccountIdentityId(taskId, identityId);
         verify(taskRepository, never()).delete(org.mockito.ArgumentMatchers.any());
         verify(taskRepository, never()).flush();
     }
@@ -333,14 +333,14 @@ class TaskServiceTest {
         managedTask.setLabels(new java.util.ArrayList<>());
 
         when(taskRepository.findById(100L)).thenReturn(Optional.of(managedTask));
-        when(accountService.validateOrganizationAccess(account, 7L)).thenReturn(organization);
+        when(accountService.resolveOrganizationForAccount(10L, 7L)).thenReturn(organization);
 
         StaticTask result = taskService.updateStaticTask(100L, task, 7L);
 
         assertEquals(managedTask, result);
         assertEquals(organization, managedTask.getOrganization());
         verify(taskRepository).findById(100L);
-        verify(accountService).validateOrganizationAccess(account, 7L);
+        verify(accountService).resolveOrganizationForAccount(10L, 7L);
         verify(taskRepository).flush();
     }
 
@@ -368,14 +368,14 @@ class TaskServiceTest {
         managedTask.setScopes(new java.util.ArrayList<>());
 
         when(taskRepository.findById(200L)).thenReturn(Optional.of(managedTask));
-        when(accountService.validateOrganizationAccess(account, 7L)).thenReturn(organization);
+        when(accountService.resolveOrganizationForAccount(10L, 7L)).thenReturn(organization);
 
         DynamicTask result = taskService.updateDynamicTask(200L, task, null, 7L);
 
         assertEquals(managedTask, result);
         assertEquals(organization, managedTask.getOrganization());
         verify(taskRepository).findById(200L);
-        verify(accountService).validateOrganizationAccess(account, 7L);
+        verify(accountService).resolveOrganizationForAccount(10L, 7L);
         verify(taskRepository).flush();
     }
 

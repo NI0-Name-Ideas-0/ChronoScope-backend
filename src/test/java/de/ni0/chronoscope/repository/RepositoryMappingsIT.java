@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -19,6 +20,7 @@ import de.ni0.chronoscope.model.DynamicTask;
 import de.ni0.chronoscope.model.Identity;
 import de.ni0.chronoscope.model.Label;
 import de.ni0.chronoscope.model.Organization;
+import de.ni0.chronoscope.model.Scope;
 
 @SpringBootTest
 @Transactional
@@ -38,6 +40,9 @@ class RepositoryMappingsIT {
 
     @Autowired
     private TaskRepository taskRepository;
+
+    @Autowired
+    private ScopeRepository scopeRepository;
 
     @Test
     void accountRepository_FindsAccountBySubject() {
@@ -88,14 +93,12 @@ class RepositoryMappingsIT {
     @Test
     void taskRepository_PersistsDynamicTaskDependenciesViaJoinTable() {
         Identity identity = identityRepository.saveAndFlush(new Identity());
+        Organization organization = createOrganization("repo-it-dependency-org-" + System.nanoTime());
 
         Account account = new Account();
         account.setSubject("subject-dependency-test");
         account.setIdentity(identity);
-        Organization organization = new Organization();
-        organization.setName("dependency-org");
-        organization = organizationRepository.saveAndFlush(organization);
-        account.setOrganizations(new HashSet<>(Set.of(organization)));
+        account.setOrganizations(Set.of(organization));
         account = accountRepository.saveAndFlush(account);
 
         DynamicTask predecessor = new DynamicTask();
@@ -140,5 +143,59 @@ class RepositoryMappingsIT {
 
         assertEquals(1, reloadedDependent.getDependencies().size());
         assertEquals(predecessor.getId(), reloadedDependent.getDependencies().iterator().next().getId());
+    }
+
+    @Test
+    void scopeRepository_DeleteByDynamicTaskIdIn_DeletesOnlyMatchingScopes() {
+        Identity identity = identityRepository.saveAndFlush(new Identity());
+        Organization organization = createOrganization("repo-it-scope-org-" + System.nanoTime());
+
+        Account account = new Account();
+        account.setSubject("repo-it-scope-subject-" + System.nanoTime());
+        account.setIdentity(identity);
+        account.setOrganizations(Set.of(organization));
+        account = accountRepository.saveAndFlush(account);
+
+        DynamicTask taskToDelete = buildDynamicTask(account, organization);
+        DynamicTask taskToKeep = buildDynamicTask(account, organization);
+
+        Scope scopeToDelete = new Scope(null, taskToDelete,
+                Instant.parse("2026-04-26T08:00:00Z"), Instant.parse("2026-04-26T09:00:00Z"));
+        Scope scopeToKeep = new Scope(null, taskToKeep,
+                Instant.parse("2026-04-26T09:00:00Z"), Instant.parse("2026-04-26T10:00:00Z"));
+        scopeRepository.saveAndFlush(scopeToDelete);
+        scopeRepository.saveAndFlush(scopeToKeep);
+
+        long deleted = scopeRepository.deleteByDynamicTaskIdIn(List.of(taskToDelete.getId()));
+
+        assertEquals(1L, deleted);
+        assertTrue(scopeRepository.findById(scopeToKeep.getId()).isPresent());
+    }
+
+    private Organization createOrganization(String name) {
+        Organization organization = new Organization();
+        organization.setName(name);
+        return organizationRepository.saveAndFlush(organization);
+    }
+
+    private DynamicTask buildDynamicTask(Account account, Organization organization) {
+        DynamicTask task = new DynamicTask();
+        task.setAccount(account);
+        task.setOrganization(organization);
+        task.setName("repo-it-task-" + System.nanoTime());
+        task.setDescription("Test task");
+        task.setDifficulty(1);
+        task.setStartAt(Instant.parse("2026-04-26T08:00:00Z"));
+        task.setEndAt(Instant.parse("2026-04-26T18:00:00Z"));
+        task.setRrule("FREQ=DAILY");
+        task.setDuration(Duration.of(60, ChronoUnit.MINUTES));
+        task.setElapsed(Duration.of(0, ChronoUnit.MINUTES));
+        task.setMinScopeDuration(Duration.of(30, ChronoUnit.MINUTES));
+        task.setMaxScopeDuration(Duration.of(60, ChronoUnit.MINUTES));
+        task.setLabels(new ArrayList<>());
+        task.setScopes(new ArrayList<>());
+        task.setDependencies(new HashSet<>());
+        task.setDependents(new HashSet<>());
+        return taskRepository.saveAndFlush(task);
     }
 }
