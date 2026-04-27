@@ -92,10 +92,15 @@ class RepositoryMappingsIT {
         Account account = new Account();
         account.setSubject("subject-dependency-test");
         account.setIdentity(identity);
+        Organization organization = new Organization();
+        organization.setName("dependency-org");
+        organization = organizationRepository.saveAndFlush(organization);
+        account.setOrganizations(new HashSet<>(Set.of(organization)));
         account = accountRepository.saveAndFlush(account);
 
         DynamicTask predecessor = new DynamicTask();
         predecessor.setAccount(account);
+        predecessor.setOrganization(organization);
         predecessor.setName("Predecessor");
         predecessor.setDescription("Dependency source");
         predecessor.setDifficulty(1);
@@ -114,6 +119,7 @@ class RepositoryMappingsIT {
 
         DynamicTask dependent = new DynamicTask();
         dependent.setAccount(account);
+        dependent.setOrganization(organization);
         dependent.setName("Dependent");
         dependent.setDescription("Depends on predecessor");
         dependent.setDifficulty(2);

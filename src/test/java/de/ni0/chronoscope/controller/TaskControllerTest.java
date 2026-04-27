@@ -32,6 +32,7 @@ import de.ni0.chronoscope.exception.InvalidRequestException;
 import de.ni0.chronoscope.mapper.TaskMapper;
 import de.ni0.chronoscope.model.Account;
 import de.ni0.chronoscope.model.DynamicTask;
+import de.ni0.chronoscope.model.Organization;
 import de.ni0.chronoscope.model.StaticTask;
 import de.ni0.chronoscope.service.AccountService;
 import de.ni0.chronoscope.service.TaskService;
@@ -63,6 +64,7 @@ class TaskControllerTest {
         StaticTaskResponse staticResponse = new StaticTaskResponse(
             1L,
             10L,
+            1L,
             "Static task",
             "desc",
             1,
@@ -75,6 +77,7 @@ class TaskControllerTest {
         DynamicTaskResponse dynamicResponse = new DynamicTaskResponse(
             2L,
             11L,
+            1L,
             "Dynamic task",
             "desc",
             2,
@@ -114,8 +117,12 @@ class TaskControllerTest {
         Account account = new Account();
         account.setId(10L);
 
+        Organization organization = new Organization();
+        organization.setId(1L);
+
         StaticTaskCreateRequest request = new StaticTaskCreateRequest(
             10L,
+            1L,
             "Write report",
             "Prepare weekly summary",
             "FREQ=WEEKLY;BYDAY=MO",
@@ -137,6 +144,7 @@ class TaskControllerTest {
         StaticTaskResponse expectedResponse = new StaticTaskResponse(
             123L,
             10L,
+            1L,
             "Write report",
             "Prepare weekly summary",
             3,
@@ -148,6 +156,7 @@ class TaskControllerTest {
         );
 
         when(accountService.validateAccountOwnership(99L, 10L)).thenReturn(account);
+        when(accountService.validateOrganizationAccess(account, 1L)).thenReturn(organization);
         when(taskMapper.fromCreateRequest(request)).thenReturn(mappedTask);
         when(taskService.createStaticTask(any(StaticTask.class))).thenReturn(savedTask);
         when(taskMapper.toResponse(savedTask)).thenReturn(expectedResponse);
@@ -157,7 +166,9 @@ class TaskControllerTest {
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         assertEquals(expectedResponse, response.getBody());
         verify(accountService).validateAccountOwnership(99L, 10L);
-        verify(taskService).createStaticTask(any(StaticTask.class));
+        verify(accountService).validateOrganizationAccess(account, 1L);
+        verify(taskMapper).fromCreateRequest(request);
+        verify(taskService).createStaticTask(mappedTask);
         verify(taskMapper).toResponse(savedTask);
         verifyNoMoreInteractions(taskMapper, taskService, accountService);
     }
@@ -171,8 +182,12 @@ class TaskControllerTest {
         Account account = new Account();
         account.setId(11L);
 
+        Organization organization = new Organization();
+        organization.setId(1L);
+
         DynamicTaskCreateRequest request = new DynamicTaskCreateRequest(
             11L,
+            1L,
             "Implement API endpoint",
             "Create and test endpoint",
             "FREQ=DAILY",
@@ -197,6 +212,7 @@ class TaskControllerTest {
         DynamicTaskResponse expectedResponse = new DynamicTaskResponse(
             124L,
             11L,
+            1L,
             "Implement API endpoint",
             "Create and test endpoint",
             4,
@@ -214,6 +230,7 @@ class TaskControllerTest {
         );
 
         when(accountService.validateAccountOwnership(99L, 11L)).thenReturn(account);
+        when(accountService.validateOrganizationAccess(account, 1L)).thenReturn(organization);
         when(taskMapper.fromCreateRequest(request)).thenReturn(mappedTask);
         when(taskService.createDynamicTask(any(DynamicTask.class))).thenReturn(savedTask);
         when(taskMapper.toResponse(savedTask)).thenReturn(expectedResponse);
@@ -223,7 +240,9 @@ class TaskControllerTest {
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         assertEquals(expectedResponse, response.getBody());
         verify(accountService).validateAccountOwnership(99L, 11L);
-        verify(taskService).createDynamicTask(any(DynamicTask.class));
+        verify(accountService).validateOrganizationAccess(account, 1L);
+        verify(taskMapper).fromCreateRequest(request);
+        verify(taskService).createDynamicTask(mappedTask);
         verify(taskMapper).toResponse(savedTask);
         verifyNoMoreInteractions(taskMapper, taskService, accountService);
     }
@@ -236,6 +255,7 @@ class TaskControllerTest {
 
         StaticTaskCreateRequest request = new StaticTaskCreateRequest(
             12L,
+            1L,
             "Write report",
             "Prepare weekly summary",
             "FREQ=WEEKLY;BYDAY=MO",
@@ -262,6 +282,7 @@ class TaskControllerTest {
 
         StaticTaskCreateRequest request = new StaticTaskCreateRequest(
             13L,
+            1L,
             "Write report",
             "Prepare weekly summary",
             "FREQ=WEEKLY;BYDAY=MO",
@@ -304,6 +325,7 @@ class TaskControllerTest {
         DynamicTaskResponse expectedResponse = new DynamicTaskResponse(
             500L,
             11L,
+            1L,
             "Dynamic task",
             "desc",
             2,
@@ -341,6 +363,7 @@ class TaskControllerTest {
         existingTask.setId(200L);
 
         StaticTaskUpdateRequest request = new StaticTaskUpdateRequest(
+            null,
             "Updated static task",
             "Updated description",
             "FREQ=WEEKLY",
@@ -354,6 +377,7 @@ class TaskControllerTest {
         StaticTaskResponse expectedResponse = new StaticTaskResponse(
             200L,
             10L,
+            1L,
             "Updated static task",
             "Updated description",
             2,
@@ -365,7 +389,7 @@ class TaskControllerTest {
         );
 
         when(taskService.getTaskForIdentity(99L, 200L)).thenReturn(existingTask);
-        when(taskService.updateStaticTask(200L, existingTask)).thenReturn(existingTask);
+        when(taskService.updateStaticTask(200L, existingTask, null)).thenReturn(existingTask);
         when(taskMapper.toResponse(existingTask)).thenReturn(expectedResponse);
 
         TaskResponse result = controller.updateTask(200L, request);
@@ -373,7 +397,7 @@ class TaskControllerTest {
         assertEquals(expectedResponse, result);
         verify(taskService).getTaskForIdentity(99L, 200L);
         verify(taskMapper).fromUpdateRequest(request, existingTask);
-        verify(taskService).updateStaticTask(200L, existingTask);
+        verify(taskService).updateStaticTask(200L, existingTask, null);
         verify(taskMapper).toResponse(existingTask);
         verifyNoMoreInteractions(taskService, taskMapper, accountService);
     }
@@ -388,6 +412,7 @@ class TaskControllerTest {
         existingTask.setId(300L);
 
         DynamicTaskUpdateRequest request = new DynamicTaskUpdateRequest(
+            null,
             "Dynamic name",
             "Dynamic description",
             "FREQ=DAILY",
@@ -421,6 +446,7 @@ class TaskControllerTest {
         existingTask.setId(301L);
 
         StaticTaskUpdateRequest request = new StaticTaskUpdateRequest(
+            null,
             "Static name",
             "Static description",
             "FREQ=WEEKLY",

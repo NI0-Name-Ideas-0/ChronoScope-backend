@@ -41,6 +41,10 @@ public abstract class Task {
     @ToString.Exclude // bidirectional: Account -> Identity -> Account would recurse infinitely in toString
     private Account account;
 
+    @ManyToOne(optional = false)
+    @JoinColumn(name = "organization_id", nullable = false)
+    private Organization organization;
+
     @Column(nullable = false)
     private String name;
     @Column(nullable = false)

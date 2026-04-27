@@ -19,6 +19,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 
 import de.ni0.chronoscope.exception.AccountAccessDeniedException;
 import de.ni0.chronoscope.exception.AccountNotFoundException;
+import de.ni0.chronoscope.exception.InvalidRequestException;
 import de.ni0.chronoscope.model.Account;
 import de.ni0.chronoscope.model.Identity;
 import de.ni0.chronoscope.model.Organization;
@@ -209,6 +210,70 @@ class AccountServiceTest {
 
         assertThrows(AccountAccessDeniedException.class, () -> accountService.validateAccountOwnership(10L, 42L));
         verify(accountRepository).findById(42L);
+        verifyNoMoreInteractions(accountRepository, identityRepository, organizationRepository);
+    }
+
+    @Test
+    void validateOrganizationAccess_ReturnsOrganizationWhenLinkedToAccount() {
+        AccountService accountService = new AccountService(accountRepository, identityRepository, organizationRepository);
+
+        Account account = new Account();
+        account.setId(42L);
+
+        Organization organization = new Organization();
+        organization.setId(7L);
+
+        when(organizationRepository.findById(7L)).thenReturn(Optional.of(organization));
+        when(accountRepository.existsByIdAndOrganizations_Id(42L, 7L)).thenReturn(true);
+
+        Organization result = accountService.validateOrganizationAccess(account, 7L);
+
+        assertEquals(organization, result);
+        verify(organizationRepository).findById(7L);
+        verify(accountRepository).existsByIdAndOrganizations_Id(42L, 7L);
+        verifyNoMoreInteractions(accountRepository, identityRepository, organizationRepository);
+    }
+
+    @Test
+    void validateOrganizationAccess_ThrowsValidationErrorWhenOrganizationDoesNotExist() {
+        AccountService accountService = new AccountService(accountRepository, identityRepository, organizationRepository);
+
+        Account account = new Account();
+        account.setId(42L);
+
+        when(organizationRepository.findById(7L)).thenReturn(Optional.empty());
+
+        InvalidRequestException exception = assertThrows(
+            InvalidRequestException.class,
+            () -> accountService.validateOrganizationAccess(account, 7L)
+        );
+
+        assertEquals("Organization not found: 7", exception.getMessage());
+        verify(organizationRepository).findById(7L);
+        verifyNoMoreInteractions(accountRepository, identityRepository, organizationRepository);
+    }
+
+    @Test
+    void validateOrganizationAccess_ThrowsAccessDeniedWhenOrganizationIsNotLinkedToAccount() {
+        AccountService accountService = new AccountService(accountRepository, identityRepository, organizationRepository);
+
+        Account account = new Account();
+        account.setId(42L);
+
+        Organization organization = new Organization();
+        organization.setId(7L);
+
+        when(organizationRepository.findById(7L)).thenReturn(Optional.of(organization));
+        when(accountRepository.existsByIdAndOrganizations_Id(42L, 7L)).thenReturn(false);
+
+        AccountAccessDeniedException exception = assertThrows(
+            AccountAccessDeniedException.class,
+            () -> accountService.validateOrganizationAccess(account, 7L)
+        );
+
+        assertEquals("organizationId is not linked to account", exception.getMessage());
+        verify(organizationRepository).findById(7L);
+        verify(accountRepository).existsByIdAndOrganizations_Id(42L, 7L);
         verifyNoMoreInteractions(accountRepository, identityRepository, organizationRepository);
     }
 }

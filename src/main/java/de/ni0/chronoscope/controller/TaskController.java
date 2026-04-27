@@ -27,6 +27,7 @@ import de.ni0.chronoscope.exception.InvalidRequestException;
 import de.ni0.chronoscope.mapper.TaskMapper;
 import de.ni0.chronoscope.model.Account;
 import de.ni0.chronoscope.model.DynamicTask;
+import de.ni0.chronoscope.model.Organization;
 import de.ni0.chronoscope.model.StaticTask;
 import de.ni0.chronoscope.model.Task;
 import de.ni0.chronoscope.service.AccountService;
@@ -81,21 +82,26 @@ public class TaskController {
     @ApiResponses({
         @ApiResponse(responseCode = "201", description = "Task created"),
         @ApiResponse(responseCode = "400", description = "Validation error", content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
-        @ApiResponse(responseCode = "401", description = "Missing or invalid token", content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+        @ApiResponse(responseCode = "401", description = "Missing or invalid token", content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+        @ApiResponse(responseCode = "403", description = "Organization not linked to account", content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     })
     @PostMapping
     public ResponseEntity<TaskResponse> createTask(@Valid @RequestBody TaskCreateRequest request) {
         TaskResponse response = switch (request) {
             case StaticTaskCreateRequest staticRequest -> {
                 Account account = accountService.validateAccountOwnership(requestContext.getIdentityId(), staticRequest.accountId());
+                Organization organization = accountService.validateOrganizationAccess(account, staticRequest.organizationId());
                 StaticTask newTask = taskMapper.fromCreateRequest(staticRequest);
                 newTask.setAccount(account);
+                newTask.setOrganization(organization);
                 yield taskMapper.toResponse(taskService.createStaticTask(newTask));
             }
             case DynamicTaskCreateRequest dynamicRequest -> {
                 Account account = accountService.validateAccountOwnership(requestContext.getIdentityId(), dynamicRequest.accountId());
+                Organization organization = accountService.validateOrganizationAccess(account, dynamicRequest.organizationId());
                 DynamicTask newTask = taskMapper.fromCreateRequest(dynamicRequest);
                 newTask.setAccount(account);
+                newTask.setOrganization(organization);
                 yield taskMapper.toResponse(taskService.createDynamicTask(newTask));
             }
         };
@@ -119,6 +125,7 @@ public class TaskController {
         @ApiResponse(responseCode = "200", description = "Task updated successfully"),
         @ApiResponse(responseCode = "400", description = "Validation error", content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
         @ApiResponse(responseCode = "401", description = "Missing or invalid token", content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+        @ApiResponse(responseCode = "403", description = "Organization not linked to account", content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
         @ApiResponse(responseCode = "404", description = "Task not found", content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     })
     @PatchMapping("/{id}")
@@ -133,14 +140,14 @@ public class TaskController {
                     throw new InvalidRequestException("Task type mismatch: expected static task");
                 }
                 taskMapper.fromUpdateRequest(staticRequest, staticTask);
-                yield taskMapper.toResponse(taskService.updateStaticTask(id, staticTask));
+                yield taskMapper.toResponse(taskService.updateStaticTask(id, staticTask, staticRequest.organizationId()));
             }
             case DynamicTaskUpdateRequest dynamicRequest -> {
                 if (!(existingTask instanceof DynamicTask dynamicTask)) {
                     throw new InvalidRequestException("Task type mismatch: expected dynamic task");
                 }
                 taskMapper.fromUpdateRequest(dynamicRequest, dynamicTask);
-                yield taskMapper.toResponse(taskService.updateDynamicTask(id, dynamicTask, dynamicRequest.dependencies()));
+                yield taskMapper.toResponse(taskService.updateDynamicTask(id, dynamicTask, dynamicRequest.dependencies(), dynamicRequest.organizationId()));
             }
         };
     }

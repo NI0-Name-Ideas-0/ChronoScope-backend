@@ -31,6 +31,8 @@ public interface TaskMapper {
     @Mapping(target = "id", ignore = true)
     // Account is validated and assigned by controller logic after request parsing.
     @Mapping(target = "account", ignore = true)
+    // Organization is validated and assigned by controller logic after request parsing.
+    @Mapping(target = "organization", ignore = true)
     @Mapping(target = "name", source = "name")
     @Mapping(target = "description", source = "description")
     @Mapping(target = "difficulty", source = "difficulty")
@@ -45,6 +47,8 @@ public interface TaskMapper {
     @Mapping(target = "id", ignore = true)
     // Account is validated and assigned by controller logic after request parsing.
     @Mapping(target = "account", ignore = true)
+    // Organization is validated and assigned by controller logic after request parsing.
+    @Mapping(target = "organization", ignore = true)
     @Mapping(target = "name", source = "name")
     @Mapping(target = "description", source = "description")
     @Mapping(target = "difficulty", source = "difficulty")
@@ -65,6 +69,8 @@ public interface TaskMapper {
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "account", ignore = true)
+    // Organization updates are validated and assigned by service logic.
+    @Mapping(target = "organization", ignore = true)
     @Mapping(target = "labels", source = "labels")
     @Mapping(target = "name", source = "name")
     @Mapping(target = "description", source = "description")
@@ -79,6 +85,8 @@ public interface TaskMapper {
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "account", ignore = true)
+    // Organization updates are validated and assigned by service logic.
+    @Mapping(target = "organization", ignore = true)
     @Mapping(target = "labels", source = "labels")
     @Mapping(target = "scopes", ignore = true)
     @Mapping(target = "dependencies", ignore = true)
@@ -97,6 +105,7 @@ public interface TaskMapper {
 
     // --- Response mapping ---
     @Mapping(target = "accountId", source = "account.id")
+    @Mapping(target = "organizationId", source = "organization.id")
     @Mapping(target = "id", source = "id")
     @Mapping(target = "name", source = "name")
     @Mapping(target = "description", source = "description")
@@ -109,6 +118,7 @@ public interface TaskMapper {
     StaticTaskResponse toResponse(StaticTask task);
 
     @Mapping(target = "accountId", source = "account.id")
+    @Mapping(target = "organizationId", source = "organization.id")
     @Mapping(target = "id", source = "id")
     @Mapping(target = "name", source = "name")
     @Mapping(target = "description", source = "description")

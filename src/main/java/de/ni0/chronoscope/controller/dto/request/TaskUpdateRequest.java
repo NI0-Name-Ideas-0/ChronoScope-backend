@@ -13,6 +13,7 @@ import java.util.List;
 })
 public sealed interface TaskUpdateRequest permits StaticTaskUpdateRequest, DynamicTaskUpdateRequest {
 
+    Long organizationId();
     String name();
     String description();
     String rrule();

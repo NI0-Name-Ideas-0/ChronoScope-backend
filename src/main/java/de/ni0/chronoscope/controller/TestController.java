@@ -74,7 +74,7 @@ public class TestController {
         ZoneId zone = ZoneId.systemDefault();
         LocalDate startDate = LocalDate.now(zone).plusDays(1);
 
-        List<Task> tasks = createTasks(account, startDate, zone);
+        List<Task> tasks = createTasks(account, organizations, startDate, zone);
         List<WorkSlot> workSlots = createWorkSlots(account, organizations, startDate, zone);
 
         return new SeedDataResponse(
@@ -112,11 +112,13 @@ public class TestController {
         }
     }
 
-    private List<Task> createTasks(Account account, LocalDate startDate, ZoneId zone) {
+    private List<Task> createTasks(Account account, List<Organization> organizations, LocalDate startDate, ZoneId zone) {
+        Organization organization = organizations.get(0);
         List<Task> tasks = new ArrayList<>();
 
         tasks.add(taskService.createStaticTask(staticTask(
             account,
+            organization,
             "Daily standup",
             "Recurring team check-in for local development data.",
             1,
@@ -130,6 +132,7 @@ public class TestController {
 
         tasks.add(taskService.createStaticTask(staticTask(
             account,
+            organization,
             "Architecture review",
             "A one-off blocker for validating the scheduling flow.",
             3,
@@ -143,6 +146,7 @@ public class TestController {
 
         DynamicTask planningView = taskService.createDynamicTask(dynamicTask(
             account,
+            organization,
             "Implement planning view",
             "Build the first pass of the planning timeline.",
             4,
@@ -164,6 +168,7 @@ public class TestController {
 
         DynamicTask releaseNotes = dynamicTask(
             account,
+            organization,
             "Write release notes",
             "Summarize the local seed workflow and planning changes.",
             2,
@@ -186,6 +191,7 @@ public class TestController {
 
     private StaticTask staticTask(
         Account account,
+        Organization organization,
         String name,
         String description,
         int difficulty,
@@ -196,13 +202,14 @@ public class TestController {
         String... labels
     ) {
         StaticTask task = new StaticTask();
-        applyTaskFields(task, account, name, description, difficulty, startAt, endAt, rrule, labels);
+        applyTaskFields(task, account, organization, name, description, difficulty, startAt, endAt, rrule, labels);
         task.setIsBlocker(isBlocker);
         return task;
     }
 
     private DynamicTask dynamicTask(
         Account account,
+        Organization organization,
         String name,
         String description,
         int difficulty,
@@ -217,7 +224,7 @@ public class TestController {
         String... labels
     ) {
         DynamicTask task = new DynamicTask();
-        applyTaskFields(task, account, name, description, difficulty, startAt, endAt, rrule, labels);
+        applyTaskFields(task, account, organization, name, description, difficulty, startAt, endAt, rrule, labels);
         task.setDuration(duration);
         task.setElapsed(elapsed);
         task.setMinScopeDuration(minScopeDuration);
@@ -231,6 +238,7 @@ public class TestController {
     private void applyTaskFields(
         Task task,
         Account account,
+        Organization organization,
         String name,
         String description,
         int difficulty,
@@ -240,6 +248,7 @@ public class TestController {
         String... labels
     ) {
         task.setAccount(account);
+        task.setOrganization(organization);
         task.setName(name);
         task.setDescription(description);
         task.setDifficulty(difficulty);

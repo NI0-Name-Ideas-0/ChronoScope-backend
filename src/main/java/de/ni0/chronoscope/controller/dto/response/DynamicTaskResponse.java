@@ -6,12 +6,11 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
-import io.swagger.v3.oas.annotations.media.Schema;
-
 @Schema(description = "Response for a dynamic (schedulable) task, including its scopes and dependencies")
 public record DynamicTaskResponse(
     Long id,
     Long accountId,
+    Long organizationId,
     String name,
     String description,
     Integer difficulty,
