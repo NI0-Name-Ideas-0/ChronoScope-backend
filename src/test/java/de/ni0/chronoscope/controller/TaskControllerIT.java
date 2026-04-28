@@ -1,5 +1,17 @@
 package de.ni0.chronoscope.controller;
 
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.not;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -7,24 +19,13 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 
-import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.not;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import org.springframework.test.web.servlet.MockMvc;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import org.springframework.transaction.annotation.Transactional;
 
 import de.ni0.chronoscope.model.Account;
@@ -36,6 +37,8 @@ import de.ni0.chronoscope.model.StaticTask;
 import de.ni0.chronoscope.repository.AccountRepository;
 import de.ni0.chronoscope.repository.IdentityRepository;
 import de.ni0.chronoscope.repository.OrganizationRepository;
+import de.ni0.chronoscope.repository.ScopeRepository;
+import de.ni0.chronoscope.repository.TaskRepository;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 
@@ -233,11 +236,13 @@ class TaskControllerIT {
     void createTask_Static_DifficultyAboveFive_ReturnsValidationError() throws Exception {
         String subject = createAccountSubject();
         long accountId = createAccount(subject);
+                long organizationId = createOrganization();
 
         String payload = """
             {
               "type": "static",
               "accountId": %d,
+                            "organizationId": %d,
               "name": "Write report",
               "description": "Prepare weekly summary",
               "rrule": "FREQ=WEEKLY;BYDAY=MO",
@@ -247,10 +252,10 @@ class TaskControllerIT {
               "labels": [],
               "isBlocker": false
             }
-            """.formatted(accountId);
+                        """.formatted(accountId, organizationId);
 
         mockMvc.perform(post("/v1/tasks")
-                .with(jwt().jwt(jwt -> jwt.subject(subject)))
+            .with(jwtWithOrganization(subject, organizationId))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(payload))
             .andExpect(status().isBadRequest())
@@ -308,6 +313,7 @@ class TaskControllerIT {
     void createTask_Static_WithUnknownOrganization_ReturnsValidationError() throws Exception {
         String subject = createAccountSubject();
         long accountId = createAccount(subject);
+        long organizationId = createOrganization();
         long unknownOrganizationId = 999_999L;
 
         String payload = """
@@ -327,7 +333,7 @@ class TaskControllerIT {
             """.formatted(accountId, unknownOrganizationId);
 
         mockMvc.perform(post("/v1/tasks")
-                .with(jwt().jwt(jwt -> jwt.subject(subject)))
+                .with(jwtWithOrganization(subject, organizationId))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(payload))
             .andExpect(status().isBadRequest())
@@ -375,11 +381,13 @@ class TaskControllerIT {
     void createTask_Dynamic_WithStartAtAfterEndAt_ReturnsValidationError() throws Exception {
         String subject = createAccountSubject();
         long accountId = createAccount(subject);
+                long organizationId = createOrganization();
 
         String payload = """
             {
               "type": "dynamic",
               "accountId": %d,
+                            "organizationId": %d,
               "name": "Implement API endpoint",
               "description": "Create and test endpoint",
               "rrule": "FREQ=DAILY",
@@ -392,10 +400,10 @@ class TaskControllerIT {
                             "maxScopeDuration": "PT90M",
               "dependencies": []
             }
-            """.formatted(accountId);
+            """.formatted(accountId, organizationId);
 
         mockMvc.perform(post("/v1/tasks")
-                .with(jwt().jwt(jwt -> jwt.subject(subject)))
+            .with(jwtWithOrganization(subject, organizationId))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(payload))
             .andExpect(status().isBadRequest())
@@ -408,11 +416,13 @@ class TaskControllerIT {
     void createTask_Dynamic_InvalidDurationFormat_ReturnsInvalidRequest() throws Exception {
         String subject = createAccountSubject();
         long accountId = createAccount(subject);
+                long organizationId = createOrganization();
 
         String payload = """
             {
               "type": "dynamic",
               "accountId": %d,
+                            "organizationId": %d,
               "name": "Implement API endpoint",
               "description": "Create and test endpoint",
               "rrule": "FREQ=DAILY",
@@ -425,10 +435,10 @@ class TaskControllerIT {
               "maxScopeDuration": "PT90M",
               "dependencies": []
             }
-            """.formatted(accountId);
+                        """.formatted(accountId, organizationId);
 
         mockMvc.perform(post("/v1/tasks")
-                .with(jwt().jwt(jwt -> jwt.subject(subject)))
+            .with(jwtWithOrganization(subject, organizationId))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(payload))
             .andExpect(status().isBadRequest())
@@ -481,11 +491,11 @@ class TaskControllerIT {
               "duration": "PT240M",
               "minScopeDuration": "PT30M",
                             "maxScopeDuration": "PT90M",
-              "dependencies": [
+                            "dependencies": [
                                 %d
-              ]
-            }
-            """.formatted(accountId, organizationId, predecessorId);
+                            ]
+                        }
+                        """.formatted(accountId, organizationId, predecessorId);
 
         mockMvc.perform(post("/v1/tasks")
                 .with(jwtWithOrganization(subject, organizationId))
@@ -743,9 +753,11 @@ class TaskControllerIT {
     void updateTask_Static_DifficultyAboveFive_ReturnsValidationError() throws Exception {
         String subject = createAccountSubject();
         long accountId = createAccount(subject);
+        long organizationId = createOrganization();
 
         StaticTask task = new StaticTask();
         task.setAccount(accountRepository.getReferenceById(accountId));
+        task.setOrganization(organizationRepository.getReferenceById(organizationId));
         task.setName("Original static task");
         task.setDescription("Original description");
         task.setDifficulty(2);
@@ -777,9 +789,11 @@ class TaskControllerIT {
     void updateTask_Dynamic_ReducesDuration_CapsMinAndMaxScopeDurations() throws Exception {
         String subject = createAccountSubject();
         long accountId = createAccount(subject);
+        long organizationId = createOrganization();
 
         DynamicTask task = new DynamicTask();
         task.setAccount(accountRepository.getReferenceById(accountId));
+        task.setOrganization(organizationRepository.getReferenceById(organizationId));
         task.setName("Dynamic task");
         task.setDescription("Should cap scope durations when duration is lowered");
         task.setDifficulty(3);

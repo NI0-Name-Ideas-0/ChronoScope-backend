@@ -1,19 +1,20 @@
 package de.ni0.chronoscope.controller;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
+
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import static org.mockito.ArgumentMatchers.any;
 import org.mockito.Mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -467,28 +468,27 @@ class TaskControllerTest {
     }
 
     @Test
-    void updateTask_Static_ChangesAccountWhenProvided() {
+    void updateTask_Static_ChangesOrganizationWhenProvided() {
         RequestContext requestContext = new RequestContext();
         requestContext.setIdentityId(99L);
-        TaskController controller = new TaskController(taskService, taskMapper, accountRepository, requestContext);
+        TaskController controller = new TaskController(taskService, taskMapper, accountService, requestContext);
 
-        Identity identity = new Identity();
-        identity.setId(99L);
-
-        Account targetAccount = new Account();
-        targetAccount.setId(12L);
-        targetAccount.setIdentity(identity);
+        Organization targetOrganization = new Organization();
+        targetOrganization.setId(7L);
 
         StaticTask existingTask = new StaticTask();
         existingTask.setId(400L);
+        existingTask.setAccount(new Account());
 
         StaticTask savedTask = new StaticTask();
         savedTask.setId(400L);
-        savedTask.setAccount(targetAccount);
+        savedTask.setAccount(new Account());
+        savedTask.setOrganization(targetOrganization);
 
         StaticTaskResponse expectedResponse = new StaticTaskResponse(
             400L,
             12L,
+            7L,
             "Updated static task",
             "Updated description",
             2,
@@ -500,7 +500,7 @@ class TaskControllerTest {
         );
 
         StaticTaskUpdateRequest request = new StaticTaskUpdateRequest(
-            12L,
+            7L,
             "Updated static task",
             "Updated description",
             "FREQ=WEEKLY",
@@ -512,19 +512,16 @@ class TaskControllerTest {
         );
 
         when(taskService.getTaskForIdentity(99L, 400L)).thenReturn(existingTask);
-        when(accountRepository.findById(12L)).thenReturn(Optional.of(targetAccount));
-        when(taskService.updateStaticTask(400L, existingTask)).thenReturn(savedTask);
+        when(taskService.updateStaticTask(400L, existingTask, 7L)).thenReturn(savedTask);
         when(taskMapper.toResponse(savedTask)).thenReturn(expectedResponse);
 
         TaskResponse result = controller.updateTask(400L, request);
 
         assertEquals(expectedResponse, result);
-        assertEquals(targetAccount, existingTask.getAccount());
         verify(taskService).getTaskForIdentity(99L, 400L);
-        verify(accountRepository).findById(12L);
         verify(taskMapper).fromUpdateRequest(request, existingTask);
-        verify(taskService).updateStaticTask(400L, existingTask);
+        verify(taskService).updateStaticTask(400L, existingTask, 7L);
         verify(taskMapper).toResponse(savedTask);
-        verifyNoMoreInteractions(taskService, taskMapper, accountRepository);
+        verifyNoMoreInteractions(taskService, taskMapper, accountService);
     }
 }

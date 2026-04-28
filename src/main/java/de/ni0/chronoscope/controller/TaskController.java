@@ -133,10 +133,6 @@ public class TaskController {
             @Parameter(description = "Task ID") @PathVariable Long id,
             @Valid @RequestBody TaskUpdateRequest request) {
         Task existingTask = taskService.getTaskForIdentity(requestContext.getIdentityId(), id);
-        if (request.accountId() != null) {
-            Account account = validateAccountOwnership(request.accountId());
-            existingTask.setAccount(account);
-        }
 
         return switch (request) {
             case StaticTaskUpdateRequest staticRequest -> {

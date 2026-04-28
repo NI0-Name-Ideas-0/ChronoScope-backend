@@ -322,49 +322,6 @@ class TaskServiceTest {
 
     @Test
     void updateDynamicTask_PersistsAccountChanges() {
-        TaskService taskService = new TaskService(taskRepository);
-
-        Identity identity = new Identity();
-        identity.setId(42L);
-
-        Account currentAccount = new Account();
-        currentAccount.setId(10L);
-        currentAccount.setIdentity(identity);
-
-        Account newAccount = new Account();
-        newAccount.setId(11L);
-        newAccount.setIdentity(identity);
-
-        DynamicTask task = new DynamicTask();
-        task.setId(210L);
-        task.setAccount(newAccount);
-        populateValidDynamicFields(task);
-        task.setDependencies(new java.util.HashSet<>());
-        task.setLabels(new java.util.ArrayList<>());
-        task.setScopes(new java.util.ArrayList<>());
-
-        DynamicTask managedTask = new DynamicTask();
-        managedTask.setId(210L);
-        managedTask.setAccount(currentAccount);
-        populateValidDynamicFields(managedTask);
-        managedTask.setDependencies(new java.util.HashSet<>());
-        managedTask.setDependents(new java.util.HashSet<>());
-        managedTask.setLabels(new java.util.ArrayList<>());
-        managedTask.setScopes(new java.util.ArrayList<>());
-
-        when(taskRepository.findById(210L)).thenReturn(Optional.of(managedTask));
-
-        DynamicTask result = taskService.updateDynamicTask(210L, task);
-
-        assertEquals(managedTask, result);
-        assertEquals(newAccount, managedTask.getAccount());
-        verify(taskRepository).findById(210L);
-        verify(taskRepository).flush();
-    }
-
-    @Test
-    void updateDynamicTask_PersistsAccountChanges() {
-        
         TaskService taskService = new TaskService(taskRepository, accountService);
 
         Identity identity = new Identity();
@@ -440,11 +397,13 @@ class TaskServiceTest {
 
         StaticTask task = new StaticTask();
         task.setId(100L);
+        populateValidStaticFields(task);
         task.setLabels(new java.util.ArrayList<>());
 
         StaticTask managedTask = new StaticTask();
         managedTask.setId(100L);
         managedTask.setAccount(account);
+        populateValidStaticFields(managedTask);
         managedTask.setLabels(new java.util.ArrayList<>());
 
         when(taskRepository.findById(100L)).thenReturn(Optional.of(managedTask));
@@ -471,12 +430,14 @@ class TaskServiceTest {
 
         DynamicTask task = new DynamicTask();
         task.setId(200L);
+        populateValidDynamicFields(task);
         task.setLabels(new java.util.ArrayList<>());
         task.setScopes(new java.util.ArrayList<>());
 
         DynamicTask managedTask = new DynamicTask();
         managedTask.setId(200L);
         managedTask.setAccount(account);
+        populateValidDynamicFields(managedTask);
         managedTask.setDependencies(new java.util.HashSet<>());
         managedTask.setDependents(new java.util.HashSet<>());
         managedTask.setLabels(new java.util.ArrayList<>());
@@ -496,7 +457,7 @@ class TaskServiceTest {
 
     @Test
     void updateStaticTask_PersistsAccountChanges() {
-        TaskService taskService = new TaskService(taskRepository);
+        TaskService taskService = new TaskService(taskRepository, accountService);
 
         Identity identity = new Identity();
         identity.setId(42L);
@@ -561,7 +522,7 @@ class TaskServiceTest {
 
     @Test
     void createDynamicTask_CapsDurationsToDuration_WhenMinOrMaxExceedDuration() {
-        TaskService taskService = new TaskService(taskRepository);
+        TaskService taskService = new TaskService(taskRepository, accountService);
 
         Identity identity = new Identity();
         identity.setId(42L);
@@ -590,7 +551,7 @@ class TaskServiceTest {
 
     @Test
     void createDynamicTask_ThrowsWhenMinScopeDurationBelowTenWithoutCapping() {
-        TaskService taskService = new TaskService(taskRepository);
+        TaskService taskService = new TaskService(taskRepository, accountService);
 
         Identity identity = new Identity();
         identity.setId(42L);
@@ -618,7 +579,7 @@ class TaskServiceTest {
 
     @Test
     void createDynamicTask_ThrowsWhenMaxScopeDurationExceedsNinety() {
-        TaskService taskService = new TaskService(taskRepository);
+        TaskService taskService = new TaskService(taskRepository, accountService);
 
         Identity identity = new Identity();
         identity.setId(42L);
@@ -646,7 +607,7 @@ class TaskServiceTest {
 
     @Test
     void createDynamicTask_ThrowsWhenGapIsLessThanFiveMinutesWithoutCapping() {
-        TaskService taskService = new TaskService(taskRepository);
+        TaskService taskService = new TaskService(taskRepository, accountService);
 
         Identity identity = new Identity();
         identity.setId(42L);
@@ -674,7 +635,7 @@ class TaskServiceTest {
 
     @Test
     void updateStaticTask_ThrowsWhenStartAtIsNotBeforeEndAt() {
-        TaskService taskService = new TaskService(taskRepository);
+        TaskService taskService = new TaskService(taskRepository, accountService);
 
         StaticTask task = new StaticTask();
         task.setId(120L);
@@ -701,7 +662,7 @@ class TaskServiceTest {
 
     @Test
     void updateDynamicTask_CapsMaxScopeDurationWhenDurationIsReduced() {
-        TaskService taskService = new TaskService(taskRepository);
+        TaskService taskService = new TaskService(taskRepository, accountService);
 
         Identity identity = new Identity();
         identity.setId(42L);
