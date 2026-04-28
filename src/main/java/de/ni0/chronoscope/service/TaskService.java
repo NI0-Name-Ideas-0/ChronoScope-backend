@@ -94,7 +94,6 @@ public class TaskService {
 
     @Transactional
     public DynamicTask updateDynamicTask(Long id, DynamicTask task, List<Long> dependencyIds, Long organizationId) {
-        //TODO: validate task (e.g. duration > 0, minScopeDuration <= maxScopeDuration, etc.)
         if (!Objects.equals(id, task.getId())) {
             throw new InvalidRequestException("Task id in path does not match target task");
         }
@@ -105,9 +104,10 @@ public class TaskService {
             throw new InvalidRequestException("Task type mismatch: expected dynamic task");
         }
 
+        if (task.getAccount() != null) {
+            managedTask.setAccount(task.getAccount());
+        }
         Organization organization = validateOrganizationAccess(managedTask, organizationId);
-
-        managedTask.setAccount(task.getAccount());
         managedTask.setName(task.getName());
         managedTask.setDescription(task.getDescription());
         managedTask.setDifficulty(task.getDifficulty());
@@ -161,7 +161,6 @@ public class TaskService {
 
     @Transactional
     public StaticTask updateStaticTask(Long id, StaticTask task, Long organizationId) {
-        //TODO: validate task (e.g. startAt < endAt, etc.)
         if (!Objects.equals(id, task.getId())) {
             throw new InvalidRequestException("Task id in path does not match target task");
         }
@@ -172,9 +171,10 @@ public class TaskService {
             throw new InvalidRequestException("Task type mismatch: expected static task");
         }
 
+        if (task.getAccount() != null) {
+            managedTask.setAccount(task.getAccount());
+        }
         Organization organization = validateOrganizationAccess(managedTask, organizationId);
-
-        managedTask.setAccount(task.getAccount());
         managedTask.setName(task.getName());
         managedTask.setDescription(task.getDescription());
         managedTask.setDifficulty(task.getDifficulty());

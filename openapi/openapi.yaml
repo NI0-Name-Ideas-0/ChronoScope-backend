@@ -650,6 +650,9 @@ components:
       - $ref: "#/components/schemas/TaskUpdateRequest"
       - type: object
         properties:
+          accountId:
+            type: integer
+            format: int64
           dependencies:
             type: array
             items:
@@ -859,6 +862,9 @@ components:
       - $ref: "#/components/schemas/TaskUpdateRequest"
       - type: object
         properties:
+          accountId:
+            type: integer
+            format: int64
           description:
             type: string
           difficulty:

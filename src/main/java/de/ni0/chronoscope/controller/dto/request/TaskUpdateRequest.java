@@ -12,6 +12,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
     @JsonSubTypes.Type(value = DynamicTaskUpdateRequest.class, name = "dynamic")
 })
 public sealed interface TaskUpdateRequest permits StaticTaskUpdateRequest, DynamicTaskUpdateRequest {
+    Long accountId();
     Long organizationId();
     String name();
     String description();

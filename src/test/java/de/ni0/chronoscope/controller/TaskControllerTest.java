@@ -365,6 +365,7 @@ class TaskControllerTest {
 
         StaticTaskUpdateRequest request = new StaticTaskUpdateRequest(
             null,
+            null,
             "Updated static task",
             "Updated description",
             "FREQ=WEEKLY",
@@ -414,6 +415,7 @@ class TaskControllerTest {
 
         DynamicTaskUpdateRequest request = new DynamicTaskUpdateRequest(
             null,
+            null,
             "Dynamic name",
             "Dynamic description",
             "FREQ=DAILY",
@@ -447,6 +449,7 @@ class TaskControllerTest {
         existingTask.setId(301L);
 
         StaticTaskUpdateRequest request = new StaticTaskUpdateRequest(
+            null,
             null,
             "Static name",
             "Static description",
@@ -500,6 +503,7 @@ class TaskControllerTest {
         );
 
         StaticTaskUpdateRequest request = new StaticTaskUpdateRequest(
+            null,
             7L,
             "Updated static task",
             "Updated description",
@@ -522,6 +526,142 @@ class TaskControllerTest {
         verify(taskMapper).fromUpdateRequest(request, existingTask);
         verify(taskService).updateStaticTask(400L, existingTask, 7L);
         verify(taskMapper).toResponse(savedTask);
+        verifyNoMoreInteractions(taskService, taskMapper, accountService);
+    }
+
+    @Test
+    void updateTask_Static_WithAccountAndOrganization_Succeeds() {
+        RequestContext requestContext = new RequestContext();
+        requestContext.setIdentityId(99L);
+        TaskController controller = new TaskController(taskService, taskMapper, accountService, requestContext);
+
+        Account newAccount = new Account();
+        newAccount.setId(55L);
+
+        Organization targetOrganization = new Organization();
+        targetOrganization.setId(77L);
+
+        StaticTask existingTask = new StaticTask();
+        existingTask.setId(500L);
+
+        StaticTask savedTask = new StaticTask();
+        savedTask.setId(500L);
+        savedTask.setAccount(newAccount);
+        savedTask.setOrganization(targetOrganization);
+
+        StaticTaskUpdateRequest request = new StaticTaskUpdateRequest(
+            55L,
+            77L,
+            "Updated static task",
+            "Updated description",
+            "FREQ=WEEKLY",
+            2,
+            Instant.parse("2026-04-20T09:00:00Z"),
+            Instant.parse("2026-04-20T10:00:00Z"),
+            List.of(),
+            true
+        );
+
+        StaticTaskResponse expectedResponse = new StaticTaskResponse(
+            500L,
+            55L,
+            77L,
+            "Updated static task",
+            "Updated description",
+            2,
+            Instant.parse("2026-04-20T09:00:00Z"),
+            Instant.parse("2026-04-20T10:00:00Z"),
+            "FREQ=WEEKLY",
+            List.of(),
+            true
+        );
+
+        when(taskService.getTaskForIdentity(99L, 500L)).thenReturn(existingTask);
+        when(accountService.validateAccountOwnership(99L, 55L)).thenReturn(newAccount);
+        when(taskService.updateStaticTask(500L, existingTask, 77L)).thenReturn(savedTask);
+        when(taskMapper.toResponse(savedTask)).thenReturn(expectedResponse);
+
+        TaskResponse result = controller.updateTask(500L, request);
+
+        assertEquals(expectedResponse, result);
+        verify(taskService).getTaskForIdentity(99L, 500L);
+        verify(accountService).validateAccountOwnership(99L, 55L);
+        verify(taskMapper).fromUpdateRequest(request, existingTask);
+        verify(taskService).updateStaticTask(500L, existingTask, 77L);
+        verify(taskMapper).toResponse(savedTask);
+        verifyNoMoreInteractions(taskService, taskMapper, accountService);
+    }
+
+    @Test
+    void updateTask_Static_ChangeAccount_NotLinked_Throws() {
+        RequestContext requestContext = new RequestContext();
+        requestContext.setIdentityId(99L);
+        TaskController controller = new TaskController(taskService, taskMapper, accountService, requestContext);
+
+        StaticTask existingTask = new StaticTask();
+        existingTask.setId(600L);
+
+        StaticTaskUpdateRequest request = new StaticTaskUpdateRequest(
+            13L,
+            null,
+            "Updated static task",
+            "Updated description",
+            "FREQ=WEEKLY",
+            2,
+            Instant.parse("2026-04-20T09:00:00Z"),
+            Instant.parse("2026-04-20T10:00:00Z"),
+            List.of(),
+            false
+        );
+
+        when(taskService.getTaskForIdentity(99L, 600L)).thenReturn(existingTask);
+        when(accountService.validateAccountOwnership(99L, 13L)).thenThrow(new AccountAccessDeniedException("accountId is not linked to authenticated identity"));
+
+        AccountAccessDeniedException ignored = assertThrows(AccountAccessDeniedException.class, () -> controller.updateTask(600L, request));
+        assertEquals(AccountAccessDeniedException.class, ignored.getClass());
+
+        verify(taskService).getTaskForIdentity(99L, 600L);
+        verify(taskMapper).fromUpdateRequest(request, existingTask);
+        verify(accountService).validateAccountOwnership(99L, 13L);
+        verifyNoMoreInteractions(taskService, taskMapper, accountService);
+    }
+
+    @Test
+    void updateTask_Static_ChangeAccount_OrgNotLinked_Throws() {
+        RequestContext requestContext = new RequestContext();
+        requestContext.setIdentityId(99L);
+        TaskController controller = new TaskController(taskService, taskMapper, accountService, requestContext);
+
+        Account newAccount = new Account();
+        newAccount.setId(88L);
+
+        StaticTask existingTask = new StaticTask();
+        existingTask.setId(700L);
+
+        StaticTaskUpdateRequest request = new StaticTaskUpdateRequest(
+            88L,
+            999L,
+            "Updated static task",
+            "Updated description",
+            "FREQ=WEEKLY",
+            2,
+            Instant.parse("2026-04-20T09:00:00Z"),
+            Instant.parse("2026-04-20T10:00:00Z"),
+            List.of(),
+            false
+        );
+
+        when(taskService.getTaskForIdentity(99L, 700L)).thenReturn(existingTask);
+        when(accountService.validateAccountOwnership(99L, 88L)).thenReturn(newAccount);
+        when(taskService.updateStaticTask(700L, existingTask, 999L)).thenThrow(new AccountAccessDeniedException("Account does not have access to the specified organization"));
+
+        AccountAccessDeniedException ignored = assertThrows(AccountAccessDeniedException.class, () -> controller.updateTask(700L, request));
+        assertEquals(AccountAccessDeniedException.class, ignored.getClass());
+
+        verify(taskService).getTaskForIdentity(99L, 700L);
+        verify(taskMapper).fromUpdateRequest(request, existingTask);
+        verify(accountService).validateAccountOwnership(99L, 88L);
+        verify(taskService).updateStaticTask(700L, existingTask, 999L);
         verifyNoMoreInteractions(taskService, taskMapper, accountService);
     }
 }
