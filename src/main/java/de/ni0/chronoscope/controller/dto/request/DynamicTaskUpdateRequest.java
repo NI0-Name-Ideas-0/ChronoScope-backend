@@ -1,12 +1,12 @@
 package de.ni0.chronoscope.controller.dto.request;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import io.swagger.v3.oas.annotations.media.Schema;
-
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotNull;
@@ -17,8 +17,8 @@ import jakarta.validation.constraints.Size;
 public record DynamicTaskUpdateRequest(
     Long organizationId,
     @Size(min = 1) String name,
-    @Size(min = 1) String description,
-    @Size(min = 1) String rrule,
+    @Size(min = 0) String description,
+    @Size(min = 0) String rrule,
     @Positive Integer difficulty,
     Instant startAt,
     Instant endAt,
