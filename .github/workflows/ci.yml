@@ -30,12 +30,29 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      - name: Run unit tests
-        run: ./mvnw test
+      - name: Run tests with coverage
+        # Runs unit tests (surefire) then integration tests (failsafe) in a single Maven session
+        # so JaCoCo can collect and merge coverage from both into one report.
+        # Springdoc OpenAPI generation is skipped here (handled by the dedicated job).
+        run: ./mvnw verify -Dspringdoc.skip=true
 
-      - name: Run integration tests
-        # skip unit tests to only run integration tests; skip openapi generation (handled by dedicated job)
-        run: ./mvnw verify -Dsurefire.skip=true -Dspringdoc.skip=true
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: success() || failure()
+        with:
+          name: coverage-report
+          path: target/site/jacoco/
+
+      - name: Post coverage comment to PR
+        uses: madrapps/jacoco-report@v1.6.1
+        if: github.event_name == 'pull_request'
+        with:
+          paths: ${{ github.workspace }}/target/site/jacoco/jacoco.xml
+          token: ${{ secrets.GITHUB_TOKEN }}
+          title: Coverage Report
+          update-comment: true
+          min-coverage-overall: 70
+          min-coverage-changed-files: 70
 
       - name: Test Summary
         uses: scacap/action-surefire-report@v1
@@ -64,7 +81,8 @@ jobs:
 
       - name: Generate OpenAPI spec
         # skip unit and integration tests; spring-boot starts with the generate profile (see pom.xml)
-        run: ./mvnw verify -DskipTests -Dspringdoc.skip=false
+        # jacoco.skip=true prevents the coverage check from running against empty exec data
+        run: ./mvnw verify -DskipTests -Dspringdoc.skip=false -Djacoco.skip=true
 
       - name: Commit updated OpenAPI spec
         run: |
@@ -126,7 +144,7 @@ jobs:
     needs: build-and-push-image
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Deploy using SSH
         uses: appleboy/ssh-action@v1.2.5
