@@ -14,8 +14,8 @@ import jakarta.validation.constraints.Size;
 public record StaticTaskUpdateRequest(
     Long organizationId,
     @Size(min = 1) String name,
-    @Size(min = 1) String description,
-    @Size(min = 1) String rrule,
+    String description,
+    String rrule,
     @Positive @Max(5) Integer difficulty,
     Instant startAt,
     Instant endAt,
