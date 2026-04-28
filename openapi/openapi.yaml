@@ -657,8 +657,6 @@ components:
               format: int64
           description:
             type: string
-            maxLength: 2147483647
-            minLength: 1
           difficulty:
             type: integer
             format: int32
@@ -687,8 +685,6 @@ components:
             format: int64
           rrule:
             type: string
-            maxLength: 2147483647
-            minLength: 1
           startAt:
             type: string
             format: date-time
@@ -865,8 +861,6 @@ components:
         properties:
           description:
             type: string
-            maxLength: 2147483647
-            minLength: 1
           difficulty:
             type: integer
             format: int32
@@ -889,8 +883,6 @@ components:
             format: int64
           rrule:
             type: string
-            maxLength: 2147483647
-            minLength: 1
           startAt:
             type: string
             format: date-time
