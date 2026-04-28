@@ -1,14 +1,21 @@
 package de.ni0.chronoscope.service;
 
 import de.ni0.chronoscope.algorithm.Algorithm;
-import de.ni0.chronoscope.algorithm.Task;
+import de.ni0.chronoscope.algorithm.TaskGraphNode;
 import de.ni0.chronoscope.algorithm.WeightDataProvider;
 import de.ni0.chronoscope.algorithm.WorkSlotProvider;
 import de.ni0.chronoscope.algorithm.dataprovider.CPMDataProvider;
+import de.ni0.chronoscope.exception.InsufficientSlotsException;
+import de.ni0.chronoscope.exception.InvalidRequestException;
 import de.ni0.chronoscope.model.DynamicTask;
 import de.ni0.chronoscope.model.Scope;
 import de.ni0.chronoscope.model.WorkSlot;
+import de.ni0.chronoscope.repository.ScopeRepository;
+import de.ni0.chronoscope.repository.TaskRepository;
+import lombok.RequiredArgsConstructor;
+
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -17,55 +24,103 @@ import java.util.List;
 import java.util.Map;
 
 @Service
+@RequiredArgsConstructor
 public class PlanningService {
 
-    public List<Scope> plan(List<DynamicTask> tasks,
-                            List<WorkSlot> slots) {
-        Map<DynamicTask, Task> taskMap = new HashMap<>();
-        for (DynamicTask task : tasks) {
-            taskMap.put(task, new Task(task, new ArrayList<>(), new ArrayList<>()));
-        }
-        for (DynamicTask task : tasks) {
-            Task algTask = taskMap.get(task);
-            for (DynamicTask dependency : task.getDependencies()) {
-                Task depTask = taskMap.get(dependency);
-                algTask.dependencies().add(depTask);
-            }
-            for (DynamicTask dependent : task.getDependents()) {
-                Task depTask = taskMap.get(dependent);
-                algTask.dependents().add(depTask);
-            }
-        }
-        List<Task> algTasks = new ArrayList<>(taskMap.values());
+    private final TaskRepository taskRepository;
+    private final ScopeRepository scopeRepository;
+    private final WorkSlotService workSlotService;
+    private final AccountService accountService;
 
-        return this.plan2(algTasks, slots);
+    @Transactional
+    public List<Scope> planTasksForAccount(long accountId, long orgId) {
+        accountService.validateAccountOrgAccess(accountId, orgId);
+
+        var dynamicTasks = taskRepository.findDynamicTasksByAccountIdAndOrganizationId(accountId, orgId);
+
+        if (dynamicTasks.isEmpty()) {
+            // An exception would imply something went wrong, but "nothing to plan" is not a failure.
+            // therefore we return an empty plan instead of throwing an exception in this case.
+            return List.of();
+        }
+
+        var dynamicTaskIds = dynamicTasks.stream().map(DynamicTask::getId).toList();
+        var workSlots = workSlotService.getWorkSlotsForAccount(accountId);
+
+        var planningResult = plan(dynamicTasks, workSlots);
+
+        if (planningResult == null) {
+            throw new InsufficientSlotsException("No valid plan could be found with the available work slots");
+        }
+
+        scopeRepository.deleteByDynamicTaskIdIn(dynamicTaskIds); // Clear old scopes
+        scopeRepository.saveAll(planningResult); // Save new scopes
+
+        return planningResult;
     }
 
-    private List<Scope> plan2(List<Task> tasks, List<WorkSlot> slots) {
-        Map<Task, Integer> dependencyCount = new HashMap<>();
-        Map<Task, Duration> remainingTaskDurations = new HashMap<>();
-        for (Task task : tasks) {
-            dependencyCount.put(task, task.dependencies().size());
-            remainingTaskDurations.put(task, task.duration());
-        }
-        List<Task> startTasks = new ArrayList<>();
-        dependencyCount.forEach((k, v) -> {
-            if (v == 0) {
-                startTasks.add(k);
-            }
-        });
+    private List<Scope> plan(List<DynamicTask> tasks, List<WorkSlot> slots) {
         if (slots == null || slots.isEmpty()) {
-            throw new IllegalArgumentException("slots must not be null or empty");
+            throw new InsufficientSlotsException("No work slots are available for planning");
         }
-        List<WeightDataProvider> providers = List.of(
-                new CPMDataProvider()
-        );
+
+        List<TaskGraphNode> taskNodes = toTaskGraphNodes(tasks);
+        Map<TaskGraphNode, Integer> dependencyCountMap = new HashMap<>();
+        Map<TaskGraphNode, Duration> remainingTaskDurationMap = new HashMap<>();
+        List<TaskGraphNode> startNodes = new ArrayList<>();
+
+        for (TaskGraphNode node : taskNodes) {
+            int dependencyCount = node.dependencies().size();
+            dependencyCountMap.put(node, dependencyCount);
+            remainingTaskDurationMap.put(node, node.getDuration());
+            if (dependencyCount == 0) {
+                startNodes.add(node);
+            }
+        }
+
+        if (startNodes.isEmpty()) {
+            throw new InvalidRequestException("Tasks contain a dependency cycle: no task has zero dependencies");
+        }
+
+        List<WeightDataProvider> providers = List.of(new CPMDataProvider());
         Algorithm algorithm = new Algorithm(providers);
         WorkSlotProvider workSlotProvider = new WorkSlotProvider(slots);
         WorkSlot startSlot = workSlotProvider.getNextSlot(null);
-        return algorithm.plan(startTasks, dependencyCount,
-                remainingTaskDurations, workSlotProvider, startSlot,
+
+        return algorithm.plan(startNodes, dependencyCountMap,
+                remainingTaskDurationMap, workSlotProvider, startSlot,
                 startSlot.getStartAt());
     }
 
+    private List<TaskGraphNode> toTaskGraphNodes(List<DynamicTask> tasks) {
+        Map<DynamicTask, TaskGraphNode> nodesByTask = new HashMap<>();
+
+        for (DynamicTask task : tasks) {
+            nodesByTask.put(task, new TaskGraphNode(task, new ArrayList<>(), new ArrayList<>()));
+        }
+
+        for (DynamicTask task : tasks) {
+            TaskGraphNode node = nodesByTask.get(task);
+
+            for (DynamicTask dependency : task.getDependencies()) {
+                TaskGraphNode dependencyNode = nodesByTask.get(dependency);
+                if (dependencyNode == null) {
+                    throw new InvalidRequestException(
+                            "Task " + task.getId() + " has a dependency (id=" + dependency.getId() + ") outside the planned organization scope");
+                }
+                node.dependencies().add(dependencyNode);
+            }
+
+            for (DynamicTask dependent : task.getDependents()) {
+                TaskGraphNode dependentNode = nodesByTask.get(dependent);
+                if (dependentNode == null) {
+                    throw new InvalidRequestException(
+                            "Task " + task.getId() + " has a dependent (id=" + dependent.getId() + ") outside the planned organization scope");
+                }
+                node.dependents().add(dependentNode);
+            }
+        }
+
+        return new ArrayList<>(nodesByTask.values());
+    }
 }

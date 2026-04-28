@@ -14,6 +14,7 @@ import java.util.List;
 public sealed interface TaskCreateRequest permits StaticTaskCreateRequest, DynamicTaskCreateRequest {
 
     Long accountId();
+    Long organizationId();
     String name();
     String description();
     String rrule();

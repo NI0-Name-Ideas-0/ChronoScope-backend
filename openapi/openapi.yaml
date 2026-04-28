@@ -21,66 +21,6 @@ tags:
 - description: Generate optimized task plans from available work slots
   name: Planning
 paths:
-  /test:
-    get:
-      operationId: testEndpoint
-      responses:
-        "200":
-          content:
-            '*/*':
-              schema:
-                type: string
-          description: OK
-      tags:
-      - test-controller
-  /test/createIdentity:
-    get:
-      operationId: testEndpoint2
-      responses:
-        "200":
-          content:
-            '*/*':
-              schema:
-                type: string
-          description: OK
-      tags:
-      - test-controller
-  /test/labels:
-    get:
-      operationId: testEndpoint3
-      responses:
-        "200":
-          content:
-            '*/*':
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/LabelResponse"
-          description: OK
-      tags:
-      - test-controller
-  /test/tasks:
-    post:
-      operationId: testCreateTask
-      requestBody:
-        content:
-          application/json:
-            schema:
-              oneOf:
-              - $ref: "#/components/schemas/DynamicTaskCreateRequest"
-              - $ref: "#/components/schemas/StaticTaskCreateRequest"
-        required: true
-      responses:
-        "200":
-          content:
-            '*/*':
-              schema:
-                oneOf:
-                - $ref: "#/components/schemas/DynamicTaskResponse"
-                - $ref: "#/components/schemas/StaticTaskResponse"
-          description: OK
-      tags:
-      - test-controller
   /v1/identity:
     get:
       description: "Retrieve information about the identity contained in the access\
@@ -166,8 +106,8 @@ paths:
       - Identity
   /v1/plan:
     post:
-      description: Run the planning algorithm for the given account. Returns the updated
-        work slots with planned task assignments.
+      description: Run the planning algorithm for the given account. Returns planned
+        task scopes.
       operationId: plan
       requestBody:
         content:
@@ -182,7 +122,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/WorkSlotResponse"
+                  $ref: "#/components/schemas/ScopeResponse"
           description: Plan generated successfully
         "400":
           content:
@@ -287,6 +227,12 @@ paths:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
           description: Missing or invalid token
+        "403":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Organization not linked to account
       summary: Create task
       tags:
       - Tasks
@@ -397,6 +343,12 @@ paths:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
           description: Missing or invalid token
+        "403":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Organization not linked to account
         "404":
           content:
             '*/*':
@@ -612,6 +564,9 @@ components:
           name:
             type: string
             minLength: 1
+          organizationId:
+            type: integer
+            format: int64
           rrule:
             type: string
           startAt:
@@ -630,6 +585,7 @@ components:
       - maxScopeDuration
       - minScopeDuration
       - name
+      - organizationId
       - rrule
       - startAt
     DynamicTaskResponse:
@@ -675,6 +631,9 @@ components:
             type: string
           name:
             type: string
+          organizationId:
+            type: integer
+            format: int64
           rrule:
             type: string
           scopes:
@@ -726,6 +685,9 @@ components:
             type: string
             maxLength: 2147483647
             minLength: 1
+          organizationId:
+            type: integer
+            format: int64
           rrule:
             type: string
             maxLength: 2147483647
@@ -777,8 +739,12 @@ components:
         accountId:
           type: integer
           format: int64
+        organizationId:
+          type: integer
+          format: int64
       required:
       - accountId
+      - organizationId
     ProblemDetail:
       type: object
       properties:
@@ -839,6 +805,9 @@ components:
           name:
             type: string
             minLength: 1
+          organizationId:
+            type: integer
+            format: int64
           rrule:
             type: string
           startAt:
@@ -853,6 +822,7 @@ components:
       - isBlocker
       - labels
       - name
+      - organizationId
       - rrule
       - startAt
     StaticTaskResponse:
@@ -882,6 +852,9 @@ components:
               $ref: "#/components/schemas/LabelResponse"
           name:
             type: string
+          organizationId:
+            type: integer
+            format: int64
           rrule:
             type: string
           startAt:
@@ -917,6 +890,9 @@ components:
             type: string
             maxLength: 2147483647
             minLength: 1
+          organizationId:
+            type: integer
+            format: int64
           rrule:
             type: string
             maxLength: 2147483647

@@ -15,6 +15,7 @@ public sealed interface TaskResponse permits StaticTaskResponse, DynamicTaskResp
 
     Long id();
     Long accountId();
+    Long organizationId();
     String name();
     String description();
     Integer difficulty();

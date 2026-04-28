@@ -13,6 +13,7 @@ import jakarta.validation.constraints.Positive;
 @Schema(description = "Create request for a static (fixed-time) task")
 public record StaticTaskCreateRequest(
     @NotNull Long accountId,
+    @NotNull Long organizationId,
     @NotBlank String name,
     @NotNull String description,
     @NotNull String rrule,

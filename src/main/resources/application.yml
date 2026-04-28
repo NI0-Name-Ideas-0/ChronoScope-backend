@@ -1,4 +1,6 @@
 spring:
+  profiles:
+    default: prod
   application:
     name: ChronoScope-Backend
   security:
@@ -6,6 +8,8 @@ spring:
       resourceserver:
         jwt:
           issuer-uri: https://auth.ni0.team/realms/ni0
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1
 
 springdoc:
   swagger-ui:
@@ -16,7 +20,7 @@ springdoc:
 
 logging:
   level:
-    de.ni0.chronoscope: DEBUG
+    de.ni0.chronoscope: INFO
 
 cors:
-  allowed-origins: ""
+  allowed-origins: []

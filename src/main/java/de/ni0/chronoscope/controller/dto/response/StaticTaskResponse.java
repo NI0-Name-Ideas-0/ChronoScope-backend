@@ -9,6 +9,7 @@ import java.util.List;
 public record StaticTaskResponse(
     Long id,
     Long accountId,
+    Long organizationId,
     String name,
     String description,
     Integer difficulty,

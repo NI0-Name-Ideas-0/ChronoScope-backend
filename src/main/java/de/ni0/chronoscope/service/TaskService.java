@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import de.ni0.chronoscope.exception.InvalidRequestException;
 import de.ni0.chronoscope.exception.ResourceNotFoundException;
 import de.ni0.chronoscope.model.DynamicTask;
+import de.ni0.chronoscope.model.Organization;
 import de.ni0.chronoscope.model.StaticTask;
 import de.ni0.chronoscope.model.Task;
 import de.ni0.chronoscope.repository.TaskRepository;
@@ -31,6 +32,7 @@ public class TaskService {
     private static final Duration MIN_SCOPE_GAP = Duration.ofMinutes(5);
 
     private final TaskRepository taskRepository;
+    private final AccountService accountService;
 
     public StaticTask createStaticTask(StaticTask task) {
         validateStaticTask(task);
@@ -62,7 +64,7 @@ public class TaskService {
             .orElseThrow(() -> new ResourceNotFoundException("Task not found: " + taskId));
 
         if (task instanceof DynamicTask dynamicTask) {
-            List<DynamicTask> dependents = this.taskRepository.findDynamicTasksByDependencyIdAndIdentityId(taskId, identityId);
+            List<DynamicTask> dependents = this.taskRepository.findDependentsByDependencyIdAndAccountIdentityId(taskId, identityId);
 
             for (DynamicTask dependency : new HashSet<>(dynamicTask.getDependencies())) {
                 dependency.getDependents().remove(dynamicTask);
@@ -82,11 +84,17 @@ public class TaskService {
 
     @Transactional
     public DynamicTask updateDynamicTask(Long id, DynamicTask task) {
-        return updateDynamicTask(id, task, null);
+        return updateDynamicTask(id, task, null, null);
     }
 
     @Transactional
     public DynamicTask updateDynamicTask(Long id, DynamicTask task, List<Long> dependencyIds) {
+        return updateDynamicTask(id, task, dependencyIds, null);
+    }
+
+    @Transactional
+    public DynamicTask updateDynamicTask(Long id, DynamicTask task, List<Long> dependencyIds, Long organizationId) {
+        //TODO: validate task (e.g. duration > 0, minScopeDuration <= maxScopeDuration, etc.)
         if (!Objects.equals(id, task.getId())) {
             throw new InvalidRequestException("Task id in path does not match target task");
         }
@@ -96,6 +104,8 @@ public class TaskService {
         if (!(persistedTask instanceof DynamicTask managedTask)) {
             throw new InvalidRequestException("Task type mismatch: expected dynamic task");
         }
+
+        Organization organization = validateOrganizationAccess(managedTask, organizationId);
 
         managedTask.setAccount(task.getAccount());
         managedTask.setName(task.getName());
@@ -108,6 +118,9 @@ public class TaskService {
         managedTask.setElapsed(task.getElapsed());
         managedTask.setMinScopeDuration(task.getMinScopeDuration());
         managedTask.setMaxScopeDuration(task.getMaxScopeDuration());
+        if (organization != null) {
+            managedTask.setOrganization(organization);
+        }
 
         if (task.getLabels() != null) {
             managedTask.setLabels(task.getLabels());
@@ -143,6 +156,12 @@ public class TaskService {
 
     @Transactional
     public StaticTask updateStaticTask(Long id, StaticTask task) {
+        return updateStaticTask(id, task, null);
+    }
+
+    @Transactional
+    public StaticTask updateStaticTask(Long id, StaticTask task, Long organizationId) {
+        //TODO: validate task (e.g. startAt < endAt, etc.)
         if (!Objects.equals(id, task.getId())) {
             throw new InvalidRequestException("Task id in path does not match target task");
         }
@@ -153,6 +172,8 @@ public class TaskService {
             throw new InvalidRequestException("Task type mismatch: expected static task");
         }
 
+        Organization organization = validateOrganizationAccess(managedTask, organizationId);
+
         managedTask.setAccount(task.getAccount());
         managedTask.setName(task.getName());
         managedTask.setDescription(task.getDescription());
@@ -161,6 +182,9 @@ public class TaskService {
         managedTask.setEndAt(task.getEndAt());
         managedTask.setRrule(task.getRrule());
         managedTask.setIsBlocker(task.getIsBlocker());
+        if (organization != null) {
+            managedTask.setOrganization(organization);
+        }
 
         if (task.getLabels() != null) {
             managedTask.setLabels(task.getLabels());
@@ -173,6 +197,13 @@ public class TaskService {
 
         this.taskRepository.flush();
         return managedTask;
+    }
+
+    private Organization validateOrganizationAccess(Task task, Long organizationId) {
+        if (organizationId == null) {
+            return null;
+        }
+        return this.accountService.resolveOrganizationForAccount(task.getAccount().getId(), organizationId);
     }
 
     private void validateStaticTask(StaticTask task) {
@@ -324,12 +355,12 @@ public class TaskService {
 
         for (Long dependencyId : dependencyIds) {
             Task dependencyTask = dependenciesById.get(dependencyId);
-            if (dependencyTask == null) {  
-                throw new InvalidRequestException("Dependency task not found: " + dependencyId);  
-            }  
+            if (dependencyTask == null) {
+                throw new InvalidRequestException("Dependency task not found: " + dependencyId);
+            }
 
-            if (!(dependencyTask instanceof DynamicTask)) {  
-                throw new InvalidRequestException("Dependency task must be a dynamic task: " + dependencyId);  
+            if (!(dependencyTask instanceof DynamicTask)) {
+                throw new InvalidRequestException("Dependency task must be a dynamic task: " + dependencyId);
             }
 
             Long dependencyIdentityId = dependencyTask.getAccount() != null
