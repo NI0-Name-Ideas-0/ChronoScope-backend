@@ -230,7 +230,7 @@
                         <configuration>
                             <skip>${jacoco.skip}</skip>
                             <dataFile>${project.build.directory}/jacoco-merged.exec</dataFile>
-                            <haltOnFailure>false</haltOnFailure>
+                            <haltOnFailure>true</haltOnFailure>
                             <includes>
                                 <include>de/ni0/chronoscope/algorithm/**/*.class</include>
                             </includes>
@@ -259,7 +259,7 @@
                         <configuration>
                             <skip>${jacoco.skip}</skip>
                             <dataFile>${project.build.directory}/jacoco-merged.exec</dataFile>
-                            <haltOnFailure>false</haltOnFailure>
+                            <haltOnFailure>true</haltOnFailure>
                             <excludes>
                                 <exclude>de/ni0/chronoscope/ChronoScopeBackendApplication.class</exclude>
                                 <exclude>de/ni0/chronoscope/mapper/*Impl.class</exclude>
