@@ -546,8 +546,7 @@ components:
             type: string
           difficulty:
             type: integer
-            format: int32  
-            minimum: 1 
+            format: int32
             maximum: 5
           duration:
             type: string
