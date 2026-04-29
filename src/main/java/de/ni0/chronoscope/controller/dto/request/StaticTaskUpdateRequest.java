@@ -5,17 +5,19 @@ import java.util.List;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 
 @Schema(description = "Update request for a static (fixed-time) task")
 public record StaticTaskUpdateRequest(
+    Long accountId,
     Long organizationId,
     @Size(min = 1) String name,
-    @Size(min = 1) String description,
-    @Size(min = 1) String rrule,
-    @Positive Integer difficulty,
+    String description,
+    String rrule,
+    @Positive @Max(5) Integer difficulty,
     Instant startAt,
     Instant endAt,
     List<@Valid @NotNull LabelCreateRequest> labels,

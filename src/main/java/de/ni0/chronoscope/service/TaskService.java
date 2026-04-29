@@ -1,5 +1,6 @@
 package de.ni0.chronoscope.service;
 
+import java.time.Duration;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -24,14 +25,22 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class TaskService {
 
+    private static final int MIN_DIFFICULTY = 1;
+    private static final int MAX_DIFFICULTY = 5;
+    private static final Duration MIN_SCOPE_DURATION = Duration.ofMinutes(10);
+    private static final Duration MAX_SCOPE_DURATION = Duration.ofMinutes(90);
+    private static final Duration MIN_SCOPE_GAP = Duration.ofMinutes(5);
+
     private final TaskRepository taskRepository;
     private final AccountService accountService;
 
     public StaticTask createStaticTask(StaticTask task) {
+        validateStaticTask(task);
         return this.taskRepository.save(task);
     }
 
     public DynamicTask createDynamicTask(DynamicTask task) {
+        validateAndNormalizeDynamicTask(task);
         validateDependencyIdentity(task);
         return this.taskRepository.save(task);
     }
@@ -85,7 +94,6 @@ public class TaskService {
 
     @Transactional
     public DynamicTask updateDynamicTask(Long id, DynamicTask task, List<Long> dependencyIds, Long organizationId) {
-        //TODO: validate task (e.g. duration > 0, minScopeDuration <= maxScopeDuration, etc.)
         if (!Objects.equals(id, task.getId())) {
             throw new InvalidRequestException("Task id in path does not match target task");
         }
@@ -96,8 +104,10 @@ public class TaskService {
             throw new InvalidRequestException("Task type mismatch: expected dynamic task");
         }
 
+        if (task.getAccount() != null) {
+            managedTask.setAccount(task.getAccount());
+        }
         Organization organization = validateOrganizationAccess(managedTask, organizationId);
-
         managedTask.setName(task.getName());
         managedTask.setDescription(task.getDescription());
         managedTask.setDifficulty(task.getDifficulty());
@@ -118,6 +128,8 @@ public class TaskService {
                 label.setTask(managedTask);
             }
         }
+
+        validateAndNormalizeDynamicTask(managedTask);
 
         if (dependencyIds != null) {
             Set<DynamicTask> previousDependencies = new HashSet<>(managedTask.getDependencies());
@@ -149,7 +161,6 @@ public class TaskService {
 
     @Transactional
     public StaticTask updateStaticTask(Long id, StaticTask task, Long organizationId) {
-        //TODO: validate task (e.g. startAt < endAt, etc.)
         if (!Objects.equals(id, task.getId())) {
             throw new InvalidRequestException("Task id in path does not match target task");
         }
@@ -160,8 +171,10 @@ public class TaskService {
             throw new InvalidRequestException("Task type mismatch: expected static task");
         }
 
+        if (task.getAccount() != null) {
+            managedTask.setAccount(task.getAccount());
+        }
         Organization organization = validateOrganizationAccess(managedTask, organizationId);
-
         managedTask.setName(task.getName());
         managedTask.setDescription(task.getDescription());
         managedTask.setDifficulty(task.getDifficulty());
@@ -180,6 +193,8 @@ public class TaskService {
             }
         }
 
+        validateStaticTask(managedTask);
+
         this.taskRepository.flush();
         return managedTask;
     }
@@ -189,6 +204,80 @@ public class TaskService {
             return null;
         }
         return this.accountService.resolveOrganizationForAccount(task.getAccount().getId(), organizationId);
+    }
+
+    private void validateStaticTask(StaticTask task) {
+        validateCommonTaskFields(task);
+    }
+
+    private void validateAndNormalizeDynamicTask(DynamicTask task) {
+        validateCommonTaskFields(task);
+
+        Duration duration = task.getDuration();
+        Duration minScopeDuration = task.getMinScopeDuration();
+        Duration maxScopeDuration = task.getMaxScopeDuration();
+
+        if (duration == null) {
+            throw new InvalidRequestException("duration must be provided");
+        }
+        if (duration.isZero() || duration.isNegative()) {
+            throw new InvalidRequestException("duration must be greater than 0");
+        }
+        if (minScopeDuration.isZero() || minScopeDuration.isNegative()) {  
+            throw new InvalidRequestException("minScopeDuration must be greater than 0");  
+        }  
+        if (maxScopeDuration.isZero() || maxScopeDuration.isNegative()) {  
+            throw new InvalidRequestException("maxScopeDuration must be greater than 0");  
+        }  
+
+        boolean minScopeWasCapped = false;
+        boolean maxScopeWasCapped = false;
+
+        if (maxScopeDuration.compareTo(duration) > 0) {
+            maxScopeDuration = duration;
+            task.setMaxScopeDuration(maxScopeDuration);
+            maxScopeWasCapped = true;
+        }
+
+        if (minScopeDuration.compareTo(duration) > 0) {
+            minScopeDuration = duration;
+            task.setMinScopeDuration(minScopeDuration);
+            minScopeWasCapped = true;
+        }
+
+        if (maxScopeDuration.compareTo(MAX_SCOPE_DURATION) > 0) {
+            throw new InvalidRequestException("maxScopeDuration must be at most 90 minutes");
+        }
+        
+        if (!minScopeWasCapped && minScopeDuration.compareTo(MIN_SCOPE_DURATION) < 0) {
+            throw new InvalidRequestException("minScopeDuration must be at least 10 minutes");
+        }
+
+        boolean allowReducedGap = minScopeWasCapped || maxScopeWasCapped;
+        if (allowReducedGap) {
+            if (maxScopeDuration.compareTo(minScopeDuration) < 0) {
+                throw new InvalidRequestException("maxScopeDuration must be greater than or equal to minScopeDuration");
+            }
+            return;
+        }
+
+        if (maxScopeDuration.compareTo(minScopeDuration) <= 0) {
+            throw new InvalidRequestException("maxScopeDuration must be greater than minScopeDuration");
+        }
+
+        if (maxScopeDuration.compareTo(minScopeDuration.plus(MIN_SCOPE_GAP)) < 0) {
+            throw new InvalidRequestException("maxScopeDuration must be at least 5 minutes greater than minScopeDuration");
+        }
+    }
+
+    private void validateCommonTaskFields(Task task) {
+        if (task.getDifficulty() == null || task.getDifficulty() < MIN_DIFFICULTY || task.getDifficulty() > MAX_DIFFICULTY) {
+            throw new InvalidRequestException("difficulty must be between 1 and 5");
+        }
+
+        if (task.getStartAt() == null || task.getEndAt() == null || !task.getStartAt().isBefore(task.getEndAt())) {
+            throw new InvalidRequestException("startAt must be before endAt");
+        }
     }
 
     private Set<DynamicTask> resolveAndValidateDependencies(DynamicTask task, List<Long> dependencyIds) {

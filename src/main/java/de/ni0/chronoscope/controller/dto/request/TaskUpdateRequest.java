@@ -1,10 +1,10 @@
 package de.ni0.chronoscope.controller.dto.request;
 
-import com.fasterxml.jackson.annotation.JsonSubTypes;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
-
 import java.time.Instant;
 import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
@@ -12,7 +12,7 @@ import java.util.List;
     @JsonSubTypes.Type(value = DynamicTaskUpdateRequest.class, name = "dynamic")
 })
 public sealed interface TaskUpdateRequest permits StaticTaskUpdateRequest, DynamicTaskUpdateRequest {
-
+    Long accountId();
     Long organizationId();
     String name();
     String description();

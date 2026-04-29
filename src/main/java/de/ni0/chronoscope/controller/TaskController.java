@@ -140,6 +140,10 @@ public class TaskController {
                     throw new InvalidRequestException("Task type mismatch: expected static task");
                 }
                 taskMapper.fromUpdateRequest(staticRequest, staticTask);
+                if (staticRequest.accountId() != null) {
+                    Account account = accountService.validateAccountOwnership(requestContext.getIdentityId(), staticRequest.accountId());
+                    staticTask.setAccount(account);
+                }
                 yield taskMapper.toResponse(taskService.updateStaticTask(id, staticTask, staticRequest.organizationId()));
             }
             case DynamicTaskUpdateRequest dynamicRequest -> {
@@ -147,6 +151,10 @@ public class TaskController {
                     throw new InvalidRequestException("Task type mismatch: expected dynamic task");
                 }
                 taskMapper.fromUpdateRequest(dynamicRequest, dynamicTask);
+                if (dynamicRequest.accountId() != null) {
+                    Account account = accountService.validateAccountOwnership(requestContext.getIdentityId(), dynamicRequest.accountId());
+                    dynamicTask.setAccount(account);
+                }
                 yield taskMapper.toResponse(taskService.updateDynamicTask(id, dynamicTask, dynamicRequest.dependencies(), dynamicRequest.organizationId()));
             }
         };
