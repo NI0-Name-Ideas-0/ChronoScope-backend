@@ -34,7 +34,7 @@ jobs:
         # Runs unit tests (surefire) then integration tests (failsafe) in a single Maven session
         # so JaCoCo can collect and merge coverage from both into one report.
         # Springdoc OpenAPI generation is skipped here (handled by the dedicated job).
-        run: ./mvnw verify -Dspringdoc.skip=true
+        run: ./mvnw -B -ntp verify -Dspringdoc.skip=true
 
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
@@ -82,7 +82,7 @@ jobs:
       - name: Generate OpenAPI spec
         # skip unit and integration tests; spring-boot starts with the generate profile (see pom.xml)
         # jacoco.skip=true prevents the coverage check from running against empty exec data
-        run: ./mvnw verify -DskipTests -Dspringdoc.skip=false -Djacoco.skip=true
+        run: ./mvnw -B -ntp verify -DskipTests -Dspringdoc.skip=false -Djacoco.skip=true
 
       - name: Commit updated OpenAPI spec
         run: |
