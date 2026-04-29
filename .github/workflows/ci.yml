@@ -37,20 +37,21 @@ jobs:
         run: ./mvnw -B -ntp verify -Dspringdoc.skip=true
 
       - name: Upload coverage report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         if: success() || failure()
         with:
           name: coverage-report
           path: target/site/jacoco/
 
       - name: Post coverage comment to PR
-        uses: madrapps/jacoco-report@v1.6.1
+        uses: madrapps/jacoco-report@v1.7.2
         if: github.event_name == 'pull_request'
         with:
           paths: ${{ github.workspace }}/target/site/jacoco/jacoco.xml
           token: ${{ secrets.GITHUB_TOKEN }}
           title: Coverage Report
           update-comment: true
+          comment-type: both
           min-coverage-overall: 70
           min-coverage-changed-files: 70
 
