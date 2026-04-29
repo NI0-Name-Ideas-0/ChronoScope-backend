@@ -41,6 +41,9 @@ public class CPMDataProvider implements WeightDataProvider {
     public double getWeight(TaskGraphNode task) {
         Duration slack = this.cpm.getTaskData().get(task).getSlack();
         double slackMinutes = slack.toMinutes();
+        if (this.maxSlack == this.minSlack) {
+            return 1;
+        }
         double weight = (slackMinutes - this.minSlack) / (this.maxSlack - this.minSlack);
         return 1 - weight;
     }

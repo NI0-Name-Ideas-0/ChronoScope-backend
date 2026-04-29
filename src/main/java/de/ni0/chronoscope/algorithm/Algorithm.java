@@ -105,9 +105,10 @@ public class Algorithm {
             if (newRemainingTaskDuration.isZero()) {
                 tasks.add(task);
                 for (TaskGraphNode successor : task.dependents()) {
-                    int newCount = dependencyCount.get(successor) + 1;
+                    int oldCount = dependencyCount.get(successor);
+                    int newCount = oldCount + 1;
                     dependencyCount.put(successor, newCount);
-                    if (newCount == 0) {
+                    if (oldCount == 0) {
                         tasks.remove(successor);
                     }
                 }
