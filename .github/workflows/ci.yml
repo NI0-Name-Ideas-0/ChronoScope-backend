@@ -36,20 +36,35 @@ jobs:
         # Springdoc OpenAPI generation is skipped here (handled by the dedicated job).
         run: ./mvnw -B -ntp verify -Dspringdoc.skip=true
 
-      - name: Upload coverage report
+      - name: Upload coverage reports
         uses: actions/upload-artifact@v7
         if: success() || failure()
         with:
           name: coverage-report
-          path: target/site/jacoco/
+          path: |
+            target/site/jacoco/
+            target/site/jacoco-algorithm/
+            target/site/jacoco-remainder/
 
-      - name: Post coverage comment to PR
+      - name: Post algorithm coverage comment to PR
         uses: madrapps/jacoco-report@v1.7.2
         if: github.event_name == 'pull_request'
         with:
-          paths: ${{ github.workspace }}/target/site/jacoco/jacoco.xml
+          paths: ${{ github.workspace }}/target/site/jacoco-algorithm/jacoco.xml
           token: ${{ secrets.GITHUB_TOKEN }}
-          title: Coverage Report
+          title: Coverage Report — Algorithm
+          update-comment: true
+          comment-type: both
+          min-coverage-overall: 90
+          min-coverage-changed-files: 90
+
+      - name: Post remainder coverage comment to PR
+        uses: madrapps/jacoco-report@v1.7.2
+        if: github.event_name == 'pull_request'
+        with:
+          paths: ${{ github.workspace }}/target/site/jacoco-remainder/jacoco.xml
+          token: ${{ secrets.GITHUB_TOKEN }}
+          title: Coverage Report — Rest of Project
           update-comment: true
           comment-type: both
           min-coverage-overall: 70
