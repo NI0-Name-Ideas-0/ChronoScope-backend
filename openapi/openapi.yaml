@@ -804,6 +804,7 @@ components:
           organizationId:
             type: integer
             format: int64
+            description: Organization ID. Required unless this static task is a blocker.
           rrule:
             type: string
           startAt:
@@ -818,7 +819,6 @@ components:
       - isBlocker
       - labels
       - name
-      - organizationId
       - rrule
       - startAt
     StaticTaskResponse:
@@ -851,6 +851,8 @@ components:
           organizationId:
             type: integer
             format: int64
+            description: Organization ID. Null for blocker tasks that are not assigned
+              to an organization.
           rrule:
             type: string
           startAt:

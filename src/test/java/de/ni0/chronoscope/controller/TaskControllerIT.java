@@ -2,6 +2,7 @@ package de.ni0.chronoscope.controller;
 
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -230,6 +231,67 @@ class TaskControllerIT {
             .andExpect(jsonPath("$.difficulty").value(3))
             .andExpect(jsonPath("$.rrule").value("FREQ=WEEKLY;BYDAY=MO"))
             .andExpect(jsonPath("$.isBlocker").value(false));
+    }
+
+    @Test
+    void createTask_Static_BlockerWithoutOrganization_ReturnsCreated() throws Exception {
+        String subject = createAccountSubject();
+        long accountId = createAccount(subject);
+
+        String payload = """
+            {
+              "type": "static",
+              "accountId": %d,
+              "name": "Maintenance window",
+              "description": "Block planning for this time",
+              "rrule": "FREQ=DAILY;COUNT=1",
+              "difficulty": 1,
+              "startAt": "2026-04-20T09:00:00Z",
+              "endAt": "2026-04-20T10:00:00Z",
+              "labels": [],
+              "isBlocker": true
+            }
+            """.formatted(accountId);
+
+        mockMvc.perform(post("/v1/tasks")
+                .with(jwt().jwt(jwt -> jwt.subject(subject)))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.accountId").value(accountId))
+            .andExpect(jsonPath("$.organizationId").value(nullValue()))
+            .andExpect(jsonPath("$.name").value("Maintenance window"))
+            .andExpect(jsonPath("$.isBlocker").value(true));
+    }
+
+    @Test
+    void createTask_Static_NonBlockerWithoutOrganization_ReturnsValidationError() throws Exception {
+        String subject = createAccountSubject();
+        long accountId = createAccount(subject);
+
+        String payload = """
+            {
+              "type": "static",
+              "accountId": %d,
+              "name": "Write report",
+              "description": "Prepare weekly summary",
+              "rrule": "FREQ=WEEKLY;BYDAY=MO",
+              "difficulty": 3,
+              "startAt": "2026-04-20T09:00:00Z",
+              "endAt": "2026-04-20T10:00:00Z",
+              "labels": [],
+              "isBlocker": false
+            }
+            """.formatted(accountId);
+
+        mockMvc.perform(post("/v1/tasks")
+                .with(jwt().jwt(jwt -> jwt.subject(subject)))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(payload))
+            .andExpect(status().isBadRequest())
+            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+            .andExpect(jsonPath("$.type").value("urn:chronoscope:error:validation-error"))
+            .andExpect(jsonPath("$.fieldErrors[*].field", hasItem("organizationId")));
     }
 
     @Test

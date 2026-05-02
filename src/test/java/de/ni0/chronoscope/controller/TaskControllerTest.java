@@ -175,6 +175,67 @@ class TaskControllerTest {
     }
 
     @Test
+    void createTask_Static_AllowsBlockerWithoutOrganization() {
+        RequestContext requestContext = new RequestContext();
+        requestContext.setIdentityId(99L);
+        TaskController controller = new TaskController(taskService, taskMapper, accountService, requestContext);
+
+        Account account = new Account();
+        account.setId(10L);
+
+        StaticTaskCreateRequest request = new StaticTaskCreateRequest(
+            10L,
+            null,
+            "Maintenance window",
+            "Time that should stay blocked",
+            "FREQ=DAILY;COUNT=1",
+            1,
+            Instant.parse("2026-04-20T09:00:00Z"),
+            Instant.parse("2026-04-20T10:00:00Z"),
+            List.of(),
+            true
+        );
+
+        StaticTask mappedTask = new StaticTask();
+        mappedTask.setName("Maintenance window");
+
+        StaticTask savedTask = new StaticTask();
+        savedTask.setId(123L);
+        savedTask.setAccount(account);
+        savedTask.setName("Maintenance window");
+        savedTask.setIsBlocker(true);
+
+        StaticTaskResponse expectedResponse = new StaticTaskResponse(
+            123L,
+            10L,
+            null,
+            "Maintenance window",
+            "Time that should stay blocked",
+            1,
+            Instant.parse("2026-04-20T09:00:00Z"),
+            Instant.parse("2026-04-20T10:00:00Z"),
+            "FREQ=DAILY;COUNT=1",
+            List.of(),
+            true
+        );
+
+        when(accountService.validateAccountOwnership(99L, 10L)).thenReturn(account);
+        when(taskMapper.fromCreateRequest(request)).thenReturn(mappedTask);
+        when(taskService.createStaticTask(any(StaticTask.class))).thenReturn(savedTask);
+        when(taskMapper.toResponse(savedTask)).thenReturn(expectedResponse);
+
+        ResponseEntity<TaskResponse> response = controller.createTask(request);
+
+        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        assertEquals(expectedResponse, response.getBody());
+        verify(accountService).validateAccountOwnership(99L, 10L);
+        verify(taskMapper).fromCreateRequest(request);
+        verify(taskService).createStaticTask(mappedTask);
+        verify(taskMapper).toResponse(savedTask);
+        verifyNoMoreInteractions(taskMapper, taskService, accountService);
+    }
+
+    @Test
     void createTask_Dynamic_CreatesDynamicTaskWhenAuthorized() {
         RequestContext requestContext = new RequestContext();
         requestContext.setIdentityId(99L);

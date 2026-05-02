@@ -90,7 +90,7 @@ public class TaskController {
         TaskResponse response = switch (request) {
             case StaticTaskCreateRequest staticRequest -> {
                 Account account = accountService.validateAccountOwnership(requestContext.getIdentityId(), staticRequest.accountId());
-                Organization organization = accountService.resolveOrganizationForAccount(account.getId(), staticRequest.organizationId());
+                Organization organization = resolveOrganizationForAccountIfPresent(account, staticRequest.organizationId());
                 StaticTask newTask = taskMapper.fromCreateRequest(staticRequest);
                 newTask.setAccount(account);
                 newTask.setOrganization(organization);
@@ -106,6 +106,13 @@ public class TaskController {
             }
         };
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    private Organization resolveOrganizationForAccountIfPresent(Account account, Long organizationId) {
+        if (organizationId == null) {
+            return null;
+        }
+        return accountService.resolveOrganizationForAccount(account.getId(), organizationId);
     }
 
     @Operation(summary = "Get task", description = "Retrieve a single task by ID, including its labels, scopes (dynamic tasks) and dependencies.")
