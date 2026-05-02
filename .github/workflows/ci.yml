@@ -18,6 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       checks: write
+      contents: read
       pull-requests: write
     steps:
       - name: Checkout repository
@@ -46,25 +47,34 @@ jobs:
             target/site/jacoco-algorithm/
             target/site/jacoco-remainder/
 
-      - name: Post algorithm coverage comment to PR
+      # Nasty Workaround: madrapps/jacoco-report reads INSTRUCTION coverage only.
+      # Create branch-report XML copies where INSTRUCTION fields contain BRANCH values.
+      - name: Prepare JaCoCo XML for branch coverage comments
+        if: github.event_name == 'pull_request'
+        run: |
+          python3 .github/scripts/jacoco_branch_report.py \
+            target/site/jacoco-algorithm/jacoco.xml \
+            target/site/jacoco-remainder/jacoco.xml
+
+      - name: Post algorithm branch coverage comment to PR
         uses: madrapps/jacoco-report@v1.7.2
         if: github.event_name == 'pull_request'
         with:
-          paths: ${{ github.workspace }}/target/site/jacoco-algorithm/jacoco.xml
+          paths: ${{ github.workspace }}/target/site/jacoco-algorithm/jacoco-branch.xml
           token: ${{ secrets.GITHUB_TOKEN }}
-          title: Coverage Report — Algorithm
+          title: Branch Coverage Report - Algorithm
           update-comment: true
           comment-type: both
           min-coverage-overall: 90
           min-coverage-changed-files: 90
 
-      - name: Post remainder coverage comment to PR
+      - name: Post remainder branch coverage comment to PR
         uses: madrapps/jacoco-report@v1.7.2
         if: github.event_name == 'pull_request'
         with:
-          paths: ${{ github.workspace }}/target/site/jacoco-remainder/jacoco.xml
+          paths: ${{ github.workspace }}/target/site/jacoco-remainder/jacoco-branch.xml
           token: ${{ secrets.GITHUB_TOKEN }}
-          title: Coverage Report — Rest of Project
+          title: Branch Coverage Report - Rest of Project
           update-comment: true
           comment-type: both
           min-coverage-overall: 70
