@@ -64,7 +64,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           title: Branch Coverage Report - Algorithm
           update-comment: true
-          comment-type: both
+          comment-type: summary
           min-coverage-overall: 90
           min-coverage-changed-files: 90
 
@@ -76,7 +76,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           title: Branch Coverage Report - Rest of Project
           update-comment: true
-          comment-type: both
+          comment-type: summary
           min-coverage-overall: 70
           min-coverage-changed-files: 70
 
