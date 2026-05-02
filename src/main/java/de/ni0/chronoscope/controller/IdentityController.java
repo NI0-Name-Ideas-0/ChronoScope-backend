@@ -48,7 +48,7 @@ public class IdentityController {
      *
      * @return the identity response including linked accounts
      */
-    @Operation(summary = "Get current identity", description = "Retrieve information about the identity contained in the access token, including all linked accounts.")
+    @Operation(summary = "Get current identity", description = "Retrieve information about the identity contained in the access token, including all linked accounts and organizations where the user has an admin group.")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Identity retrieved successfully"),
         @ApiResponse(responseCode = "401", description = "Missing or invalid token", content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
@@ -56,7 +56,10 @@ public class IdentityController {
     @GetMapping
     public IdentityResponse getIdentity() {
         long identityId = this.requestContext.getIdentityId();
-        return this.identityMapper.toResponse(this.identityService.getIdentity(identityId));
+        return this.identityMapper.toResponse(
+            this.identityService.getIdentity(identityId),
+            this.requestContext.getAdminOrganizations()
+        );
     }
 
     /**

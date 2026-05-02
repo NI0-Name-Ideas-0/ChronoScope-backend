@@ -47,6 +47,7 @@ class IdentityMiddlewareTest {
             .header("alg", "none")
             .claim("sub", "subject-123")
             .claim("organization", List.of())
+            .claim("groups", List.of("/org-admin/dhbw-stuttgart", "/other-group", "/org-admin/dhbw-stuttgart"))
             .build();
         Authentication authentication = new JwtAuthenticationToken(jwt, AuthorityUtils.NO_AUTHORITIES);
         SecurityContextHolder.getContext().setAuthentication(authentication);
@@ -59,6 +60,7 @@ class IdentityMiddlewareTest {
 
             assertEquals(11L, requestContext.getAccountId());
             assertEquals(22L, requestContext.getIdentityId());
+            assertEquals(List.of("dhbw-stuttgart"), requestContext.getAdminOrganizations());
             verify(accountService).syncAccount(eq("subject-123"), eq(List.of("private")));
             verify(identityService).syncIdentity("subject-123");
             verify(filterChain).doFilter(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
@@ -66,5 +68,18 @@ class IdentityMiddlewareTest {
         } finally {
             SecurityContextHolder.clearContext();
         }
+    }
+
+    @Test
+    void extractAdminOrganizations_ReturnsNamesAfterOrgAdminGroup() {
+        List<String> result = IdentityMiddleware.extractAdminOrganizations(List.of(
+            "/org-admin/dhbw-stuttgart",
+            "org-admin/chronoscope-local/nested",
+            "/users/dhbw-stuttgart",
+            "/org-admin/",
+            " /org-admin/dhbw-stuttgart "
+        ));
+
+        assertEquals(List.of("dhbw-stuttgart", "chronoscope-local"), result);
     }
 }
