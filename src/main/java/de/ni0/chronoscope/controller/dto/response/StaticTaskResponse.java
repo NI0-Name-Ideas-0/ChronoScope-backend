@@ -9,7 +9,7 @@ import java.util.List;
 public record StaticTaskResponse(
     Long id,
     Long accountId,
-    @Schema(description = "Organization ID. Null for blocker tasks that are not assigned to an organization.")
+    @Schema(description = "Organization ID. Null for blocker tasks that are not assigned to an organization.", nullable = true)
     Long organizationId,
     String name,
     String description,

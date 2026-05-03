@@ -849,7 +849,9 @@ components:
           name:
             type: string
           organizationId:
-            type: integer
+            type:
+            - integer
+            - "null"
             format: int64
             description: Organization ID. Null for blocker tasks that are not assigned
               to an organization.
