@@ -81,10 +81,12 @@ public class IdentityService {
         Account sourceAccount = this.accountRepository.getReferenceById(sourceId);
         Account targetAccount = this.accountRepository.getReferenceById(targetId);
         Identity oldIdentity = targetAccount.getIdentity();
-        targetAccount.setIdentity(sourceAccount.getIdentity());
+        for (Account account : oldIdentity.getAccounts()) {
+            account.setIdentity(sourceAccount.getIdentity());
+            this.accountRepository.save(account);
+        }
 
         this.identityRepository.delete(oldIdentity);
-        this.accountRepository.save(targetAccount);
 
         return new AccountLinkConfirmResponse(sourceId, targetId, "merged");
     }
