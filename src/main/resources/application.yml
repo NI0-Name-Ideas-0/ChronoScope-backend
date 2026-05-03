@@ -10,6 +10,9 @@ spring:
           issuer-uri: https://auth.ni0.team/realms/ni0
   datasource:
     url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1
+  mail:
+    host: 127.0.0.1
+    port: 25
 
 springdoc:
   swagger-ui:

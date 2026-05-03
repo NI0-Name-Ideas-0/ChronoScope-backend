@@ -1,5 +1,13 @@
 package de.ni0.chronoscope.service;
 
+import de.ni0.chronoscope.exception.AccountNotFoundException;
+import de.ni0.chronoscope.model.Account;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -9,14 +17,23 @@ import de.ni0.chronoscope.repository.AccountRepository;
 import de.ni0.chronoscope.repository.IdentityRepository;
 import lombok.RequiredArgsConstructor;
 
+import javax.crypto.SecretKey;
+import java.util.Date;
+import java.util.Optional;
+import java.util.UUID;
+
 /**
  * Service layer for identity operations.
  */
 @Service
 @RequiredArgsConstructor
 public class IdentityService {
+    private final SecretKey key = Keys.secretKeyFor(SignatureAlgorithm.HS256);
+
     private final AccountRepository accountRepository;
     private final IdentityRepository identityRepository;
+
+    private final JavaMailSender mailSender;
 
     /**
      * Synchronizes the identity for the user identified by the given subject.
@@ -53,5 +70,51 @@ public class IdentityService {
     public Identity getIdentity(long identityId) {
         return this.identityRepository.findByIdWithAccountsAndOrganizations(identityId)
             .orElseThrow(() -> new ResourceNotFoundException("Identity not found: " + identityId));
+    }
+
+    public void sendLink(long accountId, String targetMail) {
+        Optional<Account> targetAccountOpt = this.accountRepository.findByMail(targetMail);
+        if (targetAccountOpt.isEmpty()) {
+            throw new AccountNotFoundException();
+        }
+        Account targetAccount = targetAccountOpt.get();
+        String token = generateLinkToken(accountId, targetAccount.getId());
+        this.sendLinkEmail(targetAccount.getMail(), token);
+    }
+
+    private void sendLinkEmail(String to, String token) {
+        String link = "https://chronoscope.ni0.team/link-account?token=" + token;
+
+        SimpleMailMessage message = new SimpleMailMessage();
+        message.setTo(to);
+        message.setSubject("Link your account");
+        message.setText(
+                "Click the link to link your account:\n\n" +
+                        link +
+                        "\n\nThis link expires in 15 minutes."
+        );
+
+        mailSender.send(message);
+    }
+
+    private String generateLinkToken(long sourceId, long targetId) {
+        long now = System.currentTimeMillis();
+
+        return Jwts.builder()
+                .setSubject(String.valueOf(sourceId))
+                .claim("target", targetId)
+                .setId(UUID.randomUUID().toString()) // jti
+                .setIssuedAt(new Date(now))
+                .setExpiration(new Date(now + 1000 * 60 * 15)) // 15 min
+                .signWith(key)
+                .compact();
+    }
+
+    private Claims getTokenClaims(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(key)
+                .build()
+                .parseClaimsJws(token)
+                .getBody();
     }
 }

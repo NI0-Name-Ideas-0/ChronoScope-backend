@@ -13,5 +13,6 @@ import lombok.Setter;
 public class RequestContext {
     private long identityId;
     private long accountId;
+    private String email;
 
 }

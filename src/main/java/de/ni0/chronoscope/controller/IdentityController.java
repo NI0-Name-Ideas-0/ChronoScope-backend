@@ -73,7 +73,9 @@ public class IdentityController {
     @PostMapping("/accounts")
     @ResponseStatus(HttpStatus.ACCEPTED)
     public void requestAccountLink(@Valid @RequestBody AccountLinkRequest request) {
-        throw new ApiNotImplementedException();
+        long accountId = this.requestContext.getAccountId();
+        String targetEmail = request.targetEmail();
+        this.identityService.sendLink(accountId, targetEmail);
     }
 
     @Operation(summary = "Confirm account linking", description = "Confirm a pending account link using the token received via e-mail. Returns the IDs of both linked accounts.")
