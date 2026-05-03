@@ -14,7 +14,6 @@ import de.ni0.chronoscope.controller.dto.request.AccountLinkConfirmRequest;
 import de.ni0.chronoscope.controller.dto.request.AccountLinkRequest;
 import de.ni0.chronoscope.controller.dto.response.AccountLinkConfirmResponse;
 import de.ni0.chronoscope.controller.dto.response.IdentityResponse;
-import de.ni0.chronoscope.exception.ApiNotImplementedException;
 import de.ni0.chronoscope.mapper.IdentityMapper;
 import de.ni0.chronoscope.service.AccountService;
 import de.ni0.chronoscope.service.IdentityService;
@@ -39,7 +38,6 @@ import lombok.RequiredArgsConstructor;
 public class IdentityController {
 
     private final IdentityService identityService;
-    private final AccountService accountService;
     private final RequestContext requestContext;
     private final IdentityMapper identityMapper;
 
@@ -73,7 +71,9 @@ public class IdentityController {
     @PostMapping("/accounts")
     @ResponseStatus(HttpStatus.ACCEPTED)
     public void requestAccountLink(@Valid @RequestBody AccountLinkRequest request) {
-        throw new ApiNotImplementedException();
+        long accountId = this.requestContext.getAccountId();
+        String targetEmail = request.targetEmail();
+        this.identityService.sendLink(accountId, targetEmail);
     }
 
     @Operation(summary = "Confirm account linking", description = "Confirm a pending account link using the token received via e-mail. Returns the IDs of both linked accounts.")
@@ -84,6 +84,6 @@ public class IdentityController {
     })
     @PostMapping("/accounts/confirm")
     public AccountLinkConfirmResponse confirmAccountLink(@Valid @RequestBody AccountLinkConfirmRequest request) {
-        throw new ApiNotImplementedException();
+        return this.identityService.mergeAccounts(request.token());
     }
 }

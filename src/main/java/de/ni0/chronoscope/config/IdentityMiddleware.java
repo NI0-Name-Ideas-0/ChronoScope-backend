@@ -36,8 +36,10 @@ public class IdentityMiddleware extends OncePerRequestFilter {
             } else {
                 organizations = List.copyOf(organizations);
             }
+            String email = jwt.getClaimAsString("email");
+            System.out.println(email);
             String subject = jwt.getSubject();
-            long accountId = this.accountService.syncAccount(subject, organizations);
+            long accountId = this.accountService.syncAccount(subject, email, organizations);
             long identityId = this.identityService.syncIdentity(subject);
             this.requestContext.setIdentityId(identityId);
             this.requestContext.setAccountId(accountId);

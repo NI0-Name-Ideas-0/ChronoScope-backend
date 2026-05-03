@@ -46,20 +46,21 @@ class IdentityMiddlewareTest {
         Jwt jwt = Jwt.withTokenValue("token")
             .header("alg", "none")
             .claim("sub", "subject-123")
+            .claim("email", "")
             .claim("organization", List.of())
             .build();
         Authentication authentication = new JwtAuthenticationToken(jwt, AuthorityUtils.NO_AUTHORITIES);
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
         try {
-            when(accountService.syncAccount("subject-123", List.of("private"))).thenReturn(11L);
+            when(accountService.syncAccount("subject-123", "", List.of("private"))).thenReturn(11L);
             when(identityService.syncIdentity("subject-123")).thenReturn(22L);
 
             middleware.doFilterInternal(new MockHttpServletRequest(), new MockHttpServletResponse(), filterChain);
 
             assertEquals(11L, requestContext.getAccountId());
             assertEquals(22L, requestContext.getIdentityId());
-            verify(accountService).syncAccount(eq("subject-123"), eq(List.of("private")));
+            verify(accountService).syncAccount(eq("subject-123"), eq(""), eq(List.of("private")));
             verify(identityService).syncIdentity("subject-123");
             verify(filterChain).doFilter(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
             verifyNoMoreInteractions(accountService, identityService, filterChain);

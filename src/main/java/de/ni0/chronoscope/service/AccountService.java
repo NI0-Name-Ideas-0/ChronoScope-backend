@@ -48,9 +48,9 @@ public class AccountService {
         return organization;
     }
 
-    public long syncAccount(String subject, List<String> organizationNames) {
+    public long syncAccount(String subject, String mail, List<String> organizationNames) {
         // Find or create account by subject
-        Account account = findOrCreateAccount(subject);
+        Account account = findOrCreateAccount(subject, mail);
 
         // Sync organizations
         Set<Organization> organizations = new HashSet<>(organizationNames.stream()
@@ -62,7 +62,7 @@ public class AccountService {
         return account.getId();
     }
 
-    private Account findOrCreateAccount(String subject) {
+    private Account findOrCreateAccount(String subject, String mail) {
         return accountRepository.findBySubject(subject)
             .orElseGet(() -> {
                 Identity identity = identityRepository.save(new Identity());
@@ -70,6 +70,7 @@ public class AccountService {
                     Account newAccount = new Account();
                     newAccount.setSubject(subject);
                     newAccount.setIdentity(identity);
+                    newAccount.setMail(mail);
                     return accountRepository.save(newAccount);
                 } catch (DataIntegrityViolationException ex) {
                     // Another transaction likely inserted the same unique subject concurrently.

@@ -8,6 +8,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public record DevAuthProperties(
     String token,
     String subject,
+    String mail,
     List<String> organizations
 ) {
 
