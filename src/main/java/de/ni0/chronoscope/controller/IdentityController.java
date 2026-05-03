@@ -14,7 +14,6 @@ import de.ni0.chronoscope.controller.dto.request.AccountLinkConfirmRequest;
 import de.ni0.chronoscope.controller.dto.request.AccountLinkRequest;
 import de.ni0.chronoscope.controller.dto.response.AccountLinkConfirmResponse;
 import de.ni0.chronoscope.controller.dto.response.IdentityResponse;
-import de.ni0.chronoscope.exception.ApiNotImplementedException;
 import de.ni0.chronoscope.mapper.IdentityMapper;
 import de.ni0.chronoscope.service.AccountService;
 import de.ni0.chronoscope.service.IdentityService;
@@ -86,6 +85,6 @@ public class IdentityController {
     })
     @PostMapping("/accounts/confirm")
     public AccountLinkConfirmResponse confirmAccountLink(@Valid @RequestBody AccountLinkConfirmRequest request) {
-        throw new ApiNotImplementedException();
+        return this.identityService.mergeAccounts(request.token());
     }
 }

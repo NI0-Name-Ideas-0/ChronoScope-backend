@@ -1,5 +1,6 @@
 package de.ni0.chronoscope.service;
 
+import de.ni0.chronoscope.controller.dto.response.AccountLinkConfirmResponse;
 import de.ni0.chronoscope.exception.AccountNotFoundException;
 import de.ni0.chronoscope.model.Account;
 import io.jsonwebtoken.Claims;
@@ -70,6 +71,22 @@ public class IdentityService {
     public Identity getIdentity(long identityId) {
         return this.identityRepository.findByIdWithAccountsAndOrganizations(identityId)
             .orElseThrow(() -> new ResourceNotFoundException("Identity not found: " + identityId));
+    }
+
+    public AccountLinkConfirmResponse mergeAccounts(String token) {
+        Claims claims = this.getTokenClaims(token);
+        Long sourceId = Long.valueOf(claims.getSubject());
+        Long targetId = claims.get("target", Long.class);
+
+        Account sourceAccount = this.accountRepository.getReferenceById(sourceId);
+        Account targetAccount = this.accountRepository.getReferenceById(targetId);
+        Identity oldIdentity = targetAccount.getIdentity();
+        targetAccount.setIdentity(sourceAccount.getIdentity());
+
+        this.identityRepository.delete(oldIdentity);
+        this.accountRepository.save(targetAccount);
+
+        return new AccountLinkConfirmResponse(sourceId, targetId, "merged");
     }
 
     public void sendLink(long accountId, String targetMail) {
