@@ -7,7 +7,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 public record IdentityResponse(
     Long id,
     List<AccountResponse> accounts,
-    @Schema(description = "Organization names from token groups below /org-admin.")
+    @Schema(description = "Organization names for which the authenticated account has admin privileges, derived from JWT groups below /org-admin.")
     List<String> adminOrganizations
 ) {
 }

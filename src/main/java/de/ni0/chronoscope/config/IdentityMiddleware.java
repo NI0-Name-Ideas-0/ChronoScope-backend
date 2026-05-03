@@ -50,6 +50,10 @@ public class IdentityMiddleware extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 
+    /**
+     * Extracts organization names for which the authenticated account is an admin.
+     * Admin membership is represented by JWT group paths like /org-admin/{organizationName}.
+     */
     static List<String> extractAdminOrganizations(List<String> groups) {
         if (groups == null || groups.isEmpty()) {
             return List.of();

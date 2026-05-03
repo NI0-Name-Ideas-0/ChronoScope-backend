@@ -24,8 +24,8 @@ paths:
   /v1/identity:
     get:
       description: "Retrieve information about the identity contained in the access\
-        \ token, including all linked accounts and organizations where the user has\
-        \ an admin group."
+        \ token, including all linked accounts and organization names for which the\
+        \ authenticated account has admin privileges through /org-admin token groups."
       operationId: getIdentity
       responses:
         "200":
@@ -702,7 +702,8 @@ components:
             $ref: "#/components/schemas/AccountResponse"
         adminOrganizations:
           type: array
-          description: Organization names from token groups below /org-admin.
+          description: "Organization names for which the authenticated account has\
+            \ admin privileges, derived from JWT groups below /org-admin."
           items:
             type: string
         id:
