@@ -89,7 +89,10 @@ class WorkSlotControllerIT {
         createWorkSlot(otherAccountId, orgId, "2026-04-21T08:00:00Z", "2026-04-21T17:00:00Z");
 
         mockMvc.perform(get("/v1/workslots")
-                        .with(jwt().jwt(jwt -> jwt.subject(subject).claim("organization", java.util.List.of("private")))))
+                        .with(jwt().jwt(jwt -> jwt
+                                .subject(subject)
+                                .claim("email", "")
+                                .claim("organization", java.util.List.of("private")))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].accountId").value(accountId));

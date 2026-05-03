@@ -20,6 +20,8 @@ import de.ni0.chronoscope.model.Account;
 import de.ni0.chronoscope.model.Identity;
 import de.ni0.chronoscope.repository.AccountRepository;
 import de.ni0.chronoscope.repository.IdentityRepository;
+import org.springframework.mail.MailSender;
+import org.springframework.mail.javamail.JavaMailSender;
 
 @ExtendWith(MockitoExtension.class)
 class IdentityServiceTest {
@@ -30,9 +32,12 @@ class IdentityServiceTest {
     @Mock
     private IdentityRepository identityRepository;
 
+    @Mock
+    private JavaMailSender mailSender;
+
     @Test
     void syncIdentity_ReusesExistingIdentityForSameAccount() {
-        IdentityService identityService = new IdentityService(accountRepository, identityRepository);
+        IdentityService identityService = new IdentityService(accountRepository, identityRepository, mailSender);
 
         Account account = new Account();
         account.setSubject("subject-123");
@@ -57,7 +62,7 @@ class IdentityServiceTest {
 
     @Test
     void syncIdentity_ThrowsWhenAccountIsMissing() {
-        IdentityService identityService = new IdentityService(accountRepository, identityRepository);
+        IdentityService identityService = new IdentityService(accountRepository, identityRepository, mailSender);
 
         when(accountRepository.findBySubject("unknown-subject")).thenReturn(Optional.empty());
 
@@ -73,7 +78,7 @@ class IdentityServiceTest {
 
     @Test
     void getIdentity_ReturnsIdentityForExistingId() {
-        IdentityService identityService = new IdentityService(accountRepository, identityRepository);
+        IdentityService identityService = new IdentityService(accountRepository, identityRepository, mailSender);
 
         Identity identity = new Identity();
         identity.setId(99L);
@@ -88,7 +93,7 @@ class IdentityServiceTest {
 
     @Test
     void getIdentity_ThrowsWhenIdentityIsMissing() {
-        IdentityService identityService = new IdentityService(accountRepository, identityRepository);
+        IdentityService identityService = new IdentityService(accountRepository, identityRepository, mailSender);
 
         when(identityRepository.findByIdWithAccountsAndOrganizations(99L)).thenReturn(Optional.empty());
 

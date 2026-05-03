@@ -23,6 +23,7 @@ class DevLocalJwtDecoderTest {
         DevAuthProperties properties = new DevAuthProperties(
             " dev-token ",
             " local-subject ",
+            "",
             List.of(" private ", "chronoscope-local")
         );
         DevLocalJwtDecoder decoder = new DevLocalJwtDecoder(properties, () -> delegate);
@@ -43,7 +44,7 @@ class DevLocalJwtDecoderTest {
         JwtDecoder delegate = mock(JwtDecoder.class);
         when(delegate.decode("real-token")).thenReturn(expectedJwt);
         DevLocalJwtDecoder decoder = new DevLocalJwtDecoder(
-            new DevAuthProperties("dev-token", "local-subject", List.of("private")),
+            new DevAuthProperties("dev-token", "local-subject", "", List.of("private")),
             () -> delegate
         );
 

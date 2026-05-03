@@ -48,7 +48,7 @@ class IdentityControllerTest {
         when(identityService.getIdentity(42L)).thenReturn(identity);
         when(identityMapper.toResponse(identity)).thenReturn(expected);
 
-        IdentityController controller = new IdentityController(identityService, accountService, requestContext, identityMapper);
+        IdentityController controller = new IdentityController(identityService, requestContext, identityMapper);
 
         IdentityResponse actual = controller.getIdentity();
 
@@ -60,7 +60,7 @@ class IdentityControllerTest {
 
     @Test
     void requestAccountLink_ThrowsApiNotImplementedException() {
-        IdentityController controller = new IdentityController(identityService, accountService, requestContext, identityMapper);
+        IdentityController controller = new IdentityController(identityService, requestContext, identityMapper);
 
         AccountLinkRequest request = new AccountLinkRequest("target@example.com");
 
@@ -69,7 +69,7 @@ class IdentityControllerTest {
 
     @Test
     void confirmAccountLink_ThrowsApiNotImplementedException() {
-        IdentityController controller = new IdentityController(identityService, accountService, requestContext, identityMapper);
+        IdentityController controller = new IdentityController(identityService, requestContext, identityMapper);
 
         AccountLinkConfirmRequest request = new AccountLinkConfirmRequest("token-value");
 
