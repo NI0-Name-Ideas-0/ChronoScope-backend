@@ -31,6 +31,7 @@
         <spring-default-profile>dev</spring-default-profile>
         <springdoc.local.port>6767</springdoc.local.port>
         <springdoc.skip>false</springdoc.skip>
+        <jacoco.skip>false</jacoco.skip>
     </properties>
     <dependencies>
         <dependency>
@@ -155,6 +156,165 @@
                             <goal>integration-test</goal>
                             <goal>verify</goal>
                         </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>0.8.14</version>
+                <configuration>
+                    <!-- Exclude the Spring Boot entry point and MapStruct-generated implementations -->
+                    <excludes>
+                        <exclude>de/ni0/chronoscope/ChronoScopeBackendApplication.class</exclude>
+                        <exclude>de/ni0/chronoscope/mapper/*Impl.class</exclude>
+                        <exclude>de/ni0/chronoscope/mapper/*Impl$*.class</exclude>
+                    </excludes>
+                </configuration>
+                <executions>
+                    <!-- (1) Instrument JVM for unit tests (surefire) -->
+                    <execution>
+                        <id>prepare-agent</id>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <!-- (2) Instrument JVM for integration tests (failsafe) -->
+                    <execution>
+                        <id>prepare-agent-integration</id>
+                        <goals>
+                            <goal>prepare-agent-integration</goal>
+                        </goals>
+                    </execution>
+                    <!-- (3) Merge unit + integration exec files into one -->
+                    <execution>
+                        <id>merge-coverage</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>merge</goal>
+                        </goals>
+                        <configuration>
+                            <skip>${jacoco.skip}</skip>
+                            <fileSets>
+                                <fileSet>
+                                    <directory>${project.build.directory}</directory>
+                                    <includes>
+                                        <include>jacoco.exec</include>
+                                        <include>jacoco-it.exec</include>
+                                    </includes>
+                                </fileSet>
+                            </fileSets>
+                            <destFile>${project.build.directory}/jacoco-merged.exec</destFile>
+                        </configuration>
+                    </execution>
+                    <!-- (4) Generate XML + HTML report from merged coverage data -->
+                    <execution>
+                        <id>report-merged</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                        <configuration>
+                            <skip>${jacoco.skip}</skip>
+                            <dataFile>${project.build.directory}/jacoco-merged.exec</dataFile>
+                            <outputDirectory>${project.reporting.outputDirectory}/jacoco</outputDirectory>
+                        </configuration>
+                    </execution>
+                    <!-- (4a) Generate report for algorithm classes only -->
+                    <execution>
+                        <id>report-algorithm</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                        <configuration>
+                            <skip>${jacoco.skip}</skip>
+                            <dataFile>${project.build.directory}/jacoco-merged.exec</dataFile>
+                            <outputDirectory>${project.reporting.outputDirectory}/jacoco-algorithm</outputDirectory>
+                            <includes>
+                                <include>de/ni0/chronoscope/algorithm/**</include>
+                            </includes>
+                        </configuration>
+                    </execution>
+                    <!-- (4b) Generate report for non-algorithm classes -->
+                    <execution>
+                        <id>report-remainder</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                        <configuration>
+                            <skip>${jacoco.skip}</skip>
+                            <dataFile>${project.build.directory}/jacoco-merged.exec</dataFile>
+                            <outputDirectory>${project.reporting.outputDirectory}/jacoco-remainder</outputDirectory>
+                            <excludes>
+                                <exclude>de/ni0/chronoscope/ChronoScopeBackendApplication.class</exclude>
+                                <exclude>de/ni0/chronoscope/mapper/*Impl.class</exclude>
+                                <exclude>de/ni0/chronoscope/mapper/*Impl$*.class</exclude>
+                                <exclude>de/ni0/chronoscope/algorithm/**</exclude>
+                            </excludes>
+                        </configuration>
+                    </execution>
+                    <!-- (5a) Enforce aggregate coverage for the algorithm classes -->
+                    <execution>
+                        <id>check-algorithm-coverage</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <configuration>
+                            <skip>${jacoco.skip}</skip>
+                            <dataFile>${project.build.directory}/jacoco-merged.exec</dataFile>
+                            <haltOnFailure>true</haltOnFailure>
+                            <includes>
+                                <include>de/ni0/chronoscope/algorithm/**/*.class</include>
+                            </includes>
+                            <rules>
+                                <!-- Algorithm package tree: 90% aggregate branch coverage -->
+                                <rule>
+                                    <element>BUNDLE</element>
+                                    <limits>
+                                        <limit>
+                                            <counter>BRANCH</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.90</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                            </rules>
+                        </configuration>
+                    </execution>
+                    <!-- (5b) Enforce aggregate coverage for everything except the algorithm classes -->
+                    <execution>
+                        <id>check-remainder-coverage</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <configuration>
+                            <skip>${jacoco.skip}</skip>
+                            <dataFile>${project.build.directory}/jacoco-merged.exec</dataFile>
+                            <haltOnFailure>true</haltOnFailure>
+                            <excludes>
+                                <exclude>de/ni0/chronoscope/ChronoScopeBackendApplication.class</exclude>
+                                <exclude>de/ni0/chronoscope/mapper/*Impl.class</exclude>
+                                <exclude>de/ni0/chronoscope/mapper/*Impl$*.class</exclude>
+                                <exclude>de/ni0/chronoscope/algorithm/**/*.class</exclude>
+                            </excludes>
+                            <rules>
+                                <!-- Non-algorithm classes: 70% aggregate branch coverage -->
+                                <rule>
+                                    <element>BUNDLE</element>
+                                    <limits>
+                                        <limit>
+                                            <counter>BRANCH</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.70</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                            </rules>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>
