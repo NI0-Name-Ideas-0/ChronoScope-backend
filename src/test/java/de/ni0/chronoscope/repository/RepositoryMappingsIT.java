@@ -51,6 +51,7 @@ class RepositoryMappingsIT {
         Account account = new Account();
         account.setSubject("subject-123");
         account.setIdentity(identity);
+        account.setMail("");
         accountRepository.saveAndFlush(account);
 
         assertTrue(accountRepository.findBySubject("subject-123").isPresent());
@@ -74,6 +75,7 @@ class RepositoryMappingsIT {
         Account account = new Account();
         account.setSubject("subject-456");
         account.setIdentity(identity);
+        account.setMail("");
         account = accountRepository.saveAndFlush(account);
 
         assertTrue(identityRepository.findByAccountsContains(account).isPresent());
@@ -98,6 +100,7 @@ class RepositoryMappingsIT {
         Account account = new Account();
         account.setSubject("subject-dependency-test");
         account.setIdentity(identity);
+        account.setMail("");
         account.setOrganizations(Set.of(organization));
         account = accountRepository.saveAndFlush(account);
 
@@ -153,6 +156,7 @@ class RepositoryMappingsIT {
         Account account = new Account();
         account.setSubject("repo-it-scope-subject-" + System.nanoTime());
         account.setIdentity(identity);
+        account.setMail("");
         account.setOrganizations(Set.of(organization));
         account = accountRepository.saveAndFlush(account);
 

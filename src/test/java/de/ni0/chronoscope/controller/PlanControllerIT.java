@@ -64,10 +64,11 @@ class PlanControllerIT {
     }
 
     /** Creates an identity + account without any organizations pre-linked. */
-    private AccountInfo createAccount(String subject) {
+    private AccountInfo createAccount(String subject, String mail) {
         Identity identity = identityRepository.saveAndFlush(new Identity());
         Account account = new Account();
         account.setIdentity(identity);
+        account.setMail(mail);
         account.setSubject(subject);
         account = accountRepository.saveAndFlush(account);
         return new AccountInfo(identity.getId(), account.getId());
@@ -124,7 +125,7 @@ class PlanControllerIT {
         String orgName = uniqueOrgName();
 
         mockMvc.perform(post("/v1/plan")
-                        .with(jwt().jwt(jwt -> jwt.subject(subject).claim("organization", List.of(orgName))))
+                        .with(jwt().jwt(jwt -> jwt.subject(subject).claim("email", "").claim("organization", List.of(orgName))))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 { "accountId": 1 }
@@ -138,7 +139,7 @@ class PlanControllerIT {
         String orgName = uniqueOrgName();
 
         mockMvc.perform(post("/v1/plan")
-                        .with(jwt().jwt(jwt -> jwt.subject(subject).claim("organization", List.of(orgName))))
+                        .with(jwt().jwt(jwt -> jwt.subject(subject).claim("email", "").claim("organization", List.of(orgName))))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 { "organizationId": 1 }
@@ -152,8 +153,8 @@ class PlanControllerIT {
         String subjectB = uniqueSubject();
         String orgName = uniqueOrgName();
 
-        createAccount(subjectA);
-        AccountInfo infoB = createAccount(subjectB);
+        createAccount(subjectA, "awd");
+        AccountInfo infoB = createAccount(subjectB, "awdawd");
         long orgId = createOrganization(orgName);
 
         String payload = """
@@ -161,7 +162,7 @@ class PlanControllerIT {
                 """.formatted(infoB.accountId(), orgId);
 
         mockMvc.perform(post("/v1/plan")
-                        .with(jwt().jwt(jwt -> jwt.subject(subjectA).claim("organization", List.of(orgName))))
+                        .with(jwt().jwt(jwt -> jwt.subject(subjectA).claim("email", "").claim("organization", List.of(orgName))))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(payload))
                 .andExpect(status().isForbidden());
@@ -171,7 +172,7 @@ class PlanControllerIT {
     void plan_Returns200WithEmptyList_WhenNoTasksForOrganization() throws Exception {
         String subject = uniqueSubject();
         String orgName = uniqueOrgName();
-        AccountInfo info = createAccount(subject);
+        AccountInfo info = createAccount(subject, "awd");
         long orgId = createOrganization(orgName);
 
         String payload = """
@@ -190,7 +191,7 @@ class PlanControllerIT {
     void plan_Returns409_WhenInsufficientWorkSlots() throws Exception {
         String subject = uniqueSubject();
         String orgName = uniqueOrgName();
-        AccountInfo info = createAccount(subject);
+        AccountInfo info = createAccount(subject, "awd");
         long orgId = createOrganization(orgName);
         createDynamicTask(info.accountId(), orgId);
         // No work slots created for this identity → algorithm throws InsufficientSlotsException
@@ -210,7 +211,7 @@ class PlanControllerIT {
     void plan_Returns200WithScopes_WhenPlanSucceeds() throws Exception {
         String subject = uniqueSubject();
         String orgName = uniqueOrgName();
-        AccountInfo info = createAccount(subject);
+        AccountInfo info = createAccount(subject, "awd");
         long orgId = createOrganization(orgName);
         createDynamicTask(info.accountId(), orgId);
         createWorkSlot(info.accountId(), "2026-04-26T06:00:00Z", "2026-04-26T20:00:00Z");
