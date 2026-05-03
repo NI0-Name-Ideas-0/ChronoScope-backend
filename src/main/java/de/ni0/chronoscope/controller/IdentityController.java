@@ -38,7 +38,6 @@ import lombok.RequiredArgsConstructor;
 public class IdentityController {
 
     private final IdentityService identityService;
-    private final AccountService accountService;
     private final RequestContext requestContext;
     private final IdentityMapper identityMapper;
 
