@@ -40,6 +40,8 @@ class TaskServiceTest {
         task.setStartAt(Instant.parse("2026-04-20T09:00:00Z"));
         task.setEndAt(Instant.parse("2026-04-20T10:00:00Z"));
         task.setRrule("FREQ=DAILY");
+        task.setOrganization(organization(1L));
+        task.setIsBlocker(false);
     }
 
     private static void populateValidDynamicFields(DynamicTask task) {
@@ -53,6 +55,13 @@ class TaskServiceTest {
         task.setElapsed(Duration.ZERO);
         task.setMinScopeDuration(Duration.ofMinutes(30));
         task.setMaxScopeDuration(Duration.ofMinutes(40));
+        task.setOrganization(organization(1L));
+    }
+
+    private static Organization organization(Long id) {
+        Organization organization = new Organization();
+        organization.setId(id);
+        return organization;
     }
 
     @Mock
@@ -215,6 +224,58 @@ class TaskServiceTest {
         assertEquals(newTask, result);
         verify(taskRepository).findAllById(Set.of(100L));
         verify(taskRepository).save(newTask);
+    }
+
+    @Test
+    void createStaticTask_AllowsBlockerWithoutOrganization() {
+        TaskService taskService = new TaskService(taskRepository, accountService);
+
+        StaticTask newTask = new StaticTask();
+        populateValidStaticFields(newTask);
+        newTask.setIsBlocker(true);
+        newTask.setOrganization(null);
+
+        when(taskRepository.save(newTask)).thenReturn(newTask);
+
+        StaticTask result = taskService.createStaticTask(newTask);
+
+        assertEquals(newTask, result);
+        verify(taskRepository).save(newTask);
+    }
+
+    @Test
+    void createStaticTask_ThrowsWhenNonBlockerHasNoOrganization() {
+        TaskService taskService = new TaskService(taskRepository, accountService);
+
+        StaticTask newTask = new StaticTask();
+        populateValidStaticFields(newTask);
+        newTask.setIsBlocker(false);
+        newTask.setOrganization(null);
+
+        InvalidRequestException exception = assertThrows(
+            InvalidRequestException.class,
+            () -> taskService.createStaticTask(newTask)
+        );
+
+        assertEquals("organizationId is required unless isBlocker is true", exception.getMessage());
+        verify(taskRepository, never()).save(newTask);
+    }
+
+    @Test
+    void createDynamicTask_ThrowsWhenOrganizationMissing() {
+        TaskService taskService = new TaskService(taskRepository, accountService);
+
+        DynamicTask newTask = new DynamicTask();
+        populateValidDynamicFields(newTask);
+        newTask.setOrganization(null);
+
+        InvalidRequestException exception = assertThrows(
+            InvalidRequestException.class,
+            () -> taskService.createDynamicTask(newTask)
+        );
+
+        assertEquals("organizationId must be provided", exception.getMessage());
+        verify(taskRepository, never()).save(newTask);
     }
 
     @Test
