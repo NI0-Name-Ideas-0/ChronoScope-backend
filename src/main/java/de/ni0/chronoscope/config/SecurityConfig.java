@@ -11,9 +11,19 @@ import org.springframework.security.web.SecurityFilterChain;
 
 import jakarta.servlet.DispatcherType;
 
+/**
+ * Spring Security configuration for JWT-protected API endpoints.
+ */
 @Configuration
 public class SecurityConfig {
 
+    /**
+     * Builds the HTTP security filter chain and registers request identity synchronization.
+     *
+     * @param http security builder
+     * @param identityMiddleware filter that fills {@link RequestContext}
+     * @return configured filter chain
+     */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, IdentityMiddleware identityMiddleware) throws Exception {
         http.authorizeHttpRequests(auth -> auth

@@ -13,11 +13,21 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtDecoders;
 import org.springframework.security.oauth2.jwt.JwtException;
 
+/**
+ * Development-profile authentication configuration that accepts a local static bearer token.
+ */
 @Configuration
 @Profile("dev & !prod")
 @EnableConfigurationProperties(DevAuthProperties.class)
 public class DevAuthConfig {
 
+    /**
+     * Creates a JWT decoder that handles the configured local token before delegating to Keycloak.
+     *
+     * @param devAuthProperties local authentication settings
+     * @param issuerUri configured OIDC issuer URI
+     * @return JWT decoder for development
+     */
     @Bean
     public JwtDecoder jwtDecoder(
         DevAuthProperties devAuthProperties,
@@ -30,6 +40,9 @@ public class DevAuthConfig {
     }
 }
 
+/**
+ * JWT decoder that short-circuits the configured development token and lazily initializes the real decoder.
+ */
 final class DevLocalJwtDecoder implements JwtDecoder {
 
     private final DevAuthProperties properties;

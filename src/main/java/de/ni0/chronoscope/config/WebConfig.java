@@ -9,6 +9,9 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+/**
+ * Web MVC support configuration shared by API controllers.
+ */
 @Configuration
 @EnableConfigurationProperties(CorsProperties.class)
 public class WebConfig {
@@ -18,6 +21,12 @@ public class WebConfig {
     private static final String API_PATH_PATTERN = "/v1/**";
     private static final long MAX_AGE_SECONDS = 3600L;
 
+    /**
+     * Creates the CORS configuration source for API routes.
+     *
+     * @param corsProperties configured allowed origins
+     * @return CORS configuration source
+     */
     @Bean
     public CorsConfigurationSource corsConfigurationSource(CorsProperties corsProperties) {
         var source = new UrlBasedCorsConfigurationSource();
