@@ -8,6 +8,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public record DevAuthProperties(
     String token,
     String subject,
+    String mail,
     List<String> organizations,
     List<String> groups
 ) {
@@ -18,12 +19,13 @@ public record DevAuthProperties(
     public static final List<String> DEFAULT_GROUPS = List.of();
 
     public DevAuthProperties(String token, String subject, List<String> organizations) {
-        this(token, subject, organizations, DEFAULT_GROUPS);
+        this(token, subject, "", organizations, DEFAULT_GROUPS);
     }
 
     public DevAuthProperties {
         token = normalize(token, DEFAULT_TOKEN);
         subject = normalize(subject, DEFAULT_SUBJECT);
+        mail = mail == null ? "" : mail.trim();
         organizations = normalizeList(organizations);
 
         if (organizations.isEmpty()) {

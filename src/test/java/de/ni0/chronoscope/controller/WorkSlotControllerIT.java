@@ -52,10 +52,11 @@ class WorkSlotControllerIT {
         return "it-ws-subject-" + System.nanoTime();
     }
 
-    private long createAccount(String subject) {
+    private long createAccount(String subject, String mail) {
         Identity identity = identityRepository.saveAndFlush(new Identity());
         Account account = new Account();
         account.setIdentity(identity);
+        account.setMail(mail);
         account.setSubject(subject);
         return accountRepository.saveAndFlush(account).getId();
     }
@@ -80,16 +81,19 @@ class WorkSlotControllerIT {
     @Test
     void getWorkSlots_ReturnsOwnSlotsOnly() throws Exception {
         String subject = createAccountSubject();
-        long accountId = createAccount(subject);
+        long accountId = createAccount(subject, "");
         long orgId = findOrCreateOrganization("it-ws-org-" + System.nanoTime()).getId();
         createWorkSlot(accountId, orgId, "2026-04-20T08:00:00Z", "2026-04-20T17:00:00Z");
 
         // A slot belonging to a different identity should not appear
-        long otherAccountId = createAccount(createAccountSubject());
+        long otherAccountId = createAccount(createAccountSubject(), "awd");
         createWorkSlot(otherAccountId, orgId, "2026-04-21T08:00:00Z", "2026-04-21T17:00:00Z");
 
         mockMvc.perform(get("/v1/workslots")
-                        .with(jwt().jwt(jwt -> jwt.subject(subject).claim("organization", java.util.List.of("private")))))
+                        .with(jwt().jwt(jwt -> jwt
+                                .subject(subject)
+                                .claim("email", "")
+                                .claim("organization", java.util.List.of("private")))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].accountId").value(accountId));
@@ -98,7 +102,7 @@ class WorkSlotControllerIT {
     @Test
     void createWorkSlot_ReturnsCreated() throws Exception {
         String subject = createAccountSubject();
-        long accountId = createAccount(subject);
+        long accountId = createAccount(subject, "");
         long orgId = findOrCreateOrganization("it-ws-org-" + System.nanoTime()).getId();
 
         String payload = """
@@ -124,12 +128,12 @@ class WorkSlotControllerIT {
     @Test
     void createWorkSlot_ReturnsForbiddenWhenAccountBelongsToDifferentIdentity() throws Exception {
         String ownerSubject = createAccountSubject();
-        long otherAccountId = createAccount(ownerSubject);
+        long otherAccountId = createAccount(ownerSubject, "awd");
         long orgId = findOrCreateOrganization("it-ws-org-" + System.nanoTime()).getId();
 
         // Authenticated as a different user
         String attackerSubject = createAccountSubject();
-        createAccount(attackerSubject);
+        createAccount(attackerSubject, "awdawd");
 
         String payload = """
                 {
@@ -150,7 +154,7 @@ class WorkSlotControllerIT {
     @Test
     void updateWorkSlot_ReturnsUpdatedSlot() throws Exception {
         String subject = createAccountSubject();
-        long accountId = createAccount(subject);
+        long accountId = createAccount(subject, "");
         long orgId = findOrCreateOrganization("it-ws-org-" + System.nanoTime()).getId();
         long slotId = createWorkSlot(accountId, orgId, "2026-04-20T08:00:00Z", "2026-04-20T17:00:00Z");
 
@@ -174,12 +178,12 @@ class WorkSlotControllerIT {
     @Test
     void updateWorkSlot_ReturnsNotFoundWhenSlotDoesNotBelongToIdentity() throws Exception {
         String ownerSubject = createAccountSubject();
-        long ownerAccountId = createAccount(ownerSubject);
+        long ownerAccountId = createAccount(ownerSubject, "awd");
         long orgId = findOrCreateOrganization("it-ws-org-" + System.nanoTime()).getId();
         long slotId = createWorkSlot(ownerAccountId, orgId, "2026-04-20T08:00:00Z", "2026-04-20T17:00:00Z");
 
         String attackerSubject = createAccountSubject();
-        createAccount(attackerSubject);
+        createAccount(attackerSubject, "awdawd");
 
         String payload = """
                 { "startAt": "2026-04-21T09:00:00Z" }
@@ -195,7 +199,7 @@ class WorkSlotControllerIT {
     @Test
     void deleteWorkSlot_ReturnsNoContent() throws Exception {
         String subject = createAccountSubject();
-        long accountId = createAccount(subject);
+        long accountId = createAccount(subject, "");
         long orgId = findOrCreateOrganization("it-ws-org-" + System.nanoTime()).getId();
         long slotId = createWorkSlot(accountId, orgId, "2026-04-20T08:00:00Z", "2026-04-20T17:00:00Z");
 
@@ -207,12 +211,12 @@ class WorkSlotControllerIT {
     @Test
     void deleteWorkSlot_ReturnsNotFoundWhenSlotDoesNotBelongToIdentity() throws Exception {
         String ownerSubject = createAccountSubject();
-        long ownerAccountId = createAccount(ownerSubject);
+        long ownerAccountId = createAccount(ownerSubject, "awd");
         long orgId = findOrCreateOrganization("it-ws-org-" + System.nanoTime()).getId();
         long slotId = createWorkSlot(ownerAccountId, orgId, "2026-04-20T08:00:00Z", "2026-04-20T17:00:00Z");
 
         String attackerSubject = createAccountSubject();
-        createAccount(attackerSubject);
+        createAccount(attackerSubject, "awdawd");
 
         mockMvc.perform(delete("/v1/workslots/" + slotId)
                         .with(jwt().jwt(jwt -> jwt.subject(attackerSubject).claim("organization", java.util.List.of("private")))))

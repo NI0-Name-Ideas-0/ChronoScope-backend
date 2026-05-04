@@ -61,7 +61,7 @@ class AccountServiceTest {
             return savedOrganization;
         });
 
-        long accountId = accountService.syncAccount("subject-123", List.of("private"));
+        long accountId = accountService.syncAccount("subject-123", "", List.of("private"));
 
         assertEquals(1L, accountId);
         verify(accountRepository).findBySubject("subject-123");
@@ -88,7 +88,7 @@ class AccountServiceTest {
         when(accountRepository.save(any(Account.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(organizationRepository.findByName("private")).thenReturn(Optional.of(organization));
 
-        long accountId = accountService.syncAccount("subject-123", List.of("private"));
+        long accountId = accountService.syncAccount("subject-123", "", List.of("private"));
 
         assertEquals(3L, accountId);
         verify(accountRepository, times(1)).findBySubject("subject-123");
@@ -117,7 +117,7 @@ class AccountServiceTest {
         when(organizationRepository.save(any(Organization.class)))
             .thenThrow(new DataIntegrityViolationException("duplicate key"));
 
-        long accountId = accountService.syncAccount("subject-123", List.of("private"));
+        long accountId = accountService.syncAccount("subject-123", "", List.of("private"));
 
         assertEquals(3L, accountId);
         verify(accountRepository).findBySubject("subject-123");
@@ -153,7 +153,7 @@ class AccountServiceTest {
             .thenAnswer(invocation -> invocation.getArgument(0));
         when(organizationRepository.findByName("private")).thenReturn(Optional.of(organization));
 
-        long accountId = accountService.syncAccount("subject-123", List.of("private"));
+        long accountId = accountService.syncAccount("subject-123", "", List.of("private"));
 
         assertEquals(3L, accountId);
         verify(accountRepository, times(2)).findBySubject("subject-123");

@@ -46,6 +46,7 @@ class IdentityMiddlewareTest {
         Jwt jwt = Jwt.withTokenValue("token")
             .header("alg", "none")
             .claim("sub", "subject-123")
+            .claim("email", "")
             .claim("organization", List.of())
             .claim("groups", List.of("/org-admin/dhbw-stuttgart", "/other-group", "/org-admin/dhbw-stuttgart"))
             .build();
@@ -53,7 +54,7 @@ class IdentityMiddlewareTest {
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
         try {
-            when(accountService.syncAccount("subject-123", List.of("private"))).thenReturn(11L);
+            when(accountService.syncAccount("subject-123", "", List.of("private"))).thenReturn(11L);
             when(identityService.syncIdentity("subject-123")).thenReturn(22L);
 
             middleware.doFilterInternal(new MockHttpServletRequest(), new MockHttpServletResponse(), filterChain);
@@ -61,7 +62,7 @@ class IdentityMiddlewareTest {
             assertEquals(11L, requestContext.getAccountId());
             assertEquals(22L, requestContext.getIdentityId());
             assertEquals(List.of("dhbw-stuttgart"), requestContext.getAdminOrganizations());
-            verify(accountService).syncAccount(eq("subject-123"), eq(List.of("private")));
+            verify(accountService).syncAccount(eq("subject-123"), eq(""), eq(List.of("private")));
             verify(identityService).syncIdentity("subject-123");
             verify(filterChain).doFilter(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
             verifyNoMoreInteractions(accountService, identityService, filterChain);

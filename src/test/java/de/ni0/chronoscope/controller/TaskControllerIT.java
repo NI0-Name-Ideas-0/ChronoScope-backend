@@ -68,14 +68,15 @@ class TaskControllerIT {
     @PersistenceContext
     private EntityManager entityManager;
 
-    private long createAccount(String subject) {
+    private long createAccount(String subject, String email) {
         Identity identity = identityRepository.saveAndFlush(new Identity());
-        return createAccount(identity.getId(), subject);
+        return createAccount(identity.getId(), subject, email);
     }
 
-    private long createAccount(long identityId, String subject) {
+    private long createAccount(long identityId, String subject, String email) {
         Account account = new Account();
         account.setIdentity(identityRepository.getReferenceById(identityId));
+        account.setMail(email);
         account.setSubject(subject);
         return accountRepository.saveAndFlush(account).getId();
     }
@@ -96,6 +97,7 @@ class TaskControllerIT {
             .getName();
         return jwt().jwt(jwt -> jwt
             .subject(subject)
+            .claim("email", "")
             .claim("organization", List.of(organizationName)));
     }
 
@@ -131,11 +133,11 @@ class TaskControllerIT {
         Identity identity = identityRepository.saveAndFlush(new Identity());
         String subject = "it-get-tasks-subject-" + System.nanoTime();
 
-        long primaryAccountId = createAccount(identity.getId(), subject);
-        long linkedAccountId = createAccount(identity.getId(), "it-linked-subject-" + System.nanoTime());
+        long primaryAccountId = createAccount(identity.getId(), subject, "awd");
+        long linkedAccountId = createAccount(identity.getId(), "it-linked-subject-" + System.nanoTime(), "awdawd");
 
         Identity otherIdentity = identityRepository.saveAndFlush(new Identity());
-        long otherAccountId = createAccount(otherIdentity.getId(), "it-other-subject-" + System.nanoTime());
+        long otherAccountId = createAccount(otherIdentity.getId(), "it-other-subject-" + System.nanoTime(), "awdawdawd");
 
         String dynamicTaskName = "it-dynamic-task-" + System.nanoTime();
         String linkedStaticTaskName = "it-linked-static-task-" + System.nanoTime();
@@ -200,7 +202,7 @@ class TaskControllerIT {
     @Test
     void createTask_Static_ReturnsCreated() throws Exception {
         String subject = createAccountSubject();
-        long accountId = createAccount(subject);
+        long accountId = createAccount(subject, "");
         long organizationId = createOrganization();
 
         String payload = """
@@ -235,7 +237,7 @@ class TaskControllerIT {
     @Test
     void createTask_Static_DifficultyAboveFive_ReturnsValidationError() throws Exception {
         String subject = createAccountSubject();
-        long accountId = createAccount(subject);
+        long accountId = createAccount(subject, "");
                 long organizationId = createOrganization();
 
         String payload = """
@@ -267,7 +269,7 @@ class TaskControllerIT {
     @Test
     void createTask_Dynamic_ReturnsCreatedWithDefaults() throws Exception {
         String subject = createAccountSubject();
-        long accountId = createAccount(subject);
+        long accountId = createAccount(subject, "");
         long organizationId = createOrganization();
 
         String payload = """
@@ -312,7 +314,7 @@ class TaskControllerIT {
     @Test
     void createTask_Static_WithUnknownOrganization_ReturnsValidationError() throws Exception {
         String subject = createAccountSubject();
-        long accountId = createAccount(subject);
+        long accountId = createAccount(subject, "");
         long organizationId = createOrganization();
         long unknownOrganizationId = 999_999L;
 
@@ -346,7 +348,7 @@ class TaskControllerIT {
     @Test
     void createTask_Static_WithOrganizationOutsideAccount_ReturnsForbidden() throws Exception {
         String subject = createAccountSubject();
-        long accountId = createAccount(subject);
+        long accountId = createAccount(subject, "");
         long accessibleOrganizationId = createOrganization();
         long inaccessibleOrganizationId = createOrganization();
 
@@ -380,7 +382,7 @@ class TaskControllerIT {
     @Test
     void createTask_Dynamic_WithStartAtAfterEndAt_ReturnsValidationError() throws Exception {
         String subject = createAccountSubject();
-        long accountId = createAccount(subject);
+        long accountId = createAccount(subject, "");
                 long organizationId = createOrganization();
 
         String payload = """
@@ -415,7 +417,7 @@ class TaskControllerIT {
     @Test
     void createTask_Dynamic_InvalidDurationFormat_ReturnsInvalidRequest() throws Exception {
         String subject = createAccountSubject();
-        long accountId = createAccount(subject);
+        long accountId = createAccount(subject, "");
                 long organizationId = createOrganization();
 
         String payload = """
@@ -459,7 +461,7 @@ class TaskControllerIT {
             """;
 
         mockMvc.perform(post("/v1/tasks")
-                .with(jwt().jwt(jwt -> jwt.subject(subject)))
+                .with(jwt().jwt(jwt -> jwt.subject(subject).claim("email", "")))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(payload))
             .andExpect(status().isBadRequest())
@@ -472,7 +474,7 @@ class TaskControllerIT {
     @Test
     void createTask_Dynamic_WithDependencies_ReturnsCreatedWithDependencyLinks() throws Exception {
         String subject = createAccountSubject();
-        long accountId = createAccount(subject);
+        long accountId = createAccount(subject, "");
         long predecessorId = createDynamicPredecessorTask(accountId);
         long organizationId = createOrganization();
 
@@ -513,8 +515,8 @@ class TaskControllerIT {
         void createTask_Dynamic_WithDependencyFromDifferentAccountSameIdentity_ReturnsCreated() throws Exception {
                 Identity identity = identityRepository.saveAndFlush(new Identity());
                 String requesterSubject = createAccountSubject();
-                long requesterAccountId = createAccount(identity.getId(), requesterSubject);
-                long linkedAccountId = createAccount(identity.getId(), createAccountSubject());
+                long requesterAccountId = createAccount(identity.getId(), requesterSubject, "awd");
+                long linkedAccountId = createAccount(identity.getId(), createAccountSubject(), "awdawd");
                 long predecessorId = createDynamicPredecessorTask(linkedAccountId);
                 long organizationId = createOrganization();
 
@@ -554,10 +556,10 @@ class TaskControllerIT {
         void createTask_Dynamic_WithDependencyFromDifferentIdentity_ReturnsValidationError() throws Exception {
                 Identity sourceIdentity = identityRepository.saveAndFlush(new Identity());
                 String requesterSubject = createAccountSubject();
-                long requesterAccountId = createAccount(sourceIdentity.getId(), requesterSubject);
+                long requesterAccountId = createAccount(sourceIdentity.getId(), requesterSubject, "awd");
 
                 Identity otherIdentity = identityRepository.saveAndFlush(new Identity());
-                long foreignAccountId = createAccount(otherIdentity.getId(), createAccountSubject());
+                long foreignAccountId = createAccount(otherIdentity.getId(), createAccountSubject(), "awdawd");
                 long predecessorId = createDynamicPredecessorTask(foreignAccountId);
                 long organizationId = createOrganization();
 
@@ -596,7 +598,7 @@ class TaskControllerIT {
         @Test
         void getTask_Dynamic_ReturnsDependenciesAndDependentsFields() throws Exception {
             String subject = createAccountSubject();
-            long accountId = createAccount(subject);
+            long accountId = createAccount(subject, "");
             long predecessorId = createDynamicPredecessorTask(accountId);
 
             DynamicTask dependent = new DynamicTask();
@@ -632,7 +634,7 @@ class TaskControllerIT {
     @Test
     void updateTask_Static_PartiallyUpdatesOnlyProvidedFields() throws Exception {
         String subject = createAccountSubject();
-        long accountId = createAccount(subject);
+        long accountId = createAccount(subject, "");
 
         StaticTask task = new StaticTask();
         task.setAccount(accountRepository.getReferenceById(accountId));
@@ -670,7 +672,7 @@ class TaskControllerIT {
     @Test
     void updateTask_Static_WithOrganizationOutsideAccount_ReturnsForbidden() throws Exception {
         String subject = createAccountSubject();
-        long accountId = createAccount(subject);
+        long accountId = createAccount(subject, "");
         long accessibleOrganizationId = createOrganization();
         long inaccessibleOrganizationId = createOrganization();
 
@@ -708,7 +710,7 @@ class TaskControllerIT {
     @Test
     void updateTask_Dynamic_PreservesExistingDependenciesWhenOmitted() throws Exception {
         String subject = createAccountSubject();
-        long accountId = createAccount(subject);
+        long accountId = createAccount(subject, "");
 
         long predecessorId = createDynamicPredecessorTask(accountId);
 
@@ -752,7 +754,7 @@ class TaskControllerIT {
     @Test
     void updateTask_Static_DifficultyAboveFive_ReturnsValidationError() throws Exception {
         String subject = createAccountSubject();
-        long accountId = createAccount(subject);
+        long accountId = createAccount(subject, "");
         long organizationId = createOrganization();
 
         StaticTask task = new StaticTask();
@@ -788,7 +790,7 @@ class TaskControllerIT {
     @Test
     void updateTask_Dynamic_ReducesDuration_CapsMinAndMaxScopeDurations() throws Exception {
         String subject = createAccountSubject();
-        long accountId = createAccount(subject);
+        long accountId = createAccount(subject, "");
         long organizationId = createOrganization();
 
         DynamicTask task = new DynamicTask();
@@ -830,7 +832,7 @@ class TaskControllerIT {
     @Test
     void updateTask_Dynamic_AllowsElapsedZero() throws Exception {
         String subject = createAccountSubject();
-        long accountId = createAccount(subject);
+        long accountId = createAccount(subject, "");
 
         DynamicTask task = new DynamicTask();
         task.setAccount(accountRepository.getReferenceById(accountId));
@@ -873,7 +875,7 @@ class TaskControllerIT {
     @Test
     void updateTask_Dynamic_NegativeElapsed_ReturnsValidationError() throws Exception {
         String subject = createAccountSubject();
-        long accountId = createAccount(subject);
+        long accountId = createAccount(subject, "");
 
         DynamicTask task = new DynamicTask();
         task.setAccount(accountRepository.getReferenceById(accountId));
@@ -913,7 +915,7 @@ class TaskControllerIT {
     @Test
     void updateTask_Dynamic_WithStaticTypePayload_ReturnsValidationError() throws Exception {
         String subject = createAccountSubject();
-        long accountId = createAccount(subject);
+        long accountId = createAccount(subject, "");
 
         DynamicTask task = new DynamicTask();
         task.setAccount(accountRepository.getReferenceById(accountId));
@@ -953,7 +955,7 @@ class TaskControllerIT {
     @Test
     void updateTask_Dynamic_RemovesDependencyAndCleansInverseRelation() throws Exception {
         String subject = createAccountSubject();
-        long accountId = createAccount(subject);
+        long accountId = createAccount(subject, "");
 
         long predecessorId = createDynamicPredecessorTask(accountId);
 
@@ -1005,7 +1007,7 @@ class TaskControllerIT {
     @Test
     void updateTask_Dynamic_AddsDependencyAndCleansInverseRelation() throws Exception {
         String subject = createAccountSubject();
-        long accountId = createAccount(subject);
+        long accountId = createAccount(subject, "");
 
         long dependencyId = createDynamicPredecessorTask(accountId);
 
@@ -1058,10 +1060,10 @@ class TaskControllerIT {
     void updateTask_Dynamic_WithDependencyFromDifferentIdentity_ReturnsValidationError() throws Exception {
         Identity sourceIdentity = identityRepository.saveAndFlush(new Identity());
         String requesterSubject = createAccountSubject();
-        long requesterAccountId = createAccount(sourceIdentity.getId(), requesterSubject);
+        long requesterAccountId = createAccount(sourceIdentity.getId(), requesterSubject, "awd");
 
         Identity otherIdentity = identityRepository.saveAndFlush(new Identity());
-        long foreignAccountId = createAccount(otherIdentity.getId(), createAccountSubject());
+        long foreignAccountId = createAccount(otherIdentity.getId(), createAccountSubject(), "awdawd");
         long foreignDependencyId = createDynamicPredecessorTask(foreignAccountId);
 
         DynamicTask task = new DynamicTask();
@@ -1103,7 +1105,7 @@ class TaskControllerIT {
     @Test
     void updateTask_FromDifferentIdentity_Returns404() throws Exception {
         String ownerSubject = createAccountSubject();
-        long ownerAccountId = createAccount(ownerSubject);
+        long ownerAccountId = createAccount(ownerSubject, "awd");
 
         StaticTask task = new StaticTask();
         task.setAccount(accountRepository.getReferenceById(ownerAccountId));
@@ -1118,7 +1120,7 @@ class TaskControllerIT {
         long taskId = saveTask(task).getId();
 
         String attackerSubject = createAccountSubject();
-        createAccount(attackerSubject);
+        createAccount(attackerSubject, "aw");
 
         String payload = """
             {
@@ -1137,7 +1139,7 @@ class TaskControllerIT {
     @Test
     void updateTask_NotFound_Returns404() throws Exception {
         String subject = createAccountSubject();
-        createAccount(subject);
+        createAccount(subject, "");
 
         String payload = """
             {
@@ -1156,7 +1158,7 @@ class TaskControllerIT {
     @Test
     void createTask_Dynamic_MissingDependencies_ReturnsValidationError() throws Exception {
         String subject = createAccountSubject();
-        long accountId = createAccount(subject);
+        long accountId = createAccount(subject, "");
         long organizationId = createOrganization();
 
         String payload = """
@@ -1190,7 +1192,7 @@ class TaskControllerIT {
     @Test
     void createTask_Static_MissingStartAndEndAt_ReturnsValidationError() throws Exception {
         String subject = createAccountSubject();
-        long accountId = createAccount(subject);
+        long accountId = createAccount(subject, "");
         long organizationId = createOrganization();
 
         String payload = """
@@ -1226,7 +1228,7 @@ class TaskControllerIT {
     @Test
     void createTask_Static_MissingDescriptionRruleAndLabels_ReturnsValidationError() throws Exception {
         String subject = createAccountSubject();
-        long accountId = createAccount(subject);
+        long accountId = createAccount(subject, "");
         long organizationId = createOrganization();
 
         String payload = """
@@ -1257,7 +1259,7 @@ class TaskControllerIT {
     @Test
     void deleteTask_Static_ReturnsNoContentAndRemovesTask() throws Exception {
         String subject = createAccountSubject();
-        long accountId = createAccount(subject);
+        long accountId = createAccount(subject, "");
 
         StaticTask task = new StaticTask();
         task.setAccount(accountRepository.getReferenceById(accountId));
@@ -1281,7 +1283,7 @@ class TaskControllerIT {
     @Test
     void deleteTask_Dynamic_RemovesScopesAndInboundLinks() throws Exception {
         String subject = createAccountSubject();
-        long accountId = createAccount(subject);
+        long accountId = createAccount(subject, "");
 
         DynamicTask predecessor = new DynamicTask();
         predecessor.setAccount(accountRepository.getReferenceById(accountId));
@@ -1342,7 +1344,7 @@ class TaskControllerIT {
     @Test
     void deleteTask_NotFound_Returns404() throws Exception {
         String subject = createAccountSubject();
-        createAccount(subject);
+        createAccount(subject, "");
 
         mockMvc.perform(delete("/v1/tasks/{id}", 999_999L)
                 .with(jwt().jwt(jwt -> jwt.subject(subject))))
@@ -1352,7 +1354,7 @@ class TaskControllerIT {
     @Test
     void deleteTask_FromDifferentIdentity_Returns404() throws Exception {
         String ownerSubject = createAccountSubject();
-        long ownerAccountId = createAccount(ownerSubject);
+        long ownerAccountId = createAccount(ownerSubject, "awd");
 
         StaticTask task = new StaticTask();
         task.setAccount(accountRepository.getReferenceById(ownerAccountId));
@@ -1367,7 +1369,7 @@ class TaskControllerIT {
         long taskId = saveTask(task).getId();
 
         String attackerSubject = createAccountSubject();
-        createAccount(attackerSubject);
+        createAccount(attackerSubject, "awdd");
 
         mockMvc.perform(delete("/v1/tasks/{id}", taskId)
                 .with(jwt().jwt(jwt -> jwt.subject(attackerSubject))))

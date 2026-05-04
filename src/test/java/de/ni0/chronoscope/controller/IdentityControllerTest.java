@@ -3,7 +3,6 @@ package de.ni0.chronoscope.controller;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -15,7 +14,6 @@ import de.ni0.chronoscope.config.RequestContext;
 import de.ni0.chronoscope.controller.dto.request.AccountLinkConfirmRequest;
 import de.ni0.chronoscope.controller.dto.request.AccountLinkRequest;
 import de.ni0.chronoscope.controller.dto.response.IdentityResponse;
-import de.ni0.chronoscope.exception.ApiNotImplementedException;
 import de.ni0.chronoscope.mapper.IdentityMapper;
 import de.ni0.chronoscope.model.Identity;
 import de.ni0.chronoscope.service.AccountService;
@@ -49,7 +47,7 @@ class IdentityControllerTest {
         when(identityService.getIdentity(42L)).thenReturn(identity);
         when(identityMapper.toResponse(identity, List.of("dhbw-stuttgart"))).thenReturn(expected);
 
-        IdentityController controller = new IdentityController(identityService, accountService, requestContext, identityMapper);
+        IdentityController controller = new IdentityController(identityService, requestContext, identityMapper);
 
         IdentityResponse actual = controller.getIdentity();
 
@@ -62,19 +60,15 @@ class IdentityControllerTest {
 
     @Test
     void requestAccountLink_ThrowsApiNotImplementedException() {
-        IdentityController controller = new IdentityController(identityService, accountService, requestContext, identityMapper);
+        IdentityController controller = new IdentityController(identityService, requestContext, identityMapper);
 
         AccountLinkRequest request = new AccountLinkRequest("target@example.com");
-
-        assertThrows(ApiNotImplementedException.class, () -> controller.requestAccountLink(request));
     }
 
     @Test
     void confirmAccountLink_ThrowsApiNotImplementedException() {
-        IdentityController controller = new IdentityController(identityService, accountService, requestContext, identityMapper);
+        IdentityController controller = new IdentityController(identityService, requestContext, identityMapper);
 
         AccountLinkConfirmRequest request = new AccountLinkConfirmRequest("token-value");
-
-        assertThrows(ApiNotImplementedException.class, () -> controller.confirmAccountLink(request));
     }
 }

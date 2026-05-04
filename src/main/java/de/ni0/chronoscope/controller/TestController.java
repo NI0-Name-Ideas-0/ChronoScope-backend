@@ -89,7 +89,7 @@ public class TestController {
     }
 
     private Account syncSeedAccount() {
-        accountService.syncAccount(devAuthProperties.subject(), devAuthProperties.organizations());
+        accountService.syncAccount(devAuthProperties.subject(), "", devAuthProperties.organizations());
         return accountRepository.findBySubject(devAuthProperties.subject())
             .orElseThrow(() -> new IllegalStateException("Seed account was not created"));
     }
@@ -113,7 +113,7 @@ public class TestController {
     }
 
     private List<Task> createTasks(Account account, List<Organization> organizations, LocalDate startDate, ZoneId zone) {
-        Organization organization = organizations.get(0);
+        Organization organization = organizations.getFirst();
         List<Task> tasks = new ArrayList<>();
 
         tasks.add(taskService.createStaticTask(staticTask(
