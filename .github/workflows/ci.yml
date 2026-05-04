@@ -50,33 +50,40 @@ jobs:
       # Nasty Workaround: madrapps/jacoco-report reads INSTRUCTION coverage only.
       # Create branch-report XML copies where INSTRUCTION fields contain BRANCH values.
       - name: Prepare JaCoCo XML for branch coverage comments
-        if: github.event_name == 'pull_request'
+        id: prepare-coverage
+        if: (success() || failure()) && github.event_name == 'pull_request'
         run: |
-          python3 .github/scripts/jacoco_branch_report.py \
-            target/site/jacoco-algorithm/jacoco.xml \
-            target/site/jacoco-remainder/jacoco.xml
+          if [ -f target/site/jacoco-algorithm/jacoco.xml ] && [ -f target/site/jacoco-remainder/jacoco.xml ]; then
+            python3 .github/scripts/jacoco_branch_report.py \
+              target/site/jacoco-algorithm/jacoco.xml \
+              target/site/jacoco-remainder/jacoco.xml
+            echo "prepared=true" >> $GITHUB_OUTPUT
+          else
+            echo "Coverage XML files not found (build or test failure occurred before JaCoCo ran), skipping coverage comments."
+            echo "prepared=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Post algorithm branch coverage comment to PR
         uses: madrapps/jacoco-report@v1.7.2
-        if: github.event_name == 'pull_request'
+        if: (success() || failure()) && github.event_name == 'pull_request' && steps.prepare-coverage.outputs.prepared == 'true'
         with:
           paths: ${{ github.workspace }}/target/site/jacoco-algorithm/jacoco-branch.xml
           token: ${{ secrets.GITHUB_TOKEN }}
           title: Branch Coverage Report - Algorithm
           update-comment: true
-          comment-type: summary
+          comment-type: both
           min-coverage-overall: 90
           min-coverage-changed-files: 90
 
       - name: Post remainder branch coverage comment to PR
         uses: madrapps/jacoco-report@v1.7.2
-        if: github.event_name == 'pull_request'
+        if: (success() || failure()) && github.event_name == 'pull_request' && steps.prepare-coverage.outputs.prepared == 'true'
         with:
           paths: ${{ github.workspace }}/target/site/jacoco-remainder/jacoco-branch.xml
           token: ${{ secrets.GITHUB_TOKEN }}
           title: Branch Coverage Report - Rest of Project
           update-comment: true
-          comment-type: summary
+          comment-type: both
           min-coverage-overall: 70
           min-coverage-changed-files: 70
 
