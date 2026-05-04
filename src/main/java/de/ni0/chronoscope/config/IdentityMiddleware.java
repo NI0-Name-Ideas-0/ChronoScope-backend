@@ -20,6 +20,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 
+/**
+ * Per-request filter that synchronizes JWT account data and stores identity context for controllers.
+ */
 @RequiredArgsConstructor
 @Component
 public class IdentityMiddleware extends OncePerRequestFilter {

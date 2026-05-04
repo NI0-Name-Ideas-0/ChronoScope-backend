@@ -4,6 +4,9 @@ import java.util.List;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+/**
+ * Configuration properties for browser origins allowed to call the API.
+ */
 @ConfigurationProperties(prefix = "cors")
 public record CorsProperties(List<String> allowedOrigins) {
 

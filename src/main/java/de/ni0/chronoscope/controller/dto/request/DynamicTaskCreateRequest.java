@@ -11,6 +11,9 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
+/**
+ * Create request for a schedulable task with duration, scope-size limits, and dependencies.
+ */
 @Schema(description = "Create request for a dynamic (schedulable) task with duration and scope constraints")
 public record DynamicTaskCreateRequest(
     @NotNull Long accountId,

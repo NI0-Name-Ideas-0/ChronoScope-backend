@@ -6,6 +6,9 @@ import java.util.List;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
+/**
+ * API representation of a schedulable task, including generated scopes and graph links.
+ */
 @Schema(description = "Response for a dynamic (schedulable) task, including its scopes and dependencies")
 public record DynamicTaskResponse(
     Long id,

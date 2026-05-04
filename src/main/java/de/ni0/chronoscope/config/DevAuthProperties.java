@@ -4,6 +4,9 @@ import java.util.List;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+/**
+ * Configuration properties for the development bearer token and its synthetic JWT claims.
+ */
 @ConfigurationProperties(prefix = "chronoscope.dev-auth")
 public record DevAuthProperties(
     String token,

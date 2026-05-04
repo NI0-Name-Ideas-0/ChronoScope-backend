@@ -8,9 +8,19 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingConstants;
 
+/**
+ * MapStruct mapper for identity responses.
+ */
 @Mapper(componentModel = MappingConstants.ComponentModel.SPRING, uses = AccountMapper.class)
 public interface IdentityMapper {
 
+    /**
+     * Converts an identity plus request-specific admin organizations to the API response.
+     *
+     * @param identity loaded identity entity
+     * @param adminOrganizations organization names where the current account has admin privileges
+     * @return response DTO
+     */
     @Mapping(target = "id", source = "identity.id")
     @Mapping(target = "accounts", source = "identity.accounts")
     @Mapping(target = "adminOrganizations", source = "adminOrganizations")

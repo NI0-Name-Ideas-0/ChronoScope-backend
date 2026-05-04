@@ -20,6 +20,9 @@ import de.ni0.chronoscope.controller.dto.response.StaticTaskResponse;
 import de.ni0.chronoscope.model.DynamicTask;
 import de.ni0.chronoscope.model.StaticTask;
 
+/**
+ * MapStruct mapper for task create/update requests and polymorphic task responses.
+ */
 @Mapper(
     componentModel = MappingConstants.ComponentModel.SPRING,
     uses = {LabelMapper.class, ScopeMapper.class, TaskProxyProvider.class},
@@ -28,6 +31,12 @@ import de.ni0.chronoscope.model.StaticTask;
 public interface TaskMapper {
 
     // --- Static task: create ---
+    /**
+     * Converts a static task create request to an entity without account or organization wiring.
+     *
+     * @param request create payload
+     * @return new static task entity
+     */
     @Mapping(target = "id", ignore = true)
     // Account is validated and assigned by controller logic after request parsing.
     @Mapping(target = "account", ignore = true)
@@ -44,6 +53,12 @@ public interface TaskMapper {
     StaticTask fromCreateRequest(StaticTaskCreateRequest request);
 
     // --- Dynamic task: create ---
+    /**
+     * Converts a dynamic task create request to an entity with dependency proxies.
+     *
+     * @param request create payload
+     * @return new dynamic task entity
+     */
     @Mapping(target = "id", ignore = true)
     // Account is validated and assigned by controller logic after request parsing.
     @Mapping(target = "account", ignore = true)
@@ -65,6 +80,12 @@ public interface TaskMapper {
     DynamicTask fromCreateRequest(DynamicTaskCreateRequest request);
 
     // --- Static task: update ---
+    /**
+     * Applies non-null static task patch fields to a managed entity.
+     *
+     * @param request update payload
+     * @param task target task entity
+     */
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "account", ignore = true)
@@ -80,6 +101,14 @@ public interface TaskMapper {
     void fromUpdateRequest(StaticTaskUpdateRequest request, @MappingTarget StaticTask task);
 
     // --- Dynamic task: update ---
+    /**
+     * Applies non-null dynamic task patch fields to a managed entity.
+     *
+     * <p>Dependency and organization changes are handled by the service after validation.</p>
+     *
+     * @param request update payload
+     * @param task target task entity
+     */
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "account", ignore = true)
@@ -101,6 +130,12 @@ public interface TaskMapper {
     void fromUpdateRequest(DynamicTaskUpdateRequest request, @MappingTarget DynamicTask task);
 
     // --- Response mapping ---
+    /**
+     * Converts a static task entity to a response DTO.
+     *
+     * @param task static task entity
+     * @return response DTO
+     */
     @Mapping(target = "accountId", source = "account.id")
     @Mapping(target = "organizationId", source = "organization.id")
     @Mapping(target = "id", source = "id")
@@ -114,6 +149,12 @@ public interface TaskMapper {
     @Mapping(target = "isBlocker", source = "isBlocker")
     StaticTaskResponse toResponse(StaticTask task);
 
+    /**
+     * Converts a dynamic task entity to a response DTO including scopes and graph edge IDs.
+     *
+     * @param task dynamic task entity
+     * @return response DTO
+     */
     @Mapping(target = "accountId", source = "account.id")
     @Mapping(target = "organizationId", source = "organization.id")
     @Mapping(target = "id", source = "id")
@@ -136,6 +177,11 @@ public interface TaskMapper {
     // Label.task is the owning side; Task.labels is inverse.
     // Hibernate reads the owning side for the FK, so we must set it.
     // TODO: labels Many To Many relation refactor maybe?
+    /**
+     * Wires static task labels back to their owning task after mapping.
+     *
+     * @param task mapped static task
+     */
     @AfterMapping
     default void wireLabels(@MappingTarget StaticTask task) {
         if (task.getLabels() == null) return;
@@ -144,6 +190,11 @@ public interface TaskMapper {
         }
     }
 
+    /**
+     * Wires dynamic task labels back to their owning task after mapping.
+     *
+     * @param task mapped dynamic task
+     */
     @AfterMapping
     default void wireLabels(@MappingTarget DynamicTask task) {
         if (task.getLabels() == null) return;
@@ -152,6 +203,11 @@ public interface TaskMapper {
         }
     }
 
+    /**
+     * Ensures dynamic task graph collections are non-null after create/update mapping.
+     *
+     * @param task mapped dynamic task
+     */
     @AfterMapping
     default void wireDependencies(@MappingTarget DynamicTask task) {
         if (task.getDependencies() == null) {
