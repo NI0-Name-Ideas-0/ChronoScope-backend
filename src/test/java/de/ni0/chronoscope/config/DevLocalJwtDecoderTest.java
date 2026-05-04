@@ -23,15 +23,18 @@ class DevLocalJwtDecoderTest {
         DevAuthProperties properties = new DevAuthProperties(
             " dev-token ",
             " local-subject ",
-            "",
-            List.of(" private ", "chronoscope-local")
+            "test@example.com",
+            List.of(" private ", "chronoscope-local"),
+            List.of(" /org-admin/chronoscope-local ")
         );
         DevLocalJwtDecoder decoder = new DevLocalJwtDecoder(properties, () -> delegate);
 
         Jwt jwt = decoder.decode("dev-token");
 
         assertEquals("local-subject", jwt.getSubject());
+        assertEquals("test@example.com", jwt.getClaimAsString("email"));
         assertEquals(List.of("private", "chronoscope-local"), jwt.getClaimAsStringList("organization"));
+        assertEquals(List.of("/org-admin/chronoscope-local"), jwt.getClaimAsStringList("groups"));
         verifyNoInteractions(delegate);
     }
 
@@ -44,7 +47,7 @@ class DevLocalJwtDecoderTest {
         JwtDecoder delegate = mock(JwtDecoder.class);
         when(delegate.decode("real-token")).thenReturn(expectedJwt);
         DevLocalJwtDecoder decoder = new DevLocalJwtDecoder(
-            new DevAuthProperties("dev-token", "local-subject", "", List.of("private")),
+            new DevAuthProperties("dev-token", "local-subject", List.of("private")),
             () -> delegate
         );
 

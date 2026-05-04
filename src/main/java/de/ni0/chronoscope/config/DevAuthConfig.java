@@ -47,7 +47,9 @@ final class DevLocalJwtDecoder implements JwtDecoder {
             return Jwt.withTokenValue(token)
                 .header("alg", "none")
                 .claim("sub", properties.subject())
+                .claim("email", properties.mail())
                 .claim("organization", List.copyOf(properties.organizations()))
+                .claim("groups", List.copyOf(properties.groups()))
                 .build();
         }
 
