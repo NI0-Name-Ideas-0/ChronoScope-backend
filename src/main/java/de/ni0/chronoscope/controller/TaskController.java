@@ -92,6 +92,13 @@ public class TaskController {
                 Account account = accountService.validateAccountOwnership(requestContext.getIdentityId(), staticRequest.accountId());
                 Organization organization = resolveOrganizationForAccountIfPresent(account, staticRequest.organizationId());
                 StaticTask newTask = taskMapper.fromCreateRequest(staticRequest);
+                // Normalize rrule: treat null or blank as empty string (no rrule)
+                String createRrule = staticRequest.rrule();
+                if (createRrule == null || createRrule.isBlank()) {
+                    newTask.setRrule("");
+                } else {
+                    newTask.setRrule(createRrule);
+                }
                 newTask.setAccount(account);
                 newTask.setOrganization(organization);
                 yield taskMapper.toResponse(taskService.createStaticTask(newTask));
@@ -147,6 +154,15 @@ public class TaskController {
                     throw new InvalidRequestException("Task type mismatch: expected static task");
                 }
                 taskMapper.fromUpdateRequest(staticRequest, staticTask);
+                // Update semantics for rrule: omitted (null) -> leave unchanged; provided -> set (blank -> clear)
+                if (staticRequest.rrule() != null) {
+                    String updateRrule = staticRequest.rrule();
+                    if (updateRrule.isBlank()) {
+                        staticTask.setRrule("");
+                    } else {
+                        staticTask.setRrule(updateRrule);
+                    }
+                }
                 if (staticRequest.accountId() != null) {
                     Account account = accountService.validateAccountOwnership(requestContext.getIdentityId(), staticRequest.accountId());
                     staticTask.setAccount(account);
