@@ -105,6 +105,7 @@ public class IdentityService {
         String link = "https://chronoscope.ni0.team/link-account?token=" + token;
 
         SimpleMailMessage message = new SimpleMailMessage();
+        message.setFrom("noreply@ni0.team");
         message.setTo(to);
         message.setSubject("Link your account");
         message.setText(
