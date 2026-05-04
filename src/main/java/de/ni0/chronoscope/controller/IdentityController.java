@@ -79,6 +79,12 @@ public class IdentityController {
         this.identityService.sendLink(accountId, targetEmail);
     }
 
+    /**
+     * Confirms an account-link token and merges the target account's identity into the source identity.
+     *
+     * @param request the confirmation token payload
+     * @return IDs of the accounts involved in the merge
+     */
     @Operation(summary = "Confirm account linking", description = "Confirm a pending account link using the token received via e-mail. Returns the IDs of both linked accounts.")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Account link confirmed"),

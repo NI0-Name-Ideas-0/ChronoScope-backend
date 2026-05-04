@@ -24,7 +24,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * Service layer for identity operations.
+ * Service layer for identity lookup, creation, and account-link workflows.
  */
 @Service
 @RequiredArgsConstructor
@@ -73,6 +73,12 @@ public class IdentityService {
             .orElseThrow(() -> new ResourceNotFoundException("Identity not found: " + identityId));
     }
 
+    /**
+     * Confirms an account-link token and moves all target identity accounts to the source identity.
+     *
+     * @param token signed token produced by {@link #sendLink(long, String)}
+     * @return merge result containing the source and target account IDs
+     */
     public AccountLinkConfirmResponse mergeAccounts(String token) {
         Claims claims = this.getTokenClaims(token);
         Long sourceId = Long.valueOf(claims.getSubject());
@@ -91,6 +97,12 @@ public class IdentityService {
         return new AccountLinkConfirmResponse(sourceId, targetId, "merged");
     }
 
+    /**
+     * Sends a short-lived account-link confirmation mail to another account.
+     *
+     * @param accountId source account requesting the merge
+     * @param targetMail e-mail address of the target account
+     */
     public void sendLink(long accountId, String targetMail) {
         Optional<Account> targetAccountOpt = this.accountRepository.findByMail(targetMail);
         if (targetAccountOpt.isEmpty()) {

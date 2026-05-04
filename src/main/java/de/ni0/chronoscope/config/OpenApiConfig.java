@@ -15,12 +15,20 @@ import org.springframework.context.annotation.Profile;
 
 import java.util.List;
 
+/**
+ * OpenAPI metadata used when generating the published API specification.
+ */
 @Profile("generate")
 @Configuration
 public class OpenApiConfig {
 
     private static final String KEYCLOAK_BASE = "https://auth.ni0.team/realms/ni0/protocol/openid-connect";
 
+    /**
+     * Builds the OpenAPI document with production server and OAuth2 metadata.
+     *
+     * @return OpenAPI configuration model
+     */
     @Bean
     public OpenAPI chronoScopeOpenAPI() {
         return new OpenAPI()

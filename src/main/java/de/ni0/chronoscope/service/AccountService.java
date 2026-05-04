@@ -19,6 +19,9 @@ import de.ni0.chronoscope.repository.IdentityRepository;
 import de.ni0.chronoscope.repository.OrganizationRepository;
 import lombok.RequiredArgsConstructor;
 
+/**
+ * Coordinates account ownership, organization access, and account synchronization from JWT data.
+ */
 @Service
 @RequiredArgsConstructor
 public class AccountService {
@@ -26,6 +29,13 @@ public class AccountService {
     private final IdentityRepository identityRepository;
     private final OrganizationRepository organizationRepository;
 
+    /**
+     * Loads an account and verifies that it belongs to the authenticated identity.
+     *
+     * @param identityId authenticated identity ID
+     * @param accountId account to validate
+     * @return the validated account
+     */
     public Account validateAccountOwnership(long identityId, Long accountId) {
         Account account = accountRepository.findById(accountId)
                 .orElseThrow(AccountNotFoundException::new);
@@ -35,12 +45,25 @@ public class AccountService {
         return account;
     }
 
+    /**
+     * Verifies that the account is linked to the requested organization.
+     *
+     * @param accountId account to validate
+     * @param organizationId organization that must be accessible
+     */
     public void validateAccountOrgAccess(long accountId, long organizationId) {
         if (!accountRepository.existsByIdAndOrganizationsId(accountId, organizationId)) {
             throw new AccountAccessDeniedException("Account does not have access to the specified organization");
         }
     }
 
+    /**
+     * Loads an organization after confirming the account is allowed to use it.
+     *
+     * @param accountId account requesting the organization
+     * @param organizationId organization to resolve
+     * @return the resolved organization
+     */
     public Organization resolveOrganizationForAccount(long accountId, long organizationId) {
         Organization organization = organizationRepository.findById(organizationId)
                 .orElseThrow(() -> new InvalidRequestException("Organization not found: " + organizationId));
@@ -48,6 +71,17 @@ public class AccountService {
         return organization;
     }
 
+    /**
+     * Creates or updates the account represented by an authentication token.
+     *
+     * <p>The method also reconciles the account's organization memberships with the token
+     * claims, creating missing organizations by name.</p>
+     *
+     * @param subject unique external authentication subject
+     * @param mail account e-mail claim
+     * @param organizationNames organization names from the token
+     * @return ID of the synchronized account
+     */
     public long syncAccount(String subject, String mail, List<String> organizationNames) {
         // Find or create account by subject
         Account account = findOrCreateAccount(subject, mail);

@@ -8,6 +8,9 @@ import org.springframework.web.context.annotation.RequestScope;
 import lombok.Getter;
 import lombok.Setter;
 
+/**
+ * Request-scoped holder for authenticated identity data extracted by {@link IdentityMiddleware}.
+ */
 @Component
 @Setter
 @Getter

@@ -23,6 +23,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Application service that turns dynamic tasks and work slots into persisted planned scopes.
+ */
 @Service
 @RequiredArgsConstructor
 public class PlanningService {
@@ -32,6 +35,16 @@ public class PlanningService {
     private final WorkSlotService workSlotService;
     private final AccountService accountService;
 
+    /**
+     * Replans all dynamic tasks for an account and organization.
+     *
+     * <p>Existing scopes for the planned tasks are deleted only after a valid replacement plan
+     * has been calculated.</p>
+     *
+     * @param accountId account whose tasks should be planned
+     * @param orgId organization to constrain the plan to
+     * @return newly persisted scopes, or an empty list when there is nothing to plan
+     */
     @Transactional
     public List<Scope> planTasksForAccount(long accountId, long orgId) {
         accountService.validateAccountOrgAccess(accountId, orgId);

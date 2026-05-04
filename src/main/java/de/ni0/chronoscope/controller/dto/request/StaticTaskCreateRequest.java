@@ -10,6 +10,12 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
+/**
+ * Create request for a fixed-time task.
+ *
+ * <p>Non-blocker static tasks must be assigned to an organization; blocker tasks may be
+ * organization-independent.</p>
+ */
 @Schema(description = "Create request for a static (fixed-time) task")
 @ValidStaticTaskOrganization
 public record StaticTaskCreateRequest(

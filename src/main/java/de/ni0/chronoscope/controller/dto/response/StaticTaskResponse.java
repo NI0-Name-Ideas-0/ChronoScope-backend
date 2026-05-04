@@ -5,6 +5,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.Instant;
 import java.util.List;
 
+/**
+ * API representation of a fixed-time task.
+ */
 @Schema(description = "Response for a static (fixed-time) task")
 public record StaticTaskResponse(
     Long id,

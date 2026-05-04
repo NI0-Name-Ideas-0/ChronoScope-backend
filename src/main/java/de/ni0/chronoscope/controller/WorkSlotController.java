@@ -24,6 +24,9 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * REST controller for availability windows used by the planner.
+ */
 @Tag(name = "Work Slots", description = "Manage available work slots used by the planning algorithm")
 @RestController
 @RequestMapping("/v1/workslots")
@@ -35,6 +38,11 @@ public class WorkSlotController {
     private final AccountService accountService;
     private final RequestContext requestContext;
 
+    /**
+     * Lists all work slots visible to the authenticated identity.
+     *
+     * @return work-slot responses
+     */
     @Operation(summary = "List work slots", description = "Return all work slots belonging to the current identity.")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Work slots retrieved successfully"),
@@ -47,6 +55,12 @@ public class WorkSlotController {
                 .toList();
     }
 
+    /**
+     * Creates a work slot for an account owned by the authenticated identity.
+     *
+     * @param request work-slot creation payload
+     * @return created work slot
+     */
     @Operation(summary = "Create work slot", description = "Create a new available work slot for the given account.")
     @ApiResponses({
         @ApiResponse(responseCode = "201", description = "Work slot created"),
@@ -61,6 +75,13 @@ public class WorkSlotController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
+    /**
+     * Partially updates the time boundaries of a work slot.
+     *
+     * @param id work slot ID
+     * @param request patch payload
+     * @return updated work slot
+     */
     @Operation(summary = "Update work slot", description = "Update the start/end times of an existing work slot (PATCH semantics).")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Work slot updated"),
@@ -76,6 +97,11 @@ public class WorkSlotController {
         return workSlotMapper.toResponse(updated);
     }
 
+    /**
+     * Deletes a work slot owned by the authenticated identity.
+     *
+     * @param id work slot ID
+     */
     @Operation(summary = "Delete work slot", description = "Delete a work slot.")
     @ApiResponses({
         @ApiResponse(responseCode = "204", description = "Work slot deleted"),

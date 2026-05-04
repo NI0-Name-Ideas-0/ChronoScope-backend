@@ -42,6 +42,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
+/**
+ * REST controller for task CRUD operations and dynamic-task dependency updates.
+ */
 @Tag(name = "Tasks", description = "Create, read, update and delete tasks and their dependencies")
 @RestController
 @RequestMapping("/v1/tasks")
@@ -53,6 +56,11 @@ public class TaskController {
     private final AccountService accountService;
     private final RequestContext requestContext;
 
+    /**
+     * Lists all tasks visible to the authenticated identity.
+     *
+     * @return task responses, preserving the static/dynamic discriminator
+     */
     @Operation(summary = "List tasks", description = "Return all tasks belonging to the current identity, including tasks from linked accounts. Each task is either a StaticTask or a DynamicTask, discriminated by the \"type\" field.")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Tasks retrieved successfully"),
@@ -78,6 +86,12 @@ public class TaskController {
         };
     }
 
+    /**
+     * Creates either a static or dynamic task based on the request discriminator.
+     *
+     * @param request polymorphic task creation payload
+     * @return created task response
+     */
     @Operation(summary = "Create task", description = "Create a new task. Set \"type\" to \"static\" for a StaticTask or \"dynamic\" for a DynamicTask with scheduling metadata.")
     @ApiResponses({
         @ApiResponse(responseCode = "201", description = "Task created"),
@@ -115,6 +129,12 @@ public class TaskController {
         return accountService.resolveOrganizationForAccount(account.getId(), organizationId);
     }
 
+    /**
+     * Retrieves one task through the authenticated identity boundary.
+     *
+     * @param id task ID
+     * @return matching task response
+     */
     @Operation(summary = "Get task", description = "Retrieve a single task by ID, including its labels, scopes (dynamic tasks) and dependencies.")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Task retrieved successfully"),
@@ -127,6 +147,13 @@ public class TaskController {
         return mapTask(taskService.getTaskForIdentity(requestContext.getIdentityId(), id));
     }
 
+    /**
+     * Applies a partial update to a static or dynamic task.
+     *
+     * @param id task ID
+     * @param request polymorphic patch payload
+     * @return updated task response
+     */
     @Operation(summary = "Update task", description = "Partially update a task (PATCH semantics — omitted fields are left unchanged). The \"type\" discriminator must match the existing task type.")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Task updated successfully"),
@@ -167,6 +194,11 @@ public class TaskController {
         };
     }
 
+    /**
+     * Deletes a task and its owned labels/scopes/dependency edges.
+     *
+     * @param id task ID
+     */
     @Operation(summary = "Delete task", description = "Delete a task and all its associated labels, scopes and dependencies.")
     @ApiResponses({
         @ApiResponse(responseCode = "204", description = "Task deleted"),

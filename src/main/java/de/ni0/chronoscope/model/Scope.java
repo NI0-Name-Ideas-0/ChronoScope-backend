@@ -8,6 +8,9 @@ import java.time.Instant;
 // @Getter/@Setter instead of @Data: @Data's generated toString/equals/hashCode are unsafe on JPA
 // entities — bidirectional associations cause StackOverflowError in toString, and field-based
 // hashCode becomes unstable when Hibernate assigns the id after persist.
+/**
+ * Planned time window assigned to a dynamic task by the planning algorithm.
+ */
 @Getter
 @Setter
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)

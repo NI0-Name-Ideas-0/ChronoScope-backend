@@ -5,6 +5,12 @@ import lombok.Getter;
 import lombok.Setter;
 
 // @Getter/@Setter only — equals/hashCode are inherited from Task (id-based, safe with Hibernate proxies)
+/**
+ * Fixed-time task that already occupies a known interval.
+ *
+ * <p>Blocker static tasks can be unassigned from an organization; non-blockers must be
+ * associated with one.</p>
+ */
 @Getter
 @Setter
 @Entity

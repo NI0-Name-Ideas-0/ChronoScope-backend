@@ -8,8 +8,22 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Critical Path Method calculator for a dynamic-task dependency graph.
+ *
+ * <p>The planner uses CPM slack as a weighting signal so tasks with less scheduling freedom
+ * are tried earlier.</p>
+ */
 public class CPM {
+    /**
+     * Earliest/latest timing data calculated for one task graph node.
+     */
     public record TaskData(TaskGraphNode task, Instant earliestStart, Instant earliestFinish, Instant latestStart, Instant latestFinish) {
+        /**
+         * Returns the difference between earliest and latest start.
+         *
+         * @return available scheduling slack for the task
+         */
         public Duration getSlack() {
             return this.earliestStart.until(this.latestStart);
         }
@@ -44,6 +58,12 @@ public class CPM {
         return latestFinish;
     }
 
+    /**
+     * Calculates CPM timing data for the provided graph nodes.
+     *
+     * @param tasks task graph nodes to analyze
+     * @param start default start time used for tasks with no dependency-imposed start
+     */
     public CPM(List<TaskGraphNode> tasks, Instant start) {
         for (TaskGraphNode task : tasks) {
             Instant firstStart = calcFirstStart(task, start);

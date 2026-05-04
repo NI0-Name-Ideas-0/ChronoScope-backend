@@ -4,6 +4,9 @@ import java.util.List;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
+/**
+ * API representation of the authenticated identity and all linked accounts.
+ */
 public record IdentityResponse(
     Long id,
     List<AccountResponse> accounts,

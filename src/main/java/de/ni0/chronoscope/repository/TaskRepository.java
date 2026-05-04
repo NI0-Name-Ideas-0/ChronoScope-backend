@@ -11,18 +11,54 @@ import org.springframework.data.repository.query.Param;
 import de.ni0.chronoscope.model.DynamicTask;
 import de.ni0.chronoscope.model.Task;
 
+/**
+ * Repository for static and dynamic tasks in the joined inheritance hierarchy.
+ */
 public interface TaskRepository extends JpaRepository<Task, Long> {
+    /**
+     * Loads all tasks visible to an identity with labels eagerly available for response mapping.
+     *
+     * @param identityId identity ID
+     * @return matching tasks
+     */
     @EntityGraph(attributePaths = { "labels" })
     List<Task> findByAccountIdentityId(long identityId);
 
+    /**
+     * Loads dynamic tasks visible to an identity with dependency edges eagerly available.
+     *
+     * @param identityId identity ID
+     * @return matching dynamic tasks
+     */
     @EntityGraph(attributePaths = { "dependencies", "dependents" })
     List<DynamicTask> findDynamicTasksByAccountIdentityId(long identityId);
 
+    /**
+     * Loads dynamic tasks for planning a single account and organization.
+     *
+     * @param accountId account ID
+     * @param organizationId organization ID
+     * @return matching dynamic tasks
+     */
     @EntityGraph(attributePaths = { "dependencies", "dependents" })
     List<DynamicTask> findDynamicTasksByAccountIdAndOrganizationId(Long accountId, Long organizationId);
 
+    /**
+     * Finds one task while enforcing the identity boundary.
+     *
+     * @param id task ID
+     * @param identityId identity ID
+     * @return matching task, if present
+     */
     Optional<Task> findByIdAndAccountIdentityId(Long id, Long identityId);
 
+    /**
+     * Finds dynamic tasks that depend on a given dynamic task within one identity.
+     *
+     * @param dependencyId dependency task ID
+     * @param identityId identity ID
+     * @return dependents that reference the dependency
+     */
     @Query("""
             select dt
             from DynamicTask dt

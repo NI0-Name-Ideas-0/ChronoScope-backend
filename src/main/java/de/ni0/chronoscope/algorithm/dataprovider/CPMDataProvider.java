@@ -9,7 +9,7 @@ import java.time.Duration;
 import java.util.List;
 
 /**
- * DataProvider for CPM
+ * Weight provider that favors dynamic tasks with lower Critical Path Method slack.
  */
 public class CPMDataProvider implements WeightDataProvider {
     private CPM cpm;
@@ -17,9 +17,10 @@ public class CPMDataProvider implements WeightDataProvider {
     private long maxSlack;
 
     /**
-     * Calculates the min and max slack of all tasks.
-     * @param ctx Can be used as a source for necessary data
-     * @param tasks Tasks to be weighted
+     * Calculates CPM data plus min/max slack for the current ready-task set.
+     *
+     * @param ctx current planner context
+     * @param tasks tasks that may be selected next
      */
     @Override
     public void calculate(DataProviderContext ctx, List<TaskGraphNode> tasks) {
@@ -33,9 +34,10 @@ public class CPMDataProvider implements WeightDataProvider {
     }
 
     /**
-     * The weight is normalized using: (taskSlack - minSlack) / (maxSlack - minSlack)
-     * @param task The task to get the weight for
-     * @return The weight
+     * Returns inverse normalized slack so lower slack becomes higher priority.
+     *
+     * @param task task to score
+     * @return normalized planner weight
      */
     @Override
     public double getWeight(TaskGraphNode task) {
