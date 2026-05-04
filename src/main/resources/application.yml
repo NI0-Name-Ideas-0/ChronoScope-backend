@@ -11,8 +11,8 @@ spring:
   datasource:
     url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1
   mail:
-    host: 127.0.0.1
-    port: 25
+    host: ${SMTP_HOST:127.0.0.1}
+    port: ${SMTP_PORT:25}
 
 springdoc:
   swagger-ui:
