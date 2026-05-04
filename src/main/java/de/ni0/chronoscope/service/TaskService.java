@@ -208,10 +208,19 @@ public class TaskService {
 
     private void validateStaticTask(StaticTask task) {
         validateCommonTaskFields(task);
+        if (task.getIsBlocker() == null) {
+            throw new InvalidRequestException("isBlocker must be provided");
+        }
+        if (!Boolean.TRUE.equals(task.getIsBlocker()) && task.getOrganization() == null) {
+            throw new InvalidRequestException("organizationId is required unless isBlocker is true");
+        }
     }
 
     private void validateAndNormalizeDynamicTask(DynamicTask task) {
         validateCommonTaskFields(task);
+        if (task.getOrganization() == null) {
+            throw new InvalidRequestException("organizationId must be provided");
+        }
 
         Duration duration = task.getDuration();
         Duration minScopeDuration = task.getMinScopeDuration();
