@@ -152,7 +152,6 @@ public class TestController {
             4,
             at(startDate, 8, 0, zone),
             at(startDate.plusDays(14), 18, 0, zone),
-            "FREQ=DAILY;INTERVAL=1",
             Duration.ofHours(8),
             Duration.ofHours(1),
             Duration.ofMinutes(45),
@@ -174,7 +173,6 @@ public class TestController {
             2,
             at(startDate, 8, 0, zone),
             at(startDate.plusDays(14), 18, 0, zone),
-            "FREQ=DAILY;INTERVAL=1",
             Duration.ofHours(2),
             Duration.ZERO,
             Duration.ofMinutes(30),
@@ -202,7 +200,8 @@ public class TestController {
         String... labels
     ) {
         StaticTask task = new StaticTask();
-        applyTaskFields(task, account, organization, name, description, difficulty, startAt, endAt, rrule, labels);
+        applyTaskFields(task, account, organization, name, description, difficulty, startAt, endAt, labels);
+        task.setRrule(rrule);
         task.setIsBlocker(isBlocker);
         return task;
     }
@@ -215,7 +214,6 @@ public class TestController {
         int difficulty,
         Instant startAt,
         Instant endAt,
-        String rrule,
         Duration duration,
         Duration elapsed,
         Duration minScopeDuration,
@@ -224,7 +222,7 @@ public class TestController {
         String... labels
     ) {
         DynamicTask task = new DynamicTask();
-        applyTaskFields(task, account, organization, name, description, difficulty, startAt, endAt, rrule, labels);
+        applyTaskFields(task, account, organization, name, description, difficulty, startAt, endAt, labels);
         task.setDuration(duration);
         task.setElapsed(elapsed);
         task.setMinScopeDuration(minScopeDuration);
@@ -244,7 +242,6 @@ public class TestController {
         int difficulty,
         Instant startAt,
         Instant endAt,
-        String rrule,
         String... labels
     ) {
         task.setAccount(account);
@@ -254,7 +251,6 @@ public class TestController {
         task.setDifficulty(difficulty);
         task.setStartAt(startAt);
         task.setEndAt(endAt);
-        task.setRrule(rrule);
         task.setLabels(labelsFor(task, labels));
     }
 

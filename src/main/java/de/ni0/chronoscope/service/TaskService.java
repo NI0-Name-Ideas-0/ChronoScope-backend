@@ -113,7 +113,6 @@ public class TaskService {
         managedTask.setDifficulty(task.getDifficulty());
         managedTask.setStartAt(task.getStartAt());
         managedTask.setEndAt(task.getEndAt());
-        managedTask.setRrule(task.getRrule());
         managedTask.setDuration(task.getDuration());
         managedTask.setElapsed(task.getElapsed());
         managedTask.setMinScopeDuration(task.getMinScopeDuration());
@@ -180,7 +179,6 @@ public class TaskService {
         managedTask.setDifficulty(task.getDifficulty());
         managedTask.setStartAt(task.getStartAt());
         managedTask.setEndAt(task.getEndAt());
-        managedTask.setRrule(task.getRrule());
         managedTask.setIsBlocker(task.getIsBlocker());
         if (organization != null) {
             managedTask.setOrganization(organization);

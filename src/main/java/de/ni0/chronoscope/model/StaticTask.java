@@ -1,6 +1,8 @@
 package de.ni0.chronoscope.model;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.DiscriminatorValue;
+import jakarta.persistence.Entity;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -10,6 +12,9 @@ import lombok.Setter;
 @Entity
 @DiscriminatorValue("static")
 public class StaticTask extends Task {
+
+    @Column(nullable = false)
+    private String rrule;
 
     @Column(nullable = false)
     private Boolean isBlocker;

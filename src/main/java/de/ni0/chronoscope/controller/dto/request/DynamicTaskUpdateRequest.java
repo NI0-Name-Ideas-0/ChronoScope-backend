@@ -20,7 +20,6 @@ public record DynamicTaskUpdateRequest(
     Long organizationId,
     @Size(min = 1) String name,
     String description,
-    String rrule,
     @Positive @Max(5) Integer difficulty,
     Instant startAt,
     Instant endAt,

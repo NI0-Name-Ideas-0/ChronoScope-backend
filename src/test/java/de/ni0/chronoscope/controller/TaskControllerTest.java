@@ -1,20 +1,19 @@
 package de.ni0.chronoscope.controller;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
-
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import static org.mockito.ArgumentMatchers.any;
 import org.mockito.Mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -84,7 +83,6 @@ class TaskControllerTest {
             2,
             Instant.parse("2026-04-20T08:00:00Z"),
             Instant.parse("2026-04-22T18:00:00Z"),
-            "FREQ=DAILY",
             List.of(),
                 Duration.ofMinutes(120),
                 Duration.ofMinutes(0),
@@ -252,7 +250,6 @@ class TaskControllerTest {
             1L,
             "Implement API endpoint",
             "Create and test endpoint",
-            "FREQ=DAILY",
             4,
             Instant.parse("2026-04-20T08:00:00Z"),
             Instant.parse("2026-04-25T18:00:00Z"),
@@ -280,7 +277,6 @@ class TaskControllerTest {
             4,
             Instant.parse("2026-04-20T08:00:00Z"),
             Instant.parse("2026-04-25T18:00:00Z"),
-            "FREQ=DAILY",
             List.of(),
                 Duration.of(240, ChronoUnit.MINUTES),
                 Duration.of(0, ChronoUnit.MINUTES),
@@ -393,7 +389,6 @@ class TaskControllerTest {
             2,
             Instant.parse("2026-04-20T08:00:00Z"),
             Instant.parse("2026-04-22T18:00:00Z"),
-            "FREQ=DAILY",
             List.of(),
                 Duration.of(120, ChronoUnit.MINUTES),
                 Duration.of(0, ChronoUnit.MINUTES),
@@ -479,7 +474,6 @@ class TaskControllerTest {
             null,
             "Dynamic name",
             "Dynamic description",
-            "FREQ=DAILY",
             2,
             Instant.parse("2026-04-20T09:00:00Z"),
             Instant.parse("2026-04-20T10:00:00Z"),
