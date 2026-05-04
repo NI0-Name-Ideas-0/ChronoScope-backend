@@ -61,8 +61,6 @@ public abstract class Task {
     private Instant startAt;
     @Column(name = "end_at", nullable = false)
     private Instant endAt;
-    @Column(nullable = false)
-    private String rrule;
 
     @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
     @ToString.Exclude // bidirectional: Label.task -> this Task, would recurse infinitely in toString

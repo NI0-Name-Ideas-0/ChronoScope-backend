@@ -20,7 +20,6 @@ public record DynamicTaskCreateRequest(
     @NotNull Long organizationId,
     @NotBlank String name,
     @NotNull String description,
-    @NotNull String rrule,
     @NotNull @Positive @Max(5) Integer difficulty,
     @NotNull Instant startAt,
     @NotNull Instant endAt,

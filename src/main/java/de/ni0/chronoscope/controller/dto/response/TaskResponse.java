@@ -1,10 +1,10 @@
 package de.ni0.chronoscope.controller.dto.response;
 
-import com.fasterxml.jackson.annotation.JsonSubTypes;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
-
 import java.time.Instant;
 import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 /**
  * Polymorphic task response contract emitted with the JSON {@code type} discriminator.
@@ -24,6 +24,5 @@ public sealed interface TaskResponse permits StaticTaskResponse, DynamicTaskResp
     Integer difficulty();
     Instant startAt();
     Instant endAt();
-    String rrule();
     List<LabelResponse> labels();
 }

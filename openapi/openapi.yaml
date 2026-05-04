@@ -568,8 +568,6 @@ components:
           organizationId:
             type: integer
             format: int64
-          rrule:
-            type: string
           startAt:
             type: string
             format: date-time
@@ -587,7 +585,6 @@ components:
       - minScopeDuration
       - name
       - organizationId
-      - rrule
       - startAt
     DynamicTaskResponse:
       allOf:
@@ -635,8 +632,6 @@ components:
           organizationId:
             type: integer
             format: int64
-          rrule:
-            type: string
           scopes:
             type: array
             items:
@@ -687,8 +682,6 @@ components:
           organizationId:
             type: integer
             format: int64
-          rrule:
-            type: string
           startAt:
             type: string
             format: date-time

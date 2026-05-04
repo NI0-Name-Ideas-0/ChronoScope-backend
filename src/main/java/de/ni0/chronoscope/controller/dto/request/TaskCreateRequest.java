@@ -1,10 +1,10 @@
 package de.ni0.chronoscope.controller.dto.request;
 
-import com.fasterxml.jackson.annotation.JsonSubTypes;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
-
 import java.time.Instant;
 import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 /**
  * Polymorphic task creation contract selected by the JSON {@code type} discriminator.
@@ -20,7 +20,6 @@ public sealed interface TaskCreateRequest permits StaticTaskCreateRequest, Dynam
     Long organizationId();
     String name();
     String description();
-    String rrule();
     Integer difficulty();
     Instant startAt();
     Instant endAt();

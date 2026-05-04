@@ -69,7 +69,6 @@ public interface TaskMapper {
     @Mapping(target = "difficulty", source = "difficulty")
     @Mapping(target = "startAt", source = "startAt")
     @Mapping(target = "endAt", source = "endAt")
-    @Mapping(target = "rrule", source = "rrule")
     @Mapping(target = "labels", source = "labels")
     @Mapping(target = "duration", source = "duration")
     @Mapping(target = "minScopeDuration", source = "minScopeDuration")
@@ -98,7 +97,6 @@ public interface TaskMapper {
     @Mapping(target = "difficulty", source = "difficulty")
     @Mapping(target = "startAt", source = "startAt")
     @Mapping(target = "endAt", source = "endAt")
-    @Mapping(target = "rrule", source = "rrule")
     @Mapping(target = "isBlocker", source = "isBlocker")
     void fromUpdateRequest(StaticTaskUpdateRequest request, @MappingTarget StaticTask task);
 
@@ -125,7 +123,6 @@ public interface TaskMapper {
     @Mapping(target = "difficulty", source = "difficulty")
     @Mapping(target = "startAt", source = "startAt")
     @Mapping(target = "endAt", source = "endAt")
-    @Mapping(target = "rrule", source = "rrule")
     @Mapping(target = "duration", source = "duration")
     @Mapping(target = "elapsed", source = "elapsed")
     @Mapping(target = "minScopeDuration", source = "minScopeDuration")
@@ -166,7 +163,6 @@ public interface TaskMapper {
     @Mapping(target = "difficulty", source = "difficulty")
     @Mapping(target = "startAt", source = "startAt")
     @Mapping(target = "endAt", source = "endAt")
-    @Mapping(target = "rrule", source = "rrule")
     @Mapping(target = "labels", source = "labels")
     @Mapping(target = "duration", source = "duration")
     @Mapping(target = "elapsed", source = "elapsed")

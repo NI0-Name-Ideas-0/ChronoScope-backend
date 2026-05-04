@@ -112,7 +112,6 @@ class RepositoryMappingsIT {
         predecessor.setDifficulty(1);
         predecessor.setStartAt(Instant.parse("2026-04-20T09:00:00Z"));
         predecessor.setEndAt(Instant.parse("2026-04-20T10:00:00Z"));
-        predecessor.setRrule("FREQ=DAILY");
         predecessor.setDuration(Duration.of(60, ChronoUnit.MINUTES));
         predecessor.setElapsed(Duration.of(0, ChronoUnit.MINUTES));
         predecessor.setMinScopeDuration(Duration.of(15, ChronoUnit.MINUTES));
@@ -131,7 +130,6 @@ class RepositoryMappingsIT {
         dependent.setDifficulty(2);
         dependent.setStartAt(Instant.parse("2026-04-20T10:00:00Z"));
         dependent.setEndAt(Instant.parse("2026-04-20T12:00:00Z"));
-        dependent.setRrule("FREQ=DAILY");
         dependent.setDuration(Duration.of(120, ChronoUnit.MINUTES));
         dependent.setElapsed(Duration.of(0, ChronoUnit.MINUTES));
         dependent.setMinScopeDuration(Duration.of(30, ChronoUnit.MINUTES));
@@ -191,7 +189,6 @@ class RepositoryMappingsIT {
         task.setDifficulty(1);
         task.setStartAt(Instant.parse("2026-04-26T08:00:00Z"));
         task.setEndAt(Instant.parse("2026-04-26T18:00:00Z"));
-        task.setRrule("FREQ=DAILY");
         task.setDuration(Duration.of(60, ChronoUnit.MINUTES));
         task.setElapsed(Duration.of(0, ChronoUnit.MINUTES));
         task.setMinScopeDuration(Duration.of(30, ChronoUnit.MINUTES));

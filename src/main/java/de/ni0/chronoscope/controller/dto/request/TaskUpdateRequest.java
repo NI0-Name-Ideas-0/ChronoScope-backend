@@ -19,7 +19,6 @@ public sealed interface TaskUpdateRequest permits StaticTaskUpdateRequest, Dynam
     Long organizationId();
     String name();
     String description();
-    String rrule();
     Integer difficulty();
     Instant startAt();
     Instant endAt();
