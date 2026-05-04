@@ -9,7 +9,16 @@ import org.springframework.data.repository.query.Param;
 import de.ni0.chronoscope.model.Account;
 import de.ni0.chronoscope.model.Identity;
 
+/**
+ * Repository for identities and their linked accounts.
+ */
 public interface IdentityRepository extends JpaRepository<Identity, Long> {
+    /**
+     * Finds the identity that owns the supplied account.
+     *
+     * @param account account linked to the identity
+     * @return matching identity, if present
+     */
     Optional<Identity> findByAccountsContains(Account account);
 
     /**
