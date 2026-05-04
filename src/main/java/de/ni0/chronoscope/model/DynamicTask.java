@@ -9,9 +9,14 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.Duration;
-import java.util.List;
 
 // @Getter/@Setter only — equals/hashCode are inherited from Task (id-based, safe with Hibernate proxies)
+/**
+ * Schedulable task whose duration can be split into planned {@link Scope} windows.
+ *
+ * <p>Dynamic tasks form a directed dependency graph through {@code dependencies} and
+ * {@code dependents}; the planning algorithm uses that graph to decide execution order.</p>
+ */
 @Getter
 @Setter
 @Entity
@@ -45,7 +50,9 @@ public class DynamicTask extends Task {
     @ManyToMany(mappedBy = "dependencies")
     private Set<DynamicTask> dependents = new HashSet<>();
 
-
+    /**
+     * Stores {@link Duration} values as whole seconds in numeric database columns.
+     */
     @Converter
     public static class DurationToLongConverter implements AttributeConverter<Duration, Long> {
 
