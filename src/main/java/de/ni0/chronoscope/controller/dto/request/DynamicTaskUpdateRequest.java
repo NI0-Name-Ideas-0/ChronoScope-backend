@@ -14,6 +14,12 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 
+/**
+ * Partial update request for a dynamic task.
+ *
+ * <p>Null fields are ignored by the mapper, while provided fields are validated before the
+ * service persists the update.</p>
+ */
 @Schema(description = "Update request for a dynamic (schedulable) task")
 public record DynamicTaskUpdateRequest(
     Long accountId,
@@ -32,11 +38,22 @@ public record DynamicTaskUpdateRequest(
     List<@NotNull Long> dependencies
 ) implements TaskUpdateRequest {
 
+    /**
+     * Validation hook that permits omitted duration updates while rejecting negative values.
+     *
+     * @return {@code true} when the duration is absent or non-negative
+     */
     @JsonIgnore
     @AssertTrue(message = "duration must be non-negative")
     public boolean isDurationValid() {
         return duration == null || !duration.isNegative();
     }
+
+    /**
+     * Validation hook that permits omitted elapsed-time updates while rejecting negative values.
+     *
+     * @return {@code true} when elapsed time is absent or non-negative
+     */
     @JsonIgnore
     @AssertTrue(message = "elapsed must be non-negative")
     public boolean isElapsedValid() {

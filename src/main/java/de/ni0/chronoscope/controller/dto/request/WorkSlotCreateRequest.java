@@ -4,6 +4,9 @@ import jakarta.validation.constraints.NotNull;
 
 import java.time.Instant;
 
+/**
+ * Request payload for creating an availability window.
+ */
 public record WorkSlotCreateRequest(
     @NotNull Long accountId,
     @NotNull Long organizationId,

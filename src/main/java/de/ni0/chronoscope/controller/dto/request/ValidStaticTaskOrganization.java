@@ -9,6 +9,9 @@ import java.lang.annotation.Target;
 import jakarta.validation.Constraint;
 import jakarta.validation.Payload;
 
+/**
+ * Class-level constraint requiring {@code organizationId} unless the static task is a blocker.
+ */
 @Documented
 @Constraint(validatedBy = StaticTaskOrganizationValidator.class)
 @Target(ElementType.TYPE)
