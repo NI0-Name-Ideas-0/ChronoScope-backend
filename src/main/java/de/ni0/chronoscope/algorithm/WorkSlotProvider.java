@@ -5,10 +5,19 @@ import lombok.RequiredArgsConstructor;
 
 import java.util.List;
 
+/**
+ * Cyclic provider for the ordered work-slot list used during planning.
+ */
 @RequiredArgsConstructor
 public class WorkSlotProvider {
     private final List<WorkSlot> workSlots;
 
+    /**
+     * Returns the first slot for a new plan or the next slot after the supplied one.
+     *
+     * @param currentSlot current slot, or {@code null} to request the first slot
+     * @return next slot, or {@code null} when no slots are available
+     */
     public WorkSlot getNextSlot(WorkSlot currentSlot) {
         if (currentSlot == null) {
             if (this.workSlots.isEmpty()) return null;

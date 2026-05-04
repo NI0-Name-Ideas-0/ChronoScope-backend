@@ -7,6 +7,12 @@ import java.util.Objects;
 
 import de.ni0.chronoscope.model.DynamicTask;
 
+/**
+ * Planner-side graph node wrapping a dynamic task and its dependency links.
+ *
+ * <p>Equality is based on the wrapped task ID so nodes can be used safely in planner maps
+ * while keeping direct links to dependencies and dependents.</p>
+ */
 public record TaskGraphNode(DynamicTask task, List<TaskGraphNode> dependencies, List<TaskGraphNode> dependents) {
 
     @Override
