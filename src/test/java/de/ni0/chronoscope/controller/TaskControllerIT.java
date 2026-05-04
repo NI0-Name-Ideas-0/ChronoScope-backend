@@ -238,7 +238,7 @@ class TaskControllerIT {
     @Test
     void createTask_Static_BlockerWithoutOrganization_ReturnsCreated() throws Exception {
         String subject = createAccountSubject();
-        long accountId = createAccount(subject);
+        long accountId = createAccount(subject, "");
 
         String payload = """
             {
@@ -269,7 +269,7 @@ class TaskControllerIT {
     @Test
     void createTask_Static_NonBlockerWithoutOrganization_ReturnsValidationError() throws Exception {
         String subject = createAccountSubject();
-        long accountId = createAccount(subject);
+        long accountId = createAccount(subject, "");
 
         String payload = """
             {
