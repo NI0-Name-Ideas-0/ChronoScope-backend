@@ -49,7 +49,6 @@ public class TestController {
     private final DevAuthProperties devAuthProperties;
     private final AccountService accountService;
     private final AccountRepository accountRepository;
-    private final OrganizationRepository organizationRepository;
     private final TaskRepository taskRepository;
     private final WorkSlotRepository workSlotRepository;
     private final TaskService taskService;

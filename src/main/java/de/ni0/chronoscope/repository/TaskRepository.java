@@ -41,7 +41,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
      * @return matching dynamic tasks
      */
     @EntityGraph(attributePaths = { "dependencies", "dependents" })
-    List<DynamicTask> findDynamicTasksByAccountIdAndOrganizationId(Long accountId, Long organizationId);
+    List<DynamicTask> findDynamicTasksByAccountIdAndOrganization(Long accountId, String organizationId);
 
     /**
      * Finds one task while enforcing the identity boundary.

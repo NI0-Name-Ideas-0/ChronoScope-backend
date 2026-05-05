@@ -9,13 +9,15 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import de.ni0.chronoscope.exception.AccountAccessDeniedException;
+import de.ni0.chronoscope.model.Account;
+import org.keycloak.representations.idm.OrganizationRepresentation;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import de.ni0.chronoscope.exception.InvalidRequestException;
 import de.ni0.chronoscope.exception.ResourceNotFoundException;
 import de.ni0.chronoscope.model.DynamicTask;
-import de.ni0.chronoscope.model.Organization;
 import de.ni0.chronoscope.model.StaticTask;
 import de.ni0.chronoscope.model.Task;
 import de.ni0.chronoscope.repository.TaskRepository;
@@ -35,6 +37,7 @@ public class TaskService {
     private static final Duration MIN_SCOPE_GAP = Duration.ofMinutes(5);
 
     private final TaskRepository taskRepository;
+    private final KeycloakService keycloakService;
     private final AccountService accountService;
 
     /**
@@ -151,7 +154,7 @@ public class TaskService {
      * @return managed updated task
      */
     @Transactional
-    public DynamicTask updateDynamicTask(Long id, DynamicTask task, List<Long> dependencyIds, Long organizationId) {
+    public DynamicTask updateDynamicTask(Long id, DynamicTask task, List<Long> dependencyIds, String organizationId) {
         if (!Objects.equals(id, task.getId())) {
             throw new InvalidRequestException("Task id in path does not match target task");
         }
@@ -165,7 +168,7 @@ public class TaskService {
         if (task.getAccount() != null) {
             managedTask.setAccount(task.getAccount());
         }
-        Organization organization = validateOrganizationAccess(managedTask, organizationId);
+        validateAccountOrgAccess(managedTask, organizationId);
         managedTask.setName(task.getName());
         managedTask.setDescription(task.getDescription());
         managedTask.setDifficulty(task.getDifficulty());
@@ -175,9 +178,7 @@ public class TaskService {
         managedTask.setElapsed(task.getElapsed());
         managedTask.setMinScopeDuration(task.getMinScopeDuration());
         managedTask.setMaxScopeDuration(task.getMaxScopeDuration());
-        if (organization != null) {
-            managedTask.setOrganization(organization);
-        }
+        managedTask.setOrganization(organizationId);
 
         if (task.getLabels() != null) {
             managedTask.setLabels(task.getLabels());
@@ -232,7 +233,7 @@ public class TaskService {
      * @return managed updated task
      */
     @Transactional
-    public StaticTask updateStaticTask(Long id, StaticTask task, Long organizationId) {
+    public StaticTask updateStaticTask(Long id, StaticTask task, String organizationId) {
         if (!Objects.equals(id, task.getId())) {
             throw new InvalidRequestException("Task id in path does not match target task");
         }
@@ -246,16 +247,14 @@ public class TaskService {
         if (task.getAccount() != null) {
             managedTask.setAccount(task.getAccount());
         }
-        Organization organization = validateOrganizationAccess(managedTask, organizationId);
+        validateAccountOrgAccess(managedTask, organizationId);
         managedTask.setName(task.getName());
         managedTask.setDescription(task.getDescription());
         managedTask.setDifficulty(task.getDifficulty());
         managedTask.setStartAt(task.getStartAt());
         managedTask.setEndAt(task.getEndAt());
         managedTask.setIsBlocker(task.getIsBlocker());
-        if (organization != null) {
-            managedTask.setOrganization(organization);
-        }
+        managedTask.setOrganization(organizationId);
 
         if (task.getLabels() != null) {
             managedTask.setLabels(task.getLabels());
@@ -270,11 +269,17 @@ public class TaskService {
         return managedTask;
     }
 
-    private Organization validateOrganizationAccess(Task task, Long organizationId) {
-        if (organizationId == null) {
-            return null;
+    /**
+     * Verifies that the account is linked to the requested organization.
+     *
+     * @param task task to validate
+     * @param organizationId organization that must be accessible
+     */
+    public void validateAccountOrgAccess(Task task, String organizationId) {
+        List<OrganizationRepresentation> organizations = this.keycloakService.getAccountOrganizations(task.getAccount().getSubject());
+        if (organizations.stream().noneMatch(o -> Objects.equals(o.getId(), organizationId))) {
+            throw new AccountAccessDeniedException("Account does not have access to the specified organization");
         }
-        return this.accountService.resolveOrganizationForAccount(task.getAccount().getId(), organizationId);
     }
 
     private void validateStaticTask(StaticTask task) {
@@ -361,8 +366,7 @@ public class TaskService {
     }
 
     private Set<DynamicTask> resolveAndValidateDependencies(DynamicTask task, List<Long> dependencyIds) {
-        Set<Long> dependencyIdSet = dependencyIds.stream()
-            .collect(Collectors.toSet());
+        Set<Long> dependencyIdSet = new HashSet<>(dependencyIds);
 
         if (dependencyIdSet.isEmpty()) {
             return new HashSet<>();

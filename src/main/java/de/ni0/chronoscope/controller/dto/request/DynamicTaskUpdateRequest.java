@@ -23,7 +23,7 @@ import jakarta.validation.constraints.Size;
 @Schema(description = "Update request for a dynamic (schedulable) task")
 public record DynamicTaskUpdateRequest(
     Long accountId,
-    Long organizationId,
+    String organizationId,
     @Size(min = 1) String name,
     String description,
     @Positive @Max(5) Integer difficulty,

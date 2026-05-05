@@ -21,7 +21,7 @@ import jakarta.validation.constraints.Positive;
 public record StaticTaskCreateRequest(
     @NotNull Long accountId,
     @Schema(description = "Organization ID. Required unless this static task is a blocker.")
-    Long organizationId,
+    @NotBlank String organizationId,
     @NotBlank String name,
     @NotNull String description,
     @NotNull String rrule,

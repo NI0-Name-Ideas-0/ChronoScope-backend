@@ -7,6 +7,6 @@ import jakarta.validation.constraints.NotNull;
  */
 public record PlanRequest(
     @NotNull Long accountId,
-    @NotNull Long organizationId
+    @NotNull String organizationId
 ) {
 }

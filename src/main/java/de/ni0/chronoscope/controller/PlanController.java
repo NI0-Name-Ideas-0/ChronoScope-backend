@@ -54,7 +54,7 @@ public class PlanController {
     })
     @PostMapping
     public List<ScopeResponse> plan(@Valid @RequestBody PlanRequest request) {
-        accountService.validateAccountOwnership(requestContext.getIdentityId(), request.accountId());
+        accountService.validateAccountOwnership(requestContext.getAccount().getId(), request.accountId());
         var result = planningService.planTasksForAccount(request.accountId(), request.organizationId());
         return result.stream().map(scopeMapper::toResponse).toList();
     }

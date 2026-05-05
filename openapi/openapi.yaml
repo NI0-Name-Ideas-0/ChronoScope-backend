@@ -12,6 +12,8 @@ security:
 tags:
 - description: "Create, read, update and delete tasks and their dependencies"
   name: Tasks
+- description: Gather information about organizations or modify them
+  name: Organization
 - description: Manage available work slots used by the planning algorithm
   name: Work Slots
 - description: Retrieve the current identity and manage account linking
@@ -105,6 +107,32 @@ paths:
       summary: Confirm account linking
       tags:
       - Identity
+  /v1/organization:
+    get:
+      description: Retrieves members of a specific organization.
+      operationId: getOrganizationMembers
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrganizationGetMembersRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/OrganizationGetMembersResponse"
+          description: Members retrieved successfully
+        "401":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Missing or invalid token
+      summary: Get Organization members
+      tags:
+      - Organization
   /v1/plan:
     post:
       description: Run the planning algorithm for the given account. Returns planned
@@ -719,6 +747,29 @@ components:
         name:
           type: string
         taskId:
+          type: integer
+          format: int64
+    OrganizationGetMembersRequest:
+      type: object
+      properties:
+        organization:
+          type: string
+          minLength: 1
+      required:
+      - organization
+    OrganizationGetMembersResponse:
+      type: object
+      properties:
+        members:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrganizationMember"
+    OrganizationMember:
+      type: object
+      properties:
+        email:
+          type: string
+        id:
           type: integer
           format: int64
     OrganizationResponse:

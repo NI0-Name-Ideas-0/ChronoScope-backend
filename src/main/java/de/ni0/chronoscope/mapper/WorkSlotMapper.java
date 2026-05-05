@@ -12,7 +12,7 @@ import org.mapstruct.MappingConstants;
 /**
  * MapStruct mapper for work-slot requests and responses.
  */
-@Mapper(componentModel = MappingConstants.ComponentModel.SPRING, uses = {AccountProxyProvider.class, OrganizationProxyProvider.class})
+@Mapper(componentModel = MappingConstants.ComponentModel.SPRING, uses = {AccountProxyProvider.class})
 public interface WorkSlotMapper {
 
     /**

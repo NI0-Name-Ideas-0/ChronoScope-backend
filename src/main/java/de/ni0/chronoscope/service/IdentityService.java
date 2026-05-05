@@ -2,12 +2,12 @@ package de.ni0.chronoscope.service;
 
 import de.ni0.chronoscope.controller.dto.response.AccountLinkConfirmResponse;
 import de.ni0.chronoscope.exception.AccountAccessDeniedException;
-import de.ni0.chronoscope.exception.AccountNotFoundException;
 import de.ni0.chronoscope.model.Account;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import org.keycloak.representations.idm.UserRepresentation;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
@@ -21,7 +21,6 @@ import lombok.RequiredArgsConstructor;
 
 import javax.crypto.SecretKey;
 import java.util.Date;
-import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -34,6 +33,7 @@ public class IdentityService {
 
     private final AccountRepository accountRepository;
     private final IdentityRepository identityRepository;
+    private final KeycloakService keycloakService;
 
     private final JavaMailSender mailSender;
 
@@ -108,13 +108,10 @@ public class IdentityService {
      * @param targetMail e-mail address of the target account
      */
     public void sendLink(long accountId, String targetMail) {
-        Optional<Account> targetAccountOpt = this.accountRepository.findByMail(targetMail);
-        if (targetAccountOpt.isEmpty()) {
-            throw new AccountNotFoundException();
-        }
-        Account targetAccount = targetAccountOpt.get();
+        UserRepresentation targetUser = this.keycloakService.getAccountByEmail(targetMail);
+        Account targetAccount = this.accountRepository.findBySubject(targetUser.getId()).orElseThrow();
         String token = generateLinkToken(accountId, targetAccount.getId());
-        this.sendLinkEmail(targetAccount.getMail(), token);
+        this.sendLinkEmail(targetMail, token);
     }
 
     private void sendLinkEmail(String to, String token) {

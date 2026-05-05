@@ -27,7 +27,6 @@ import de.ni0.chronoscope.exception.InvalidRequestException;
 import de.ni0.chronoscope.mapper.TaskMapper;
 import de.ni0.chronoscope.model.Account;
 import de.ni0.chronoscope.model.DynamicTask;
-import de.ni0.chronoscope.model.Organization;
 import de.ni0.chronoscope.model.StaticTask;
 import de.ni0.chronoscope.model.Task;
 import de.ni0.chronoscope.service.AccountService;
@@ -69,7 +68,7 @@ public class TaskController {
 
     @GetMapping
     public List<TaskResponse> getTasks() {
-        return taskService.getTasksForIdentity(requestContext.getIdentityId()).stream()
+        return taskService.getTasksForIdentity(requestContext.getAccount().getIdentity().getId()).stream()
             .map(this::mapTask)
             .toList();
     }
@@ -103,8 +102,7 @@ public class TaskController {
     public ResponseEntity<TaskResponse> createTask(@Valid @RequestBody TaskCreateRequest request) {
         TaskResponse response = switch (request) {
             case StaticTaskCreateRequest staticRequest -> {
-                Account account = accountService.validateAccountOwnership(requestContext.getIdentityId(), staticRequest.accountId());
-                Organization organization = resolveOrganizationForAccountIfPresent(account, staticRequest.organizationId());
+                Account account = accountService.validateAccountOwnership(requestContext.getAccount().getIdentity().getId(), staticRequest.accountId());
                 StaticTask newTask = taskMapper.fromCreateRequest(staticRequest);
                 // Normalize rrule: treat null or blank as empty string (no rrule)
                 String createRrule = staticRequest.rrule();
@@ -114,26 +112,18 @@ public class TaskController {
                     newTask.setRrule(createRrule);
                 }
                 newTask.setAccount(account);
-                newTask.setOrganization(organization);
+                newTask.setOrganization(staticRequest.organizationId());
                 yield taskMapper.toResponse(taskService.createStaticTask(newTask));
             }
             case DynamicTaskCreateRequest dynamicRequest -> {
-                Account account = accountService.validateAccountOwnership(requestContext.getIdentityId(), dynamicRequest.accountId());
-                Organization organization = accountService.resolveOrganizationForAccount(account.getId(), dynamicRequest.organizationId());
+                Account account = accountService.validateAccountOwnership(requestContext.getAccount().getIdentity().getId(), dynamicRequest.accountId());
                 DynamicTask newTask = taskMapper.fromCreateRequest(dynamicRequest);
                 newTask.setAccount(account);
-                newTask.setOrganization(organization);
+                newTask.setOrganization(dynamicRequest.organizationId());
                 yield taskMapper.toResponse(taskService.createDynamicTask(newTask));
             }
         };
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
-    }
-
-    private Organization resolveOrganizationForAccountIfPresent(Account account, Long organizationId) {
-        if (organizationId == null) {
-            return null;
-        }
-        return accountService.resolveOrganizationForAccount(account.getId(), organizationId);
     }
 
     /**
@@ -151,7 +141,7 @@ public class TaskController {
     @GetMapping("/{id}")
     public TaskResponse getTask(
             @Parameter(description = "Task ID") @PathVariable Long id) {
-        return mapTask(taskService.getTaskForIdentity(requestContext.getIdentityId(), id));
+        return mapTask(taskService.getTaskForIdentity(requestContext.getAccount().getIdentity().getId(), id));
     }
 
     /**
@@ -173,7 +163,7 @@ public class TaskController {
     public TaskResponse updateTask(
             @Parameter(description = "Task ID") @PathVariable Long id,
             @Valid @RequestBody TaskUpdateRequest request) {
-        Task existingTask = taskService.getTaskForIdentity(requestContext.getIdentityId(), id);
+        Task existingTask = taskService.getTaskForIdentity(requestContext.getAccount().getIdentity().getId(), id);
 
         return switch (request) {
             case StaticTaskUpdateRequest staticRequest -> {
@@ -191,7 +181,7 @@ public class TaskController {
                     }
                 }
                 if (staticRequest.accountId() != null) {
-                    Account account = accountService.validateAccountOwnership(requestContext.getIdentityId(), staticRequest.accountId());
+                    Account account = accountService.validateAccountOwnership(requestContext.getAccount().getIdentity().getId(), staticRequest.accountId());
                     staticTask.setAccount(account);
                 }
                 yield taskMapper.toResponse(taskService.updateStaticTask(id, staticTask, staticRequest.organizationId()));
@@ -202,7 +192,7 @@ public class TaskController {
                 }
                 taskMapper.fromUpdateRequest(dynamicRequest, dynamicTask);
                 if (dynamicRequest.accountId() != null) {
-                    Account account = accountService.validateAccountOwnership(requestContext.getIdentityId(), dynamicRequest.accountId());
+                    Account account = accountService.validateAccountOwnership(requestContext.getAccount().getIdentity().getId(), dynamicRequest.accountId());
                     dynamicTask.setAccount(account);
                 }
                 yield taskMapper.toResponse(taskService.updateDynamicTask(id, dynamicTask, dynamicRequest.dependencies(), dynamicRequest.organizationId()));
@@ -225,6 +215,6 @@ public class TaskController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteTask(
             @Parameter(description = "Task ID") @PathVariable Long id) {
-        taskService.deleteTask(requestContext.getIdentityId(), id);
+        taskService.deleteTask(requestContext.getAccount().getIdentity().getId(), id);
     }
 }

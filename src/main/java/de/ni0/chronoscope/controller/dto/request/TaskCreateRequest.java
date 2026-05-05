@@ -17,7 +17,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 public sealed interface TaskCreateRequest permits StaticTaskCreateRequest, DynamicTaskCreateRequest {
 
     Long accountId();
-    Long organizationId();
+    String organizationId();
     String name();
     String description();
     Integer difficulty();

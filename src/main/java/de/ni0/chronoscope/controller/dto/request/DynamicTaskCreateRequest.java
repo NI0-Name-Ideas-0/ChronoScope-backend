@@ -17,7 +17,7 @@ import jakarta.validation.constraints.Positive;
 @Schema(description = "Create request for a dynamic (schedulable) task with duration and scope constraints")
 public record DynamicTaskCreateRequest(
     @NotNull Long accountId,
-    @NotNull Long organizationId,
+    @NotBlank String organizationId,
     @NotBlank String name,
     @NotNull String description,
     @NotNull @Positive @Max(5) Integer difficulty,

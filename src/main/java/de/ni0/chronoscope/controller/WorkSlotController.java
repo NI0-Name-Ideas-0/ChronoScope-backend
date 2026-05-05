@@ -50,7 +50,7 @@ public class WorkSlotController {
     })
     @GetMapping
     public List<WorkSlotResponse> getWorkSlots() {
-        return workSlotService.getWorkSlotsForIdentity(requestContext.getIdentityId()).stream()
+        return workSlotService.getWorkSlotsForIdentity(requestContext.getAccount().getIdentity().getId()).stream()
                 .map(workSlotMapper::toResponse)
                 .toList();
     }
@@ -69,7 +69,7 @@ public class WorkSlotController {
     })
     @PostMapping
     public ResponseEntity<WorkSlotResponse> createWorkSlot(@Valid @RequestBody WorkSlotCreateRequest request) {
-        accountService.validateAccountOwnership(requestContext.getIdentityId(), request.accountId());
+        accountService.validateAccountOwnership(requestContext.getAccount().getIdentity().getId(), request.accountId());
         WorkSlot workSlot = workSlotMapper.fromCreateRequest(request);
         WorkSlotResponse response = workSlotMapper.toResponse(workSlotService.createWorkSlot(workSlot));
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
@@ -93,7 +93,7 @@ public class WorkSlotController {
     public WorkSlotResponse updateWorkSlot(
             @Parameter(description = "Work slot ID") @PathVariable Long id,
             @Valid @RequestBody WorkSlotUpdateRequest request) {
-        WorkSlot updated = workSlotService.updateWorkSlot(requestContext.getIdentityId(), id, request);
+        WorkSlot updated = workSlotService.updateWorkSlot(requestContext.getAccount().getIdentity().getId(), id, request);
         return workSlotMapper.toResponse(updated);
     }
 
@@ -112,6 +112,6 @@ public class WorkSlotController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteWorkSlot(
             @Parameter(description = "Work slot ID") @PathVariable Long id) {
-        workSlotService.deleteWorkSlot(requestContext.getIdentityId(), id);
+        workSlotService.deleteWorkSlot(requestContext.getAccount().getIdentity().getId(), id);
     }
 }

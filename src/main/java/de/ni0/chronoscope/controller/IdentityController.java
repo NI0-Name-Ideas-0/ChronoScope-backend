@@ -1,5 +1,7 @@
 package de.ni0.chronoscope.controller;
 
+import de.ni0.chronoscope.service.KeycloakService;
+import org.keycloak.representations.idm.OrganizationRepresentation;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,7 +17,6 @@ import de.ni0.chronoscope.controller.dto.request.AccountLinkRequest;
 import de.ni0.chronoscope.controller.dto.response.AccountLinkConfirmResponse;
 import de.ni0.chronoscope.controller.dto.response.IdentityResponse;
 import de.ni0.chronoscope.mapper.IdentityMapper;
-import de.ni0.chronoscope.service.AccountService;
 import de.ni0.chronoscope.service.IdentityService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -25,6 +26,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+
+import java.util.List;
 
 /**
  * REST controller for identity operations.
@@ -40,6 +43,7 @@ public class IdentityController {
     private final IdentityService identityService;
     private final RequestContext requestContext;
     private final IdentityMapper identityMapper;
+    private final KeycloakService keycloakService;
 
     /**
      * Retrieves the authenticated identity.
@@ -53,10 +57,12 @@ public class IdentityController {
     })
     @GetMapping
     public IdentityResponse getIdentity() {
-        long identityId = this.requestContext.getIdentityId();
+        long identityId = this.requestContext.getAccount().getIdentity().getId();
+        List<String> adminOrganizations = this.keycloakService.getAccountOrganizations(this.requestContext.getAccount().getSubject())
+                .stream().map(OrganizationRepresentation::getId).toList();
         return this.identityMapper.toResponse(
             this.identityService.getIdentity(identityId),
-            this.requestContext.getAdminOrganizations()
+                adminOrganizations
         );
     }
 
@@ -74,7 +80,7 @@ public class IdentityController {
     @PostMapping("/accounts")
     @ResponseStatus(HttpStatus.ACCEPTED)
     public void requestAccountLink(@Valid @RequestBody AccountLinkRequest request) {
-        long accountId = this.requestContext.getAccountId();
+        long accountId = this.requestContext.getAccount().getId();
         String targetEmail = request.targetEmail();
         this.identityService.sendLink(accountId, targetEmail);
     }
@@ -93,7 +99,7 @@ public class IdentityController {
     })
     @PostMapping("/accounts/confirm")
     public AccountLinkConfirmResponse confirmAccountLink(@Valid @RequestBody AccountLinkConfirmRequest request) {
-        long identityId = this.requestContext.getIdentityId();
+        long identityId = this.requestContext.getAccount().getIdentity().getId();
         return this.identityService.mergeAccounts(identityId, request.token());
     }
 }

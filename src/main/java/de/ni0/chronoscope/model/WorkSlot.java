@@ -30,9 +30,8 @@ public class WorkSlot {
     @ToString.Exclude // association excluded to keep toString safe and lightweight
     private Account account;
 
-    @ManyToOne
-    @JoinColumn(name = "organization_id")
-    private Organization organization;
+    @Column(name = "organization_id", nullable = false)
+    private String organization;
 
     @Column(name = "start_at", nullable = false)
     private Instant startAt;

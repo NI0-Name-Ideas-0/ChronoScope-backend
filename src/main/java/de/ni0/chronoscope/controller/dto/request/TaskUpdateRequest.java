@@ -16,7 +16,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 })
 public sealed interface TaskUpdateRequest permits StaticTaskUpdateRequest, DynamicTaskUpdateRequest {
     Long accountId();
-    Long organizationId();
+    String organizationId();
     String name();
     String description();
     Integer difficulty();

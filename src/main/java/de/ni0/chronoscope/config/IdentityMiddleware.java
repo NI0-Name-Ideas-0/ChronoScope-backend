@@ -5,6 +5,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
+import de.ni0.chronoscope.model.Account;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -46,11 +47,8 @@ public class IdentityMiddleware extends OncePerRequestFilter {
             String rawEmail = jwt.getClaimAsString("email");
             String email = rawEmail != null ? rawEmail : "";
             String subject = jwt.getSubject();
-            long accountId = this.accountService.syncAccount(subject, email, organizations);
-            long identityId = this.identityService.syncIdentity(subject);
-            this.requestContext.setIdentityId(identityId);
-            this.requestContext.setAccountId(accountId);
-            this.requestContext.setAdminOrganizations(extractAdminOrganizations(jwt.getClaimAsStringList("groups")));
+            Account account = this.accountService.syncAccount(subject);
+            this.requestContext.setAccount(account);
         }
         filterChain.doFilter(request, response);
     }
