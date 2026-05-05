@@ -186,11 +186,17 @@
                 <artifactId>jacoco-maven-plugin</artifactId>
                 <version>0.8.14</version>
                 <configuration>
-                    <!-- Exclude the Spring Boot entry point and MapStruct-generated implementations -->
+                    <!-- Exclude the Spring Boot entry point, MapStruct-generated implementations, and dev-only infrastructure -->
                     <excludes>
                         <exclude>de/ni0/chronoscope/ChronoScopeBackendApplication.class</exclude>
                         <exclude>de/ni0/chronoscope/mapper/*Impl.class</exclude>
                         <exclude>de/ni0/chronoscope/mapper/*Impl$*.class</exclude>
+                        <exclude>de/ni0/chronoscope/controller/TestController.class</exclude>
+                        <exclude>de/ni0/chronoscope/controller/TestController$*.class</exclude>
+                        <exclude>de/ni0/chronoscope/config/DevAuthConfig.class</exclude>
+                        <exclude>de/ni0/chronoscope/config/DevAuthConfig$*.class</exclude>
+                        <exclude>de/ni0/chronoscope/config/DevAuthProperties.class</exclude>
+                        <exclude>de/ni0/chronoscope/config/OpenApiConfig.class</exclude>
                     </excludes>
                 </configuration>
                 <executions>
@@ -274,6 +280,12 @@
                                 <exclude>de/ni0/chronoscope/mapper/*Impl.class</exclude>
                                 <exclude>de/ni0/chronoscope/mapper/*Impl$*.class</exclude>
                                 <exclude>de/ni0/chronoscope/algorithm/**</exclude>
+                                <exclude>de/ni0/chronoscope/controller/TestController.class</exclude>
+                                <exclude>de/ni0/chronoscope/controller/TestController$*.class</exclude>
+                                <exclude>de/ni0/chronoscope/config/DevAuthConfig.class</exclude>
+                                <exclude>de/ni0/chronoscope/config/DevAuthConfig$*.class</exclude>
+                                <exclude>de/ni0/chronoscope/config/DevAuthProperties.class</exclude>
+                                <exclude>de/ni0/chronoscope/config/OpenApiConfig.class</exclude>
                             </excludes>
                         </configuration>
                     </execution>
@@ -322,6 +334,12 @@
                                 <exclude>de/ni0/chronoscope/mapper/*Impl.class</exclude>
                                 <exclude>de/ni0/chronoscope/mapper/*Impl$*.class</exclude>
                                 <exclude>de/ni0/chronoscope/algorithm/**/*.class</exclude>
+                                <exclude>de/ni0/chronoscope/controller/TestController.class</exclude>
+                                <exclude>de/ni0/chronoscope/controller/TestController$*.class</exclude>
+                                <exclude>de/ni0/chronoscope/config/DevAuthConfig.class</exclude>
+                                <exclude>de/ni0/chronoscope/config/DevAuthConfig$*.class</exclude>
+                                <exclude>de/ni0/chronoscope/config/DevAuthProperties.class</exclude>
+                                <exclude>de/ni0/chronoscope/config/OpenApiConfig.class</exclude>
                             </excludes>
                             <rules>
                                 <!-- Non-algorithm classes: 70% aggregate branch coverage -->

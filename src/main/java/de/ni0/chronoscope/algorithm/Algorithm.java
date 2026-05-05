@@ -10,6 +10,13 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 
+/**
+ * Backtracking scheduler that assigns ready dynamic tasks into available work slots.
+ *
+ * <p>The algorithm repeatedly weighs all dependency-ready tasks, places the most promising
+ * task into the current slot, and backtracks when a branch misses a deadline or cannot be
+ * completed from the current state.</p>
+ */
 @RequiredArgsConstructor
 public class Algorithm {
 
@@ -18,13 +25,18 @@ public class Algorithm {
     private final List<WeightDataProvider> providers;
 
     /**
-     * @param tasks All next tasks
-     * @param dependencyCount Dependency Count
-     * @param remainingTaskDurations All the remaining task durations. Only contains non-completed tasks
-     * @param slots Iterator which always returns the next slot to implement
-     * @param slot The current processed slot
-     * @param currentTime The current time
-     * @return The planned scopes in the current path after this node
+     * Plans scopes for the currently ready tasks from the given point in time.
+     *
+     * <p>The input collections are mutated while exploring a branch and restored when the
+     * branch fails, so callers should pass planner-owned state rather than shared state.</p>
+     *
+     * @param tasks dependency-ready tasks that can be scheduled next
+     * @param dependencyCount remaining unresolved dependency count per task
+     * @param remainingTaskDurations remaining unscheduled duration for each incomplete task
+     * @param slots provider used to move to the next available work slot
+     * @param slot current work slot
+     * @param currentTime current cursor inside {@code slot}
+     * @return planned scopes for a successful branch, or {@code null} when no valid plan exists
      */
     public List<Scope> plan(List<TaskGraphNode> tasks,
                             Map<TaskGraphNode, Integer> dependencyCount,

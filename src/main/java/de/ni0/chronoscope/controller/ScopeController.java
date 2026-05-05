@@ -17,6 +17,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+/**
+ * REST controller for planned task scopes.
+ */
 @Tag(name = "Scopes", description = "Read planned scopes for dynamic tasks")
 @RestController
 @RequestMapping("/v1/scopes")
@@ -25,6 +28,11 @@ public class ScopeController {
 
     private final ScopeService scopeService;
 
+    /**
+     * Lists planned scopes for the current identity.
+     *
+     * @return scope responses
+     */
     @Operation(summary = "List scopes", description = "List all scopes assigned to dynamic tasks belonging to the current identity.")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Scopes retrieved successfully"),

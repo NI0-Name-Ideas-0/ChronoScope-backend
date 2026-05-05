@@ -10,6 +10,9 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 
+/**
+ * Partial update request for a fixed-time task.
+ */
 @Schema(description = "Update request for a static (fixed-time) task")
 public record StaticTaskUpdateRequest(
     Long accountId,

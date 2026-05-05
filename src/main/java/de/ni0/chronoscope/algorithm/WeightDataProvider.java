@@ -3,25 +3,26 @@ package de.ni0.chronoscope.algorithm;
 import java.util.List;
 
 /**
- * Represents any kind of Data that should influence the decision-making of the next chosen task.
- * The {@link WeightDataProvider#calculate(DataProviderContext, List)} method is called for each
- * Tree-Node. The {@link WeightDataProvider#getWeight(TaskGraphNode)} method is then used to sort the tasks.
+ * Provides normalized task weights used by the planner when choosing the next task branch.
  *
+ * <p>{@link #calculate(DataProviderContext, List)} is called before every sort so providers can
+ * precompute graph-wide data for the current planning cursor.</p>
  */
 public interface WeightDataProvider {
 
     /**
-     * Calculates the weight for each task.
-     * @param ctx Can be used as a source for necessary data
-     * @param tasks Tasks to be weighted
+     * Precomputes data needed to weight the currently ready tasks.
+     *
+     * @param ctx current planner context
+     * @param tasks tasks that may be selected next
      */
     void calculate(DataProviderContext ctx, List<TaskGraphNode> tasks);
 
     /**
-     * Called when sorting the tasks in the algorithm
-     * @param task The task to get the weight for
-     * @return MUST ALWAYS RETURN A VALUE BETWEEN 0 AND 1. THIS IS NORMALIZED.
-     *         0 means low priority, 1 means high priority
+     * Returns the normalized priority for a task.
+     *
+     * @param task task to score
+     * @return a value from {@code 0.0} (low priority) to {@code 1.0} (high priority)
      */
     double getWeight(TaskGraphNode task);
 

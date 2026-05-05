@@ -21,6 +21,9 @@ import de.ni0.chronoscope.model.Task;
 import de.ni0.chronoscope.repository.TaskRepository;
 import lombok.RequiredArgsConstructor;
 
+/**
+ * Manages task lifecycle, validation, and dynamic-task dependency integrity.
+ */
 @Service
 @RequiredArgsConstructor
 public class TaskService {
@@ -34,17 +37,35 @@ public class TaskService {
     private final TaskRepository taskRepository;
     private final AccountService accountService;
 
+    /**
+     * Validates and persists a fixed-time task.
+     *
+     * @param task task to create
+     * @return persisted task
+     */
     public StaticTask createStaticTask(StaticTask task) {
         validateStaticTask(task);
         return this.taskRepository.save(task);
     }
 
+    /**
+     * Validates and persists a schedulable task.
+     *
+     * @param task task to create
+     * @return persisted task
+     */
     public DynamicTask createDynamicTask(DynamicTask task) {
         validateAndNormalizeDynamicTask(task);
         validateDependencyIdentity(task);
         return this.taskRepository.save(task);
     }
 
+    /**
+     * Returns all tasks visible to an identity, including tasks owned by linked accounts.
+     *
+     * @param identityId identity whose tasks should be loaded
+     * @return visible tasks
+     */
     @Transactional(readOnly = true)
     public List<Task> getTasksForIdentity(long identityId) {
         List<Task> tasks = this.taskRepository.findByAccountIdentityId(identityId);
@@ -52,12 +73,25 @@ public class TaskService {
         return tasks;
     }
 
+    /**
+     * Loads one task through the identity boundary.
+     *
+     * @param identityId authenticated identity ID
+     * @param taskId task ID
+     * @return matching task
+     */
     @Transactional(readOnly = true)
     public Task getTaskForIdentity(long identityId, Long taskId) {
         return this.taskRepository.findByIdAndAccountIdentityId(taskId, identityId)
             .orElseThrow(() -> new ResourceNotFoundException("Task not found: " + taskId));
     }
 
+    /**
+     * Deletes a task and detaches any dynamic-task dependency edges first.
+     *
+     * @param identityId authenticated identity ID
+     * @param taskId task to delete
+     */
     @Transactional
     public void deleteTask(long identityId, Long taskId) {
         Task task = this.taskRepository.findByIdAndAccountIdentityId(taskId, identityId)
@@ -82,16 +116,40 @@ public class TaskService {
         this.taskRepository.flush();
     }
 
+    /**
+     * Updates a dynamic task without changing dependencies or organization.
+     *
+     * @param id task ID from the request path
+     * @param task merged task data
+     * @return managed updated task
+     */
     @Transactional
     public DynamicTask updateDynamicTask(Long id, DynamicTask task) {
         return updateDynamicTask(id, task, null, null);
     }
 
+    /**
+     * Updates a dynamic task and optionally replaces its dependency set.
+     *
+     * @param id task ID from the request path
+     * @param task merged task data
+     * @param dependencyIds replacement dependency IDs, or {@code null} to keep existing dependencies
+     * @return managed updated task
+     */
     @Transactional
     public DynamicTask updateDynamicTask(Long id, DynamicTask task, List<Long> dependencyIds) {
         return updateDynamicTask(id, task, dependencyIds, null);
     }
 
+    /**
+     * Updates a dynamic task, optionally changing organization and dependency edges.
+     *
+     * @param id task ID from the request path
+     * @param task merged task data
+     * @param dependencyIds replacement dependency IDs, or {@code null} to keep existing dependencies
+     * @param organizationId replacement organization ID, or {@code null} to keep the current organization
+     * @return managed updated task
+     */
     @Transactional
     public DynamicTask updateDynamicTask(Long id, DynamicTask task, List<Long> dependencyIds, Long organizationId) {
         if (!Objects.equals(id, task.getId())) {
@@ -113,7 +171,6 @@ public class TaskService {
         managedTask.setDifficulty(task.getDifficulty());
         managedTask.setStartAt(task.getStartAt());
         managedTask.setEndAt(task.getEndAt());
-        managedTask.setRrule(task.getRrule());
         managedTask.setDuration(task.getDuration());
         managedTask.setElapsed(task.getElapsed());
         managedTask.setMinScopeDuration(task.getMinScopeDuration());
@@ -154,11 +211,26 @@ public class TaskService {
         return managedTask;
     }
 
+    /**
+     * Updates a fixed-time task without changing organization.
+     *
+     * @param id task ID from the request path
+     * @param task merged task data
+     * @return managed updated task
+     */
     @Transactional
     public StaticTask updateStaticTask(Long id, StaticTask task) {
         return updateStaticTask(id, task, null);
     }
 
+    /**
+     * Updates a fixed-time task and optionally changes its organization.
+     *
+     * @param id task ID from the request path
+     * @param task merged task data
+     * @param organizationId replacement organization ID, or {@code null} to keep the current organization
+     * @return managed updated task
+     */
     @Transactional
     public StaticTask updateStaticTask(Long id, StaticTask task, Long organizationId) {
         if (!Objects.equals(id, task.getId())) {
@@ -180,7 +252,6 @@ public class TaskService {
         managedTask.setDifficulty(task.getDifficulty());
         managedTask.setStartAt(task.getStartAt());
         managedTask.setEndAt(task.getEndAt());
-        managedTask.setRrule(task.getRrule());
         managedTask.setIsBlocker(task.getIsBlocker());
         if (organization != null) {
             managedTask.setOrganization(organization);

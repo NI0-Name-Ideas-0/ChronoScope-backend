@@ -1,18 +1,5 @@
 package de.ni0.chronoscope.controller;
 
-import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -20,13 +7,25 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.nullValue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import org.springframework.test.web.servlet.MockMvc;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import org.springframework.transaction.annotation.Transactional;
 
 import de.ni0.chronoscope.model.Account;
@@ -117,7 +116,6 @@ class TaskControllerIT {
         predecessor.setDifficulty(2);
         predecessor.setStartAt(Instant.parse("2026-04-20T08:00:00Z"));
         predecessor.setEndAt(Instant.parse("2026-04-22T18:00:00Z"));
-        predecessor.setRrule("FREQ=DAILY");
         predecessor.setDuration(Duration.of(120, ChronoUnit.MINUTES));
         predecessor.setElapsed(Duration.of(0, ChronoUnit.MINUTES));
         predecessor.setMinScopeDuration(Duration.of(30, ChronoUnit.MINUTES));
@@ -151,7 +149,6 @@ class TaskControllerIT {
         ownTask.setDifficulty(2);
         ownTask.setStartAt(Instant.parse("2026-04-20T08:00:00Z"));
         ownTask.setEndAt(Instant.parse("2026-04-22T18:00:00Z"));
-        ownTask.setRrule("FREQ=DAILY");
         ownTask.setDuration(Duration.of(120, ChronoUnit.MINUTES));
         ownTask.setElapsed(Duration.of(0, ChronoUnit.MINUTES));
         ownTask.setMinScopeDuration(Duration.of(30, ChronoUnit.MINUTES));
@@ -341,7 +338,6 @@ class TaskControllerIT {
               "organizationId": %d,
               "name": "Implement API endpoint",
               "description": "Create and test endpoint",
-              "rrule": "FREQ=DAILY",
               "difficulty": 4,
               "startAt": "2026-04-20T08:00:00Z",
               "endAt": "2026-04-25T18:00:00Z",
@@ -454,7 +450,6 @@ class TaskControllerIT {
                             "organizationId": %d,
               "name": "Implement API endpoint",
               "description": "Create and test endpoint",
-              "rrule": "FREQ=DAILY",
               "difficulty": 4,
               "startAt": "2026-04-25T18:00:00Z",
               "endAt": "2026-04-20T08:00:00Z",
@@ -489,7 +484,6 @@ class TaskControllerIT {
                             "organizationId": %d,
               "name": "Implement API endpoint",
               "description": "Create and test endpoint",
-              "rrule": "FREQ=DAILY",
               "difficulty": 4,
               "startAt": "2026-04-20T08:00:00Z",
               "endAt": "2026-04-25T18:00:00Z",
@@ -547,19 +541,18 @@ class TaskControllerIT {
               "organizationId": %d,
               "name": "Task with dependencies",
               "description": "Should link predecessor",
-              "rrule": "FREQ=DAILY",
               "difficulty": 4,
               "startAt": "2026-04-20T08:00:00Z",
               "endAt": "2026-04-25T18:00:00Z",
               "labels": [],
               "duration": "PT240M",
               "minScopeDuration": "PT30M",
-                            "maxScopeDuration": "PT90M",
-                            "dependencies": [
-                                %d
-                            ]
-                        }
-                        """.formatted(accountId, organizationId, predecessorId);
+              "maxScopeDuration": "PT90M",
+              "dependencies": [
+                  %d
+              ]
+            }
+            """.formatted(accountId, organizationId, predecessorId);
 
         mockMvc.perform(post("/v1/tasks")
                 .with(jwtWithOrganization(subject, organizationId))
@@ -589,7 +582,6 @@ class TaskControllerIT {
                             "organizationId": %d,
                             "name": "Cross-account dependency",
                             "description": "Dependency should be allowed within same identity",
-                            "rrule": "FREQ=DAILY",
                             "difficulty": 4,
                             "startAt": "2026-04-20T08:00:00Z",
                             "endAt": "2026-04-25T18:00:00Z",
@@ -632,7 +624,6 @@ class TaskControllerIT {
                             "organizationId": %d,
                             "name": "Cross-identity dependency",
                             "description": "Dependency should be rejected",
-                            "rrule": "FREQ=DAILY",
                             "difficulty": 4,
                             "startAt": "2026-04-20T08:00:00Z",
                             "endAt": "2026-04-25T18:00:00Z",
@@ -670,7 +661,6 @@ class TaskControllerIT {
             dependent.setDifficulty(3);
             dependent.setStartAt(Instant.parse("2026-04-21T08:00:00Z"));
             dependent.setEndAt(Instant.parse("2026-04-24T18:00:00Z"));
-            dependent.setRrule("FREQ=DAILY");
             dependent.setDuration(Duration.of(180, ChronoUnit.MINUTES));
             dependent.setElapsed(Duration.of(0, ChronoUnit.MINUTES));
             dependent.setMinScopeDuration(Duration.of(30, ChronoUnit.MINUTES));
@@ -783,7 +773,6 @@ class TaskControllerIT {
         task.setDifficulty(3);
         task.setStartAt(Instant.parse("2026-04-21T08:00:00Z"));
         task.setEndAt(Instant.parse("2026-04-24T18:00:00Z"));
-        task.setRrule("FREQ=DAILY");
         task.setDuration(Duration.of(180, ChronoUnit.MINUTES));
         task.setElapsed(Duration.of(0, ChronoUnit.MINUTES));
         task.setMinScopeDuration(Duration.of(30, ChronoUnit.MINUTES));
@@ -863,7 +852,6 @@ class TaskControllerIT {
         task.setDifficulty(3);
         task.setStartAt(Instant.parse("2026-04-21T08:00:00Z"));
         task.setEndAt(Instant.parse("2026-04-24T18:00:00Z"));
-        task.setRrule("FREQ=DAILY");
         task.setDuration(Duration.of(180, ChronoUnit.MINUTES));
         task.setElapsed(Duration.of(10, ChronoUnit.MINUTES));
         task.setMinScopeDuration(Duration.of(30, ChronoUnit.MINUTES));
@@ -903,7 +891,6 @@ class TaskControllerIT {
         task.setDifficulty(3);
         task.setStartAt(Instant.parse("2026-04-21T08:00:00Z"));
         task.setEndAt(Instant.parse("2026-04-24T18:00:00Z"));
-        task.setRrule("FREQ=DAILY");
         task.setDuration(Duration.of(180, ChronoUnit.MINUTES));
         task.setElapsed(Duration.of(45, ChronoUnit.MINUTES));
         task.setMinScopeDuration(Duration.of(30, ChronoUnit.MINUTES));
@@ -946,7 +933,6 @@ class TaskControllerIT {
         task.setDifficulty(3);
         task.setStartAt(Instant.parse("2026-04-21T08:00:00Z"));
         task.setEndAt(Instant.parse("2026-04-24T18:00:00Z"));
-        task.setRrule("FREQ=DAILY");
         task.setDuration(Duration.of(180, ChronoUnit.MINUTES));
         task.setElapsed(Duration.of(10, ChronoUnit.MINUTES));
         task.setMinScopeDuration(Duration.of(30, ChronoUnit.MINUTES));
@@ -986,7 +972,6 @@ class TaskControllerIT {
         task.setDifficulty(3);
         task.setStartAt(Instant.parse("2026-04-21T08:00:00Z"));
         task.setEndAt(Instant.parse("2026-04-24T18:00:00Z"));
-        task.setRrule("FREQ=DAILY");
         task.setDuration(Duration.of(180, ChronoUnit.MINUTES));
         task.setElapsed(Duration.of(10, ChronoUnit.MINUTES));
         task.setMinScopeDuration(Duration.of(30, ChronoUnit.MINUTES));
@@ -1028,7 +1013,6 @@ class TaskControllerIT {
         dependent.setDifficulty(3);
         dependent.setStartAt(Instant.parse("2026-04-21T08:00:00Z"));
         dependent.setEndAt(Instant.parse("2026-04-24T18:00:00Z"));
-        dependent.setRrule("FREQ=DAILY");
         dependent.setDuration(Duration.of(180, ChronoUnit.MINUTES));
         dependent.setElapsed(Duration.of(0, ChronoUnit.MINUTES));
         dependent.setMinScopeDuration(Duration.of(30, ChronoUnit.MINUTES));
@@ -1080,7 +1064,6 @@ class TaskControllerIT {
         dependent.setDifficulty(3);
         dependent.setStartAt(Instant.parse("2026-04-21T08:00:00Z"));
         dependent.setEndAt(Instant.parse("2026-04-24T18:00:00Z"));
-        dependent.setRrule("FREQ=DAILY");
         dependent.setDuration(Duration.of(180, ChronoUnit.MINUTES));
         dependent.setElapsed(Duration.of(0, ChronoUnit.MINUTES));
         dependent.setMinScopeDuration(Duration.of(30, ChronoUnit.MINUTES));
@@ -1135,7 +1118,6 @@ class TaskControllerIT {
         task.setDifficulty(3);
         task.setStartAt(Instant.parse("2026-04-21T08:00:00Z"));
         task.setEndAt(Instant.parse("2026-04-24T18:00:00Z"));
-        task.setRrule("FREQ=DAILY");
         task.setDuration(Duration.of(180, ChronoUnit.MINUTES));
         task.setElapsed(Duration.of(0, ChronoUnit.MINUTES));
         task.setMinScopeDuration(Duration.of(30, ChronoUnit.MINUTES));
@@ -1230,7 +1212,6 @@ class TaskControllerIT {
               "organizationId": %d,
               "name": "Implement API endpoint",
               "description": "Create and test endpoint",
-              "rrule": "FREQ=DAILY",
               "difficulty": 4,
               "startAt": "2026-04-20T08:00:00Z",
               "endAt": "2026-04-25T18:00:00Z",
@@ -1354,7 +1335,6 @@ class TaskControllerIT {
         predecessor.setDifficulty(2);
         predecessor.setStartAt(Instant.parse("2026-04-20T08:00:00Z"));
         predecessor.setEndAt(Instant.parse("2026-04-22T18:00:00Z"));
-        predecessor.setRrule("FREQ=DAILY");
         predecessor.setDuration(Duration.of(120, ChronoUnit.MINUTES));
         predecessor.setElapsed(Duration.of(0, ChronoUnit.MINUTES));
         predecessor.setMinScopeDuration(Duration.of(30, ChronoUnit.MINUTES));
@@ -1380,7 +1360,6 @@ class TaskControllerIT {
         dependent.setDifficulty(3);
         dependent.setStartAt(Instant.parse("2026-04-20T08:00:00Z"));
         dependent.setEndAt(Instant.parse("2026-04-24T18:00:00Z"));
-        dependent.setRrule("FREQ=DAILY");
         dependent.setDuration(Duration.of(240, ChronoUnit.MINUTES));
         dependent.setElapsed(Duration.of(0, ChronoUnit.MINUTES));
         dependent.setMinScopeDuration(Duration.of(30, ChronoUnit.MINUTES));

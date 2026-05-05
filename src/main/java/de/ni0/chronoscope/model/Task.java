@@ -23,6 +23,12 @@ import lombok.ToString;
 // @Getter/@Setter instead of @Data: @Data's generated toString/equals/hashCode are unsafe on JPA
 // entities — bidirectional associations cause StackOverflowError in toString, and field-based
 // hashCode becomes unstable when Hibernate assigns the id after persist.
+/**
+ * Base entity for all tasks in the joined inheritance hierarchy.
+ *
+ * <p>Common scheduling metadata lives here; subtype-specific behavior is represented by
+ * {@link StaticTask} and {@link DynamicTask}.</p>
+ */
 @Getter
 @Setter
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
@@ -55,8 +61,6 @@ public abstract class Task {
     private Instant startAt;
     @Column(name = "end_at", nullable = false)
     private Instant endAt;
-    @Column(nullable = false)
-    private String rrule;
 
     @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
     @ToString.Exclude // bidirectional: Label.task -> this Task, would recurse infinitely in toString

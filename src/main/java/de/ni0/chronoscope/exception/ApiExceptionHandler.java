@@ -19,6 +19,9 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import jakarta.servlet.http.HttpServletRequest;
 
+/**
+ * Central exception mapper that turns application errors into RFC 9457 problem details.
+ */
 @RestControllerAdvice
 public class ApiExceptionHandler {
 
@@ -165,6 +168,9 @@ public class ApiExceptionHandler {
         );
     }
 
+    /**
+     * Creates a consistent problem-detail payload with ChronoScope error metadata.
+     */
     private ProblemDetail createProblemDetail(
             HttpStatus status,
             ApiErrorCode errorCode,
@@ -183,6 +189,9 @@ public class ApiExceptionHandler {
         return new ValidationFieldError(fieldError.getField(), fieldError.getDefaultMessage());
     }
 
+    /**
+     * Serializable field-level validation error included in validation problem details.
+     */
     private record ValidationFieldError(String field, String message) {
     }
 }

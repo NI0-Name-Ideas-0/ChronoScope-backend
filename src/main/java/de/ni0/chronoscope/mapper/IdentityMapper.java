@@ -1,12 +1,28 @@
 package de.ni0.chronoscope.mapper;
 
+import java.util.List;
+
 import de.ni0.chronoscope.controller.dto.response.IdentityResponse;
 import de.ni0.chronoscope.model.Identity;
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 import org.mapstruct.MappingConstants;
 
+/**
+ * MapStruct mapper for identity responses.
+ */
 @Mapper(componentModel = MappingConstants.ComponentModel.SPRING, uses = AccountMapper.class)
 public interface IdentityMapper {
 
-    IdentityResponse toResponse(Identity identity);
+    /**
+     * Converts an identity plus request-specific admin organizations to the API response.
+     *
+     * @param identity loaded identity entity
+     * @param adminOrganizations organization names where the current account has admin privileges
+     * @return response DTO
+     */
+    @Mapping(target = "id", source = "identity.id")
+    @Mapping(target = "accounts", source = "identity.accounts")
+    @Mapping(target = "adminOrganizations", source = "adminOrganizations")
+    IdentityResponse toResponse(Identity identity, List<String> adminOrganizations);
 }

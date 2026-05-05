@@ -37,6 +37,9 @@ import de.ni0.chronoscope.service.TaskService;
 import de.ni0.chronoscope.service.WorkSlotService;
 import lombok.RequiredArgsConstructor;
 
+/**
+ * Development-only controller exposing local health and seed-data endpoints.
+ */
 @RestController
 @RequestMapping("/test")
 @Profile("dev & !prod")
@@ -52,14 +55,23 @@ public class TestController {
     private final TaskService taskService;
     private final WorkSlotService workSlotService;
 
+    /**
+     * Returns a simple response used to verify that the development profile is reachable.
+     *
+     * @return test response text
+     */
     @GetMapping
     public String testEndpoint() {
         return "Hello from ChronoScope! Test Test";
     }
 
     /**
-     * This endpoint is intended for local testing and development only. <br>
-     * VIBECODE WARNING! Correctness and idempotency are not guaranteed. Use at your own risk.
+     * Replaces seed data for the configured development account.
+     *
+     * <p>This endpoint is intended for local testing and development only; it clears existing
+     * tasks and work slots for the seed identity before creating fresh sample data.</p>
+     *
+     * @return identifiers and token values needed to exercise the local API
      */
     @PostMapping("/seed")
     @ResponseStatus(HttpStatus.CREATED)
@@ -152,7 +164,6 @@ public class TestController {
             4,
             at(startDate, 8, 0, zone),
             at(startDate.plusDays(14), 18, 0, zone),
-            "FREQ=DAILY;INTERVAL=1",
             Duration.ofHours(8),
             Duration.ofHours(1),
             Duration.ofMinutes(45),
@@ -174,7 +185,6 @@ public class TestController {
             2,
             at(startDate, 8, 0, zone),
             at(startDate.plusDays(14), 18, 0, zone),
-            "FREQ=DAILY;INTERVAL=1",
             Duration.ofHours(2),
             Duration.ZERO,
             Duration.ofMinutes(30),
@@ -202,7 +212,8 @@ public class TestController {
         String... labels
     ) {
         StaticTask task = new StaticTask();
-        applyTaskFields(task, account, organization, name, description, difficulty, startAt, endAt, rrule, labels);
+        applyTaskFields(task, account, organization, name, description, difficulty, startAt, endAt, labels);
+        task.setRrule(rrule);
         task.setIsBlocker(isBlocker);
         return task;
     }
@@ -215,7 +226,6 @@ public class TestController {
         int difficulty,
         Instant startAt,
         Instant endAt,
-        String rrule,
         Duration duration,
         Duration elapsed,
         Duration minScopeDuration,
@@ -224,7 +234,7 @@ public class TestController {
         String... labels
     ) {
         DynamicTask task = new DynamicTask();
-        applyTaskFields(task, account, organization, name, description, difficulty, startAt, endAt, rrule, labels);
+        applyTaskFields(task, account, organization, name, description, difficulty, startAt, endAt, labels);
         task.setDuration(duration);
         task.setElapsed(elapsed);
         task.setMinScopeDuration(minScopeDuration);
@@ -244,7 +254,6 @@ public class TestController {
         int difficulty,
         Instant startAt,
         Instant endAt,
-        String rrule,
         String... labels
     ) {
         task.setAccount(account);
@@ -254,7 +263,6 @@ public class TestController {
         task.setDifficulty(difficulty);
         task.setStartAt(startAt);
         task.setEndAt(endAt);
-        task.setRrule(rrule);
         task.setLabels(labelsFor(task, labels));
     }
 
@@ -336,6 +344,9 @@ public class TestController {
         return date.atTime(LocalTime.of(hour, minute)).atZone(zone).toInstant();
     }
 
+    /**
+     * Summary returned after local seed data has been recreated.
+     */
     public record SeedDataResponse(
         String subject,
         String devBearerToken,
@@ -347,6 +358,9 @@ public class TestController {
     ) {
     }
 
+    /**
+     * Helper value describing a planned scope window for generated seed tasks.
+     */
     private record ScopeWindow(Instant startAt, Instant endAt) {
     }
 }

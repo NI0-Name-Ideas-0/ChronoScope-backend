@@ -18,6 +18,12 @@ import lombok.ToString;
 // @Getter/@Setter instead of @Data: @Data's generated toString/equals/hashCode are unsafe on JPA
 // entities — bidirectional associations cause StackOverflowError in toString, and field-based
 // hashCode becomes unstable when Hibernate assigns the id after persist.
+/**
+ * Login account identified by an external authentication subject.
+ *
+ * <p>Several accounts can belong to one {@link Identity} after account linking, while the
+ * organization set describes which organizations this specific account can access.</p>
+ */
 @Getter
 @Setter
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)

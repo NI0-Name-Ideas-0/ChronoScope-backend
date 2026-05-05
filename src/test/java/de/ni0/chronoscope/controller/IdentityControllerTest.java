@@ -37,14 +37,15 @@ class IdentityControllerTest {
     @Test
     void getIdentity_UsesIdentityIdFromRequestContext() {
         when(requestContext.getIdentityId()).thenReturn(42L);
+        when(requestContext.getAdminOrganizations()).thenReturn(List.of("dhbw-stuttgart"));
 
         Identity identity = new Identity();
         identity.setId(42L);
 
-        IdentityResponse expected = new IdentityResponse(42L, List.of());
+        IdentityResponse expected = new IdentityResponse(42L, List.of(), List.of("dhbw-stuttgart"));
 
         when(identityService.getIdentity(42L)).thenReturn(identity);
-        when(identityMapper.toResponse(identity)).thenReturn(expected);
+        when(identityMapper.toResponse(identity, List.of("dhbw-stuttgart"))).thenReturn(expected);
 
         IdentityController controller = new IdentityController(identityService, requestContext, identityMapper);
 
@@ -52,8 +53,9 @@ class IdentityControllerTest {
 
         assertEquals(expected, actual);
         verify(requestContext).getIdentityId();
+        verify(requestContext).getAdminOrganizations();
         verify(identityService).getIdentity(42L);
-        verify(identityMapper).toResponse(identity);
+        verify(identityMapper).toResponse(identity, List.of("dhbw-stuttgart"));
     }
 
     @Test

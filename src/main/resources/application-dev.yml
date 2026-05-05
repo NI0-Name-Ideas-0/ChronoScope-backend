@@ -17,3 +17,5 @@ chronoscope:
     organizations:
       - private
       - chronoscope-local
+    groups:
+      - /org-admin/chronoscope-local

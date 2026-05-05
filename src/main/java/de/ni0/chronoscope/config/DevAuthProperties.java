@@ -4,31 +4,34 @@ import java.util.List;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+/**
+ * Configuration properties for the development bearer token and its synthetic JWT claims.
+ */
 @ConfigurationProperties(prefix = "chronoscope.dev-auth")
 public record DevAuthProperties(
     String token,
     String subject,
     String mail,
-    List<String> organizations
+    List<String> organizations,
+    List<String> groups
 ) {
 
     public static final String DEFAULT_TOKEN = "local-test-user";
     public static final String DEFAULT_SUBJECT = "local-test-user";
     public static final List<String> DEFAULT_ORGANIZATIONS = List.of("private", "chronoscope-local");
+    public static final List<String> DEFAULT_GROUPS = List.of();
 
     public DevAuthProperties {
         token = normalize(token, DEFAULT_TOKEN);
         subject = normalize(subject, DEFAULT_SUBJECT);
-        organizations = organizations == null || organizations.isEmpty()
-            ? DEFAULT_ORGANIZATIONS
-            : organizations.stream()
-                .map(String::trim)
-                .filter(organization -> !organization.isBlank())
-                .toList();
+        mail = mail == null ? "" : mail.trim();
+        organizations = normalizeList(organizations);
 
         if (organizations.isEmpty()) {
             organizations = DEFAULT_ORGANIZATIONS;
         }
+
+        groups = normalizeList(groups);
     }
 
     private static String normalize(String value, String fallback) {
@@ -36,5 +39,16 @@ public record DevAuthProperties(
             return fallback;
         }
         return value.trim();
+    }
+
+    private static List<String> normalizeList(List<String> values) {
+        if (values == null || values.isEmpty()) {
+            return List.of();
+        }
+
+        return values.stream()
+            .map(String::trim)
+            .filter(value -> !value.isBlank())
+            .toList();
     }
 }

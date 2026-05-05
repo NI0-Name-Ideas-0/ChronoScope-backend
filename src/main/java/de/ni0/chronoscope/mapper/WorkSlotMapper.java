@@ -9,19 +9,40 @@ import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 import org.mapstruct.MappingConstants;
 
+/**
+ * MapStruct mapper for work-slot requests and responses.
+ */
 @Mapper(componentModel = MappingConstants.ComponentModel.SPRING, uses = {AccountProxyProvider.class, OrganizationProxyProvider.class})
 public interface WorkSlotMapper {
 
+    /**
+     * Converts a create request to a work slot with account and organization references.
+     *
+     * @param request create payload
+     * @return new work slot entity
+     */
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "account", source = "accountId", qualifiedByName = "accountProxy")
     @Mapping(target = "organization", source = "organizationId", qualifiedByName = "organizationProxy")
     WorkSlot fromCreateRequest(WorkSlotCreateRequest request);
 
+    /**
+     * Applies patch fields to a work slot entity.
+     *
+     * @param request update payload
+     * @param workSlot target work slot
+     */
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "account", ignore = true)
     @Mapping(target = "organization", ignore = true)
     void fromUpdateRequest(WorkSlotUpdateRequest request, @MappingTarget WorkSlot workSlot);
 
+    /**
+     * Converts a work slot entity to its API representation.
+     *
+     * @param workSlot work slot entity
+     * @return response DTO
+     */
     @Mapping(target = "accountId", source = "account.id")
     @Mapping(target = "organizationId", source = "organization.id")
     WorkSlotResponse toResponse(WorkSlot workSlot);
