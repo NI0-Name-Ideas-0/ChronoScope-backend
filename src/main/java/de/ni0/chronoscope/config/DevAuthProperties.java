@@ -21,10 +21,6 @@ public record DevAuthProperties(
     public static final List<String> DEFAULT_ORGANIZATIONS = List.of("private", "chronoscope-local");
     public static final List<String> DEFAULT_GROUPS = List.of();
 
-    public DevAuthProperties(String token, String subject, List<String> organizations) {
-        this(token, subject, "", organizations, DEFAULT_GROUPS);
-    }
-
     public DevAuthProperties {
         token = normalize(token, DEFAULT_TOKEN);
         subject = normalize(subject, DEFAULT_SUBJECT);
