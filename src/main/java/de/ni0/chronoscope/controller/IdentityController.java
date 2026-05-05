@@ -93,6 +93,7 @@ public class IdentityController {
     })
     @PostMapping("/accounts/confirm")
     public AccountLinkConfirmResponse confirmAccountLink(@Valid @RequestBody AccountLinkConfirmRequest request) {
-        return this.identityService.mergeAccounts(request.token());
+        long identityId = this.requestContext.getIdentityId();
+        return this.identityService.mergeAccounts(identityId, request.token());
     }
 }

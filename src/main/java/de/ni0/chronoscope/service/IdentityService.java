@@ -1,6 +1,7 @@
 package de.ni0.chronoscope.service;
 
 import de.ni0.chronoscope.controller.dto.response.AccountLinkConfirmResponse;
+import de.ni0.chronoscope.exception.AccountAccessDeniedException;
 import de.ni0.chronoscope.exception.AccountNotFoundException;
 import de.ni0.chronoscope.model.Account;
 import io.jsonwebtoken.Claims;
@@ -79,7 +80,7 @@ public class IdentityService {
      * @param token signed token produced by {@link #sendLink(long, String)}
      * @return merge result containing the source and target account IDs
      */
-    public AccountLinkConfirmResponse mergeAccounts(String token) {
+    public AccountLinkConfirmResponse mergeAccounts(long identityId, String token) {
         Claims claims = this.getTokenClaims(token);
         Long sourceId = Long.valueOf(claims.getSubject());
         Long targetId = claims.get("target", Long.class);
@@ -87,6 +88,9 @@ public class IdentityService {
         Account sourceAccount = this.accountRepository.getReferenceById(sourceId);
         Account targetAccount = this.accountRepository.getReferenceById(targetId);
         Identity oldIdentity = targetAccount.getIdentity();
+        if (identityId != oldIdentity.getId()) {
+            throw new AccountAccessDeniedException("Only the target account can accept the account merge");
+        }
         for (Account account : oldIdentity.getAccounts()) {
             account.setIdentity(sourceAccount.getIdentity());
             this.accountRepository.save(account);
