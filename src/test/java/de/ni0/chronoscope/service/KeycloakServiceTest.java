@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.junit.jupiter.api.BeforeEach;
@@ -123,7 +124,10 @@ class KeycloakServiceTest {
         when(usersResource.get("admin-subject")).thenReturn(userResource);
         when(userResource.groups("org-admins", false)).thenReturn(List.of(adminRoot));
 
-        assertEquals(Set.of("org-a", "org-b"), keycloakService.getAdminOrganizations(identity));
+        Set<String> adminOrganizations = keycloakService.getAdminOrganizations(identity);
+        assertEquals(Set.of("org-a", "org-b"), adminOrganizations);
+        assertFalse(adminOrganizations.contains(" "));
+        assertFalse(adminOrganizations.contains(""));
         keycloakService.validateIdentityAdminOrgAccess(identity, "org-b");
 
         AccountAccessDeniedException exception = assertThrows(
