@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.UUID;
 
 import de.ni0.chronoscope.TestData;
+import de.ni0.chronoscope.exception.AccountAccessDeniedException;
 import de.ni0.chronoscope.service.KeycloakService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -19,6 +20,8 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.http.MediaType;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -134,6 +137,8 @@ class PlanControllerIT {
     void plan_Returns403_WhenNoAccessToOrganization() throws Exception {
         String subject = uniqueSubject();
 
+        doThrow(AccountAccessDeniedException.class).when(keycloakService)
+                .validateIdentityOrgAccess(any(), any());
         mockMvc.perform(post("/v1/plan")
                         .with(jwt().jwt(jwt -> jwt.subject(subject)))
                         .contentType(MediaType.APPLICATION_JSON)

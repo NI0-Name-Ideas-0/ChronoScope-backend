@@ -171,7 +171,9 @@ public class TaskService {
         managedTask.setElapsed(task.getElapsed());
         managedTask.setMinScopeDuration(task.getMinScopeDuration());
         managedTask.setMaxScopeDuration(task.getMaxScopeDuration());
-        managedTask.setOrganization(organizationId);
+        if (organizationId != null) {
+            managedTask.setOrganization(organizationId);
+        }
 
         if (task.getLabels() != null) {
             managedTask.setLabels(task.getLabels());
@@ -243,7 +245,9 @@ public class TaskService {
         managedTask.setStartAt(task.getStartAt());
         managedTask.setEndAt(task.getEndAt());
         managedTask.setIsBlocker(task.getIsBlocker());
-        managedTask.setOrganization(organizationId);
+        if (organizationId != null) {
+            managedTask.setOrganization(organizationId);
+        }
 
         if (task.getLabels() != null) {
             managedTask.setLabels(task.getLabels());
