@@ -24,5 +24,6 @@ public interface IdentityMapper {
     @Mapping(target = "id", source = "identity.id")
     @Mapping(target = "accounts", source = "identity.accounts")
     @Mapping(target = "adminOrganizations", source = "adminOrganizations")
-    IdentityResponse toResponse(Identity identity, Set<String> adminOrganizations);
+    @Mapping(target = "organizations", source = "organizations")
+    IdentityResponse toResponse(Identity identity, Set<String> adminOrganizations, Set<IdentityResponse.Organization> organizations);
 }

@@ -2,6 +2,7 @@ package de.ni0.chronoscope.controller;
 
 import de.ni0.chronoscope.model.Identity;
 import de.ni0.chronoscope.service.KeycloakService;
+import org.keycloak.representations.idm.OrganizationRepresentation;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -27,6 +28,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
+import java.util.HashSet;
 import java.util.Set;
 
 /**
@@ -59,9 +61,12 @@ public class IdentityController {
     public IdentityResponse getIdentity() {
         Identity identity = this.identityService.getIdentity(this.requestContext.getAccount().getIdentity().getId());
         Set<String> adminOrganizations = this.keycloakService.getAdminOrganizations(identity);
+        Set<OrganizationRepresentation> organizations = this.keycloakService.getIdentityOrganizations(identity);
         return this.identityMapper.toResponse(
             identity,
-            adminOrganizations
+            adminOrganizations,
+            new HashSet<>(organizations.stream().map(o ->
+                    new IdentityResponse.Organization(o.getName(), o.getId())).toList())
         );
     }
 

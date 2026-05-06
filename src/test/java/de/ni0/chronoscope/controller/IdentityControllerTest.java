@@ -43,9 +43,9 @@ class IdentityControllerTest {
         when(requestContext.getAccount()).thenReturn(account);
         when(identityService.getIdentity(identity.getId())).thenReturn(identity);
 
-        IdentityResponse expected = new IdentityResponse(identity.getId(), List.of(), Set.of("dhbw-stuttgart"));
+        IdentityResponse expected = new IdentityResponse(identity.getId(), List.of(), Set.of("dhbw-stuttgart"), Set.of());
         when(keycloakService.getAdminOrganizations(identity)).thenReturn(Set.of("dhbw-stuttgart"));
-        when(identityMapper.toResponse(identity, Set.of("dhbw-stuttgart"))).thenReturn(expected);
+        when(identityMapper.toResponse(identity, Set.of("dhbw-stuttgart"), Set.of())).thenReturn(expected);
 
         IdentityController controller = new IdentityController(identityService, requestContext, identityMapper, keycloakService);
 
@@ -55,6 +55,6 @@ class IdentityControllerTest {
         verify(requestContext).getAccount();
         verify(identityService).getIdentity(identity.getId());
         verify(keycloakService).getAdminOrganizations(identity);
-        verify(identityMapper).toResponse(identity, Set.of("dhbw-stuttgart"));
+        verify(identityMapper).toResponse(identity, Set.of("dhbw-stuttgart"), Set.of());
     }
 }

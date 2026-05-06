@@ -890,7 +890,7 @@ components:
             $ref: "#/components/schemas/AccountResponse"
         adminOrganizations:
           type: array
-          description: "Organization names for which the authenticated account has\
+          description: "Organization names for which the authenticated identity has\
             \ admin privileges, derived from JWT groups below /org-admin."
           items:
             type: string
@@ -898,6 +898,12 @@ components:
         id:
           type: integer
           format: int64
+        organizations:
+          type: array
+          description: Organizations to which the identity belongs.
+          items:
+            $ref: "#/components/schemas/Organization"
+          uniqueItems: true
     Invitation:
       type: object
       properties:
@@ -944,6 +950,13 @@ components:
         taskId:
           type: integer
           format: int64
+    Organization:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
     OrganizationInvitationsResponse:
       type: object
       properties:
