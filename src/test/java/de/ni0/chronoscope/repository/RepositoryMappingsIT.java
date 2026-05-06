@@ -19,7 +19,6 @@ import de.ni0.chronoscope.model.Account;
 import de.ni0.chronoscope.model.DynamicTask;
 import de.ni0.chronoscope.model.Identity;
 import de.ni0.chronoscope.model.Label;
-import de.ni0.chronoscope.model.Organization;
 import de.ni0.chronoscope.model.Scope;
 
 @SpringBootTest
@@ -31,9 +30,6 @@ class RepositoryMappingsIT {
 
     @Autowired
     private IdentityRepository identityRepository;
-
-    @Autowired
-    private OrganizationRepository organizationRepository;
 
     @Autowired
     private LabelRepository labelRepository;

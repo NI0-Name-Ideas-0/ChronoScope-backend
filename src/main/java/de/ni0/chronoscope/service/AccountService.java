@@ -25,22 +25,6 @@ public class AccountService {
     private final IdentityRepository identityRepository;
 
     /**
-     * Loads an account and verifies that it belongs to the authenticated identity.
-     *
-     * @param identityId authenticated identity ID
-     * @param accountId account to validate
-     * @return the validated account
-     */
-    public Account validateAccountOwnership(long identityId, Long accountId) {
-        Account account = accountRepository.findById(accountId)
-                .orElseThrow(AccountNotFoundException::new);
-        if (!Objects.equals(account.getIdentity().getId(), identityId)) {
-            throw new AccountAccessDeniedException("accountId is not linked to authenticated identity");
-        }
-        return account;
-    }
-
-    /**
      * Creates or updates the account represented by an authentication token.
      *
      * <p>The method also reconciles the account's organization memberships with the token

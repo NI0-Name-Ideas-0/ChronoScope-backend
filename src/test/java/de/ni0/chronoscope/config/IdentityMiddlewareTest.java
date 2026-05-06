@@ -9,6 +9,8 @@ import static org.mockito.Mockito.when;
 import java.io.IOException;
 import java.util.List;
 
+import de.ni0.chronoscope.model.Account;
+import de.ni0.chronoscope.model.Identity;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -54,16 +56,20 @@ class IdentityMiddlewareTest {
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
         try {
-            when(accountService.syncAccount("subject-123", "", List.of("private"))).thenReturn(11L);
-            when(identityService.syncIdentity("subject-123")).thenReturn(22L);
+            Identity identity = new Identity();
+            identity.setId(22L);
+            Account account = new Account();
+            account.setId(11L);
+            account.setIdentity(identity);
+            when(accountService.syncAccount("subject-123")).thenReturn(account);
+            when(identityService.syncIdentity("subject-123")).thenReturn(identity.getId());
 
             middleware.doFilterInternal(new MockHttpServletRequest(), new MockHttpServletResponse(), filterChain);
 
-            assertEquals(11L, requestContext.getAccountId());
-            assertEquals(22L, requestContext.getIdentityId());
-            assertEquals(List.of("dhbw-stuttgart"), requestContext.getAdminOrganizations());
-            verify(accountService).syncAccount(eq("subject-123"), eq(""), eq(List.of("private")));
-            verify(identityService).syncIdentity("subject-123");
+            assertEquals(11L, requestContext.getAccount().getId());
+            assertEquals(22L, requestContext.getAccount().getIdentity().getId());
+            verify(accountService).syncAccount(eq("subject-123"));
+            verify(identityService).syncIdentity(eq("subject-123"));
             verify(filterChain).doFilter(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any());
             verifyNoMoreInteractions(accountService, identityService, filterChain);
         } finally {

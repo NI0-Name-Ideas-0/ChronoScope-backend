@@ -22,10 +22,8 @@ import de.ni0.chronoscope.exception.AccountNotFoundException;
 import de.ni0.chronoscope.exception.InvalidRequestException;
 import de.ni0.chronoscope.model.Account;
 import de.ni0.chronoscope.model.Identity;
-import de.ni0.chronoscope.model.Organization;
 import de.ni0.chronoscope.repository.AccountRepository;
 import de.ni0.chronoscope.repository.IdentityRepository;
-import de.ni0.chronoscope.repository.OrganizationRepository;
 
 @ExtendWith(MockitoExtension.class)
 class AccountServiceTest {
@@ -36,12 +34,9 @@ class AccountServiceTest {
     @Mock
     private IdentityRepository identityRepository;
 
-    @Mock
-    private OrganizationRepository organizationRepository;
-
     @Test
     void syncAccount_CreatesMissingAccountAndOrganizations() {
-        AccountService accountService = new AccountService(accountRepository, identityRepository, organizationRepository);
+        AccountService accountService = new AccountService(accountRepository, identityRepository);
 
         when(accountRepository.findBySubject("subject-123")).thenReturn(Optional.empty());
         when(accountRepository.save(any(Account.class))).thenAnswer(invocation -> {
