@@ -911,8 +911,8 @@ components:
             $ref: "#/components/schemas/AccountResponse"
         adminOrganizations:
           type: array
-          description: "Organization names for which the authenticated identity has\
-            \ admin privileges, derived from JWT groups below /org-admin."
+          description: "Organization IDs for which the authenticated identity has\
+            \ admin privileges, resolved server-side via Keycloak Admin Client lookups."
           items:
             type: string
           uniqueItems: true
