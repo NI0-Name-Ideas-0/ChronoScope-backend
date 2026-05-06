@@ -1,6 +1,6 @@
 package de.ni0.chronoscope.mapper;
 
-import java.util.List;
+import java.util.Set;
 
 import de.ni0.chronoscope.controller.dto.response.IdentityResponse;
 import de.ni0.chronoscope.model.Identity;
@@ -24,5 +24,5 @@ public interface IdentityMapper {
     @Mapping(target = "id", source = "identity.id")
     @Mapping(target = "accounts", source = "identity.accounts")
     @Mapping(target = "adminOrganizations", source = "adminOrganizations")
-    IdentityResponse toResponse(Identity identity, List<String> adminOrganizations);
+    IdentityResponse toResponse(Identity identity, Set<String> adminOrganizations);
 }

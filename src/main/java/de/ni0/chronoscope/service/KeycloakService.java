@@ -6,6 +6,7 @@ import de.ni0.chronoscope.model.Identity;
 import lombok.RequiredArgsConstructor;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.resource.OrganizationMembersResource;
+import org.keycloak.representations.idm.GroupRepresentation;
 import org.keycloak.representations.idm.MemberRepresentation;
 import org.keycloak.representations.idm.OrganizationRepresentation;
 import org.keycloak.representations.idm.UserRepresentation;
@@ -59,5 +60,19 @@ public class KeycloakService {
         if (organizations.stream().noneMatch(o -> Objects.equals(o.getId(), organizationId))) {
             throw new AccountAccessDeniedException("Account does not have access to the specified organization");
         }
+    }
+
+    public Set<String> getAdminOrganizations(Identity identity) {
+        Set<String> organizations = new HashSet<>();
+        for (Account account : identity.getAccounts()) {
+            String subject = account.getSubject();
+            List<GroupRepresentation> group = this.client.realm(realm).users().get(subject).groups("org-admins", false);
+            if (group.isEmpty()) continue;
+            GroupRepresentation first = group.getFirst();
+            for (GroupRepresentation subGroup : first.getSubGroups()) {
+                organizations.add(subGroup.getAttributes().get("org-id").getFirst());
+            }
+        }
+        return organizations;
     }
 }

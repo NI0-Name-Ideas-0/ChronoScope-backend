@@ -1,7 +1,7 @@
 package de.ni0.chronoscope.controller;
 
+import de.ni0.chronoscope.model.Identity;
 import de.ni0.chronoscope.service.KeycloakService;
-import org.keycloak.representations.idm.OrganizationRepresentation;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -27,7 +27,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
-import java.util.List;
+import java.util.Set;
 
 /**
  * REST controller for identity operations.
@@ -57,12 +57,11 @@ public class IdentityController {
     })
     @GetMapping
     public IdentityResponse getIdentity() {
-        long identityId = this.requestContext.getAccount().getIdentity().getId();
-        List<String> adminOrganizations = this.keycloakService.getIdentityOrganizations(this.requestContext.getAccount().getIdentity())
-                .stream().map(OrganizationRepresentation::getId).toList();
+        Identity identity = this.requestContext.getAccount().getIdentity();
+        Set<String> adminOrganizations = this.keycloakService.getAdminOrganizations(identity);
         return this.identityMapper.toResponse(
-            this.identityService.getIdentity(identityId),
-                adminOrganizations
+            identity,
+            adminOrganizations
         );
     }
 
