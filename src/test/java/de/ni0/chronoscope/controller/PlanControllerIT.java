@@ -9,13 +9,19 @@ import java.util.List;
 import java.util.UUID;
 
 import de.ni0.chronoscope.TestData;
+import de.ni0.chronoscope.service.KeycloakService;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.http.MediaType;
+
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -35,6 +41,7 @@ import de.ni0.chronoscope.repository.WorkSlotRepository;
 @AutoConfigureMockMvc
 @ComponentScan(basePackages = "de.ni0.chronoscope.mapper")
 @Transactional
+@ExtendWith(MockitoExtension.class)
 class PlanControllerIT {
 
     @Autowired
@@ -51,6 +58,9 @@ class PlanControllerIT {
 
     @Autowired
     private WorkSlotRepository workSlotRepository;
+
+    @MockitoBean
+    private KeycloakService keycloakService;
 
     private String uniqueSubject() {
         return "it-plan-subject-" + System.nanoTime();
@@ -87,9 +97,10 @@ class PlanControllerIT {
         return taskRepository.saveAndFlush(task).getId();
     }
 
-    private void createWorkSlot(Identity identity, String startAt, String endAt) {
+    private void createWorkSlot(Identity identity, String org, String startAt, String endAt) {
         WorkSlot slot = new WorkSlot();
         slot.setIdentity(identity);
+        slot.setOrganization(org);
         slot.setStartAt(Instant.parse(startAt));
         slot.setEndAt(Instant.parse(endAt));
         workSlotRepository.saveAndFlush(slot);
@@ -172,7 +183,7 @@ class PlanControllerIT {
         Account account = createAccount();
         String orgId = UUID.randomUUID().toString();
         createDynamicTask(account.getIdentity(), orgId);
-        createWorkSlot(account.getIdentity(), "2026-04-26T06:00:00Z", "2026-04-26T20:00:00Z");
+        createWorkSlot(account.getIdentity(), orgId, "2026-04-26T06:00:00Z", "2026-04-26T20:00:00Z");
 
         String payload = """
                 { "organizationId": "%s" }
