@@ -43,8 +43,4 @@ public class Account {
     @JoinColumn(name = "identity_id", nullable = false)
     @ToString.Exclude // bidirectional: Identity.accounts -> this Account, would recurse infinitely in toString
     private Identity identity;
-
-    public void set() {
-
-    }
 }
