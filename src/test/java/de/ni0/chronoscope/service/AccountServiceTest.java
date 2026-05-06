@@ -3,6 +3,7 @@ package de.ni0.chronoscope.service;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import de.ni0.chronoscope.TestData;
 import org.junit.jupiter.api.Test;
@@ -48,6 +49,7 @@ class AccountServiceTest {
 
         assertEquals(1L, account.getId());
         assertEquals(2L, account.getIdentity().getId());
+        assertTrue(account.getIdentity().getAccounts().contains(account));
         verify(accountRepository).findBySubject("subject-123");
         verify(accountRepository).save(any(Account.class));
         verify(identityRepository).save(any(Identity.class));

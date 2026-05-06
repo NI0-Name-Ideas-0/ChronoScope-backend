@@ -35,6 +35,7 @@ public class AccountService {
                         Account newAccount = new Account();
                         newAccount.setSubject(subject);
                         newAccount.setIdentity(identity);
+                        identity.getAccounts().add(newAccount);
                         return accountRepository.save(newAccount);
                     } catch (DataIntegrityViolationException ex) {
                         // Another transaction likely inserted the same unique subject concurrently.
