@@ -13,6 +13,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,7 +46,7 @@ class WorkSlotControllerIT {
     @Autowired
     private WorkSlotRepository workSlotRepository;
 
-    @Autowired
+    @MockitoBean
     private KeycloakService keycloakService;
 
     private Account createAccount(String subject) {
@@ -80,7 +81,7 @@ class WorkSlotControllerIT {
                         .with(jwt().jwt(jwt -> jwt.subject(subject))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].identityId").value(account.getIdentity().getId()));
+                .andExpect(jsonPath("$[0].organizationId").value(orgId));
     }
 
     @Test
@@ -100,9 +101,8 @@ class WorkSlotControllerIT {
         mockMvc.perform(post("/v1/workslots")
                         .with(jwt().jwt(jwt -> jwt.subject(subject).claim("organizationId", java.util.List.of("private"))))
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(payload))
+                .content(payload))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.identityId").value(account.getIdentity().getId()))
                 .andExpect(jsonPath("$.organizationId").value(orgId))
                 .andExpect(jsonPath("$.startAt").value("2026-04-20T08:00:00Z"))
                 .andExpect(jsonPath("$.endAt").value("2026-04-20T17:00:00Z"));

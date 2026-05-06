@@ -67,13 +67,11 @@ class TaskServiceTest {
         List<Task> expectedTasks = List.of();
 
         when(taskRepository.findByIdentityId(identityId)).thenReturn(expectedTasks);
-        when(taskRepository.findDynamicTasksByIdentityId(identityId)).thenReturn(List.of());
 
         List<Task> result = taskService.getTasksForIdentity(identityId);
 
         assertEquals(expectedTasks, result);
         verify(taskRepository).findByIdentityId(identityId);
-        verify(taskRepository).findDynamicTasksByIdentityId(identityId);
     }
 
     @Test

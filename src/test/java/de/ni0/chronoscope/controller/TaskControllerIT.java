@@ -12,8 +12,11 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 
-import de.ni0.chronoscope.TestData;
+import de.ni0.chronoscope.exception.AccountAccessDeniedException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -29,6 +32,7 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
 
 import de.ni0.chronoscope.model.Account;
@@ -40,6 +44,7 @@ import de.ni0.chronoscope.repository.AccountRepository;
 import de.ni0.chronoscope.repository.IdentityRepository;
 import de.ni0.chronoscope.repository.ScopeRepository;
 import de.ni0.chronoscope.repository.TaskRepository;
+import de.ni0.chronoscope.service.KeycloakService;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 
@@ -47,6 +52,8 @@ import jakarta.persistence.PersistenceContext;
 @AutoConfigureMockMvc
 @Transactional
 class TaskControllerIT {
+
+    private static final String DEFAULT_ORGANIZATION_ID = "test-organization";
 
     @Autowired
     private MockMvc mockMvc;
@@ -63,24 +70,28 @@ class TaskControllerIT {
     @Autowired
     private ScopeRepository scopeRepository;
 
+    @MockitoBean
+    private KeycloakService keycloakService;
+
     @PersistenceContext
     private EntityManager entityManager;
 
     private Account createAccount() {
-        Account account = TestData.account();
-        identityRepository.saveAndFlush(account.getIdentity());
-        accountRepository.saveAndFlush(account);
-        return account;
+        return createAccount(new Identity(), UUID.randomUUID().toString());
     }
-    private Account createAccount(Identity identity, long accountId) {
+
+    private Account createAccount(Identity identity) {
+        return createAccount(identity, UUID.randomUUID().toString());
+    }
+
+    private Account createAccount(Identity identity, String subject) {
+        Identity managedIdentity = identityRepository.saveAndFlush(identity);
         Account account = new Account();
-        account.setSubject(UUID.randomUUID().toString());
-        account.setId(accountId);
-        account.setIdentity(identity);
-        identity.getAccounts().add(account);
-        identityRepository.saveAndFlush(identity);
-        accountRepository.saveAndFlush(account);
-        return account;
+        account.setSubject(subject);
+        account.setIdentity(managedIdentity);
+        Account savedAccount = accountRepository.saveAndFlush(account);
+        managedIdentity.getAccounts().add(savedAccount);
+        return savedAccount;
     }
 
     private RequestPostProcessor createJwt(String subject) {
@@ -91,6 +102,7 @@ class TaskControllerIT {
     private long createDynamicPredecessorTask(Identity identity) {
         DynamicTask predecessor = new DynamicTask();
         predecessor.setIdentity(identity);
+        predecessor.setOrganizationId(DEFAULT_ORGANIZATION_ID);
         predecessor.setName("Predecessor task");
         predecessor.setDescription("Predecessor task for dependency test");
         predecessor.setDifficulty(2);
@@ -109,10 +121,12 @@ class TaskControllerIT {
 
     @Test
     void getTasks_ReturnsTasksFromCurrentIdentityAndLinkedAccountsOnly() throws Exception {
-        Identity identity = identityRepository.saveAndFlush(new Identity());
         String subject = "it-get-tasks-subject-" + System.nanoTime();
+        Identity identity = identityRepository.saveAndFlush(new Identity());
+        createAccount(identity, subject);
 
         Identity otherIdentity = identityRepository.saveAndFlush(new Identity());
+        createAccount(otherIdentity);
 
         String dynamicTaskName = "it-dynamic-task-" + System.nanoTime();
         String linkedStaticTaskName = "it-linked-static-task-" + System.nanoTime();
@@ -120,6 +134,7 @@ class TaskControllerIT {
 
         DynamicTask ownTask = new DynamicTask();
         ownTask.setIdentity(identity);
+        ownTask.setOrganizationId(DEFAULT_ORGANIZATION_ID);
         ownTask.setName(dynamicTaskName);
         ownTask.setDescription("Dynamic task in current identity");
         ownTask.setDifficulty(2);
@@ -137,6 +152,7 @@ class TaskControllerIT {
 
         StaticTask linkedTask = new StaticTask();
         linkedTask.setIdentity(identity);
+        linkedTask.setOrganizationId(DEFAULT_ORGANIZATION_ID);
         linkedTask.setName(linkedStaticTaskName);
         linkedTask.setDescription("Static task in linked account");
         linkedTask.setDifficulty(1);
@@ -149,6 +165,7 @@ class TaskControllerIT {
 
         StaticTask foreignTask = new StaticTask();
         foreignTask.setIdentity(otherIdentity);
+        foreignTask.setOrganizationId(DEFAULT_ORGANIZATION_ID);
         foreignTask.setName(foreignTaskName);
         foreignTask.setDescription("Task from another identity");
         foreignTask.setDifficulty(1);
@@ -167,8 +184,6 @@ class TaskControllerIT {
             .andExpect(jsonPath("$[*].name", hasItem(dynamicTaskName)))
             .andExpect(jsonPath("$[*].name", hasItem(linkedStaticTaskName)))
             .andExpect(jsonPath("$[*].name", not(hasItem(foreignTaskName))))
-            .andExpect(jsonPath("$[*].identityId", hasItem(identity.getId())))
-            .andExpect(jsonPath("$[*].identityId", not(hasItem(otherIdentity.getId()))))
             .andExpect(jsonPath("$[*].type", hasItem("dynamic")))
             .andExpect(jsonPath("$[*].type", hasItem("static")));
     }
@@ -198,7 +213,7 @@ class TaskControllerIT {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(payload))
             .andExpect(status().isCreated())
-            .andExpect(jsonPath("$.identityId").value(account.getIdentity().getId()))
+            .andExpect(jsonPath("$.organizationId").value(organizationId))
             .andExpect(jsonPath("$.name").value("Write report"))
             .andExpect(jsonPath("$.description").value("Prepare weekly summary"))
             .andExpect(jsonPath("$.difficulty").value(3))
@@ -229,7 +244,6 @@ class TaskControllerIT {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(payload))
             .andExpect(status().isCreated())
-            .andExpect(jsonPath("$.identityId").value(account.getIdentity().getId()))
             .andExpect(jsonPath("$.organizationId").value(nullValue()))
             .andExpect(jsonPath("$.name").value("Maintenance window"))
             .andExpect(jsonPath("$.isBlocker").value(true));
@@ -320,7 +334,7 @@ class TaskControllerIT {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(payload))
             .andExpect(status().isCreated())
-            .andExpect(jsonPath("$.accountId").value(account.getId()))
+            .andExpect(jsonPath("$.organizationId").value(organizationId))
             .andExpect(jsonPath("$.name").value("Implement API endpoint"))
             .andExpect(jsonPath("$.difficulty").value(4))
             .andExpect(jsonPath("$.duration").value("PT4H"))
@@ -336,9 +350,11 @@ class TaskControllerIT {
     }
 
     @Test
-    void createTask_Static_WithUnknownOrganization_ReturnsValidationError() throws Exception {
+    void createTask_Static_WhenKeycloakDeniesOrganization_ReturnsForbidden() throws Exception {
         Account account = createAccount();
         String organizationId = UUID.randomUUID().toString();
+        doThrow(new AccountAccessDeniedException("Account does not have access to the specified organizationId"))
+            .when(keycloakService).validateIdentityOrgAccess(any(Identity.class), eq(organizationId));
 
         String payload = """
             {
@@ -359,17 +375,19 @@ class TaskControllerIT {
                 .with(createJwt(account.getSubject()))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(payload))
-            .andExpect(status().isBadRequest())
+            .andExpect(status().isForbidden())
             .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
-            .andExpect(jsonPath("$.type").value("urn:chronoscope:error:validation-error"))
-            .andExpect(jsonPath("$.errorCode").value("VALIDATION_ERROR"))
-            .andExpect(jsonPath("$.detail").value("Organization not found: " + organizationId));
+            .andExpect(jsonPath("$.type").value("urn:chronoscope:error:access-denied"))
+            .andExpect(jsonPath("$.errorCode").value("ACCESS_DENIED"))
+            .andExpect(jsonPath("$.detail").value("Account does not have access to the specified organizationId"));
     }
 
     @Test
     void createTask_Static_WithOrganizationOutsideAccount_ReturnsForbidden() throws Exception {
         Account account = createAccount();
         String inaccessibleOrganizationId = UUID.randomUUID().toString();
+        doThrow(new AccountAccessDeniedException("Account does not have access to the specified organizationId"))
+            .when(keycloakService).validateIdentityOrgAccess(any(Identity.class), eq(inaccessibleOrganizationId));
 
         String payload = """
             {
@@ -550,7 +568,7 @@ class TaskControllerIT {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(payload))
                     .andExpect(status().isCreated())
-                    .andExpect(jsonPath("$.identityId").value(account.getIdentity().getId()))
+                    .andExpect(jsonPath("$.organizationId").value(organizationId))
                     .andExpect(jsonPath("$.dependencies").isArray())
                     .andExpect(jsonPath("$.dependencies.length()").value(1))
                     .andExpect(jsonPath("$.dependencies[0]").value(predecessorId));
@@ -560,11 +578,9 @@ class TaskControllerIT {
         void createTask_Dynamic_WithDependencyFromDifferentIdentity_ReturnsValidationError() throws Exception {
             String organizationId = UUID.randomUUID().toString();
             Identity identity = new Identity();
-            identity.setId(5L);
             Identity otherIdentity = new Identity();
-            identity.setId(6L);
-            Account account = this.createAccount(identity, 5L);
-            Account otherAccount = this.createAccount(otherIdentity, 6L);
+            Account account = this.createAccount(identity);
+            Account otherAccount = this.createAccount(otherIdentity);
 
             long predecessorId = createDynamicPredecessorTask(otherAccount.getIdentity());
 
@@ -605,6 +621,7 @@ class TaskControllerIT {
 
             DynamicTask dependent = new DynamicTask();
             dependent.setIdentity(account.getIdentity());
+            dependent.setOrganizationId(DEFAULT_ORGANIZATION_ID);
             dependent.setName("Dependent dynamic task");
             dependent.setDescription("Depends on predecessor");
             dependent.setDifficulty(3);
@@ -638,6 +655,7 @@ class TaskControllerIT {
 
         StaticTask task = new StaticTask();
         task.setIdentity(account.getIdentity());
+        task.setOrganizationId(DEFAULT_ORGANIZATION_ID);
         task.setName("Original static task");
         task.setDescription("Original description");
         task.setDifficulty(2);
@@ -674,6 +692,8 @@ class TaskControllerIT {
         Account account = createAccount();
         String organizationId = UUID.randomUUID().toString();
         String inaccessibleOrganizationId = UUID.randomUUID().toString();
+        doThrow(new AccountAccessDeniedException("Account does not have access to the specified organizationId"))
+            .when(keycloakService).validateIdentityOrgAccess(any(Identity.class), eq(inaccessibleOrganizationId));
 
         StaticTask task = new StaticTask();
         task.setIdentity(account.getIdentity());
@@ -714,6 +734,7 @@ class TaskControllerIT {
 
         DynamicTask task = new DynamicTask();
         task.setIdentity(account.getIdentity());
+        task.setOrganizationId(DEFAULT_ORGANIZATION_ID);
         task.setName("Original dynamic task");
         task.setDescription("Original dynamic description");
         task.setDifficulty(3);
@@ -831,6 +852,7 @@ class TaskControllerIT {
 
         DynamicTask task = new DynamicTask();
         task.setIdentity(account.getIdentity());
+        task.setOrganizationId(DEFAULT_ORGANIZATION_ID);
         task.setName("Dynamic task");
         task.setDescription("Can reset elapsed to zero");
         task.setDifficulty(3);
@@ -872,6 +894,7 @@ class TaskControllerIT {
 
         DynamicTask task = new DynamicTask();
         task.setIdentity(account.getIdentity());
+        task.setOrganizationId(DEFAULT_ORGANIZATION_ID);
         task.setName("Dynamic task");
         task.setDescription("Should reject negative elapsed");
         task.setDifficulty(3);
@@ -910,6 +933,7 @@ class TaskControllerIT {
 
         DynamicTask task = new DynamicTask();
         task.setIdentity(account.getIdentity());
+        task.setOrganizationId(DEFAULT_ORGANIZATION_ID);
         task.setName("Dynamic task");
         task.setDescription("Type mismatch case");
         task.setDifficulty(3);
@@ -950,6 +974,7 @@ class TaskControllerIT {
 
         DynamicTask dependent = new DynamicTask();
         dependent.setIdentity(account.getIdentity());
+        dependent.setOrganizationId(DEFAULT_ORGANIZATION_ID);
         dependent.setName("Dependent task");
         dependent.setDescription("Initially depends on predecessor");
         dependent.setDifficulty(3);
@@ -1000,6 +1025,7 @@ class TaskControllerIT {
 
         DynamicTask dependent = new DynamicTask();
         dependent.setIdentity(account.getIdentity());
+        dependent.setOrganizationId(DEFAULT_ORGANIZATION_ID);
         dependent.setName("Independent task");
         dependent.setDescription("Will gain a dependency");
         dependent.setDifficulty(3);
@@ -1045,15 +1071,14 @@ class TaskControllerIT {
     @Test
     void updateTask_Dynamic_WithDependencyFromDifferentIdentity_ReturnsValidationError() throws Exception {
         Identity identity = new Identity();
-        identity.setId(5L);
         Identity otherIdentity = new Identity();
-        identity.setId(6L);
-        Account account = this.createAccount(identity, 5L);
-        Account otherAccount = this.createAccount(otherIdentity, 6L);
+        Account account = this.createAccount(identity);
+        Account otherAccount = this.createAccount(otherIdentity);
         long foreignDependencyId = createDynamicPredecessorTask(otherAccount.getIdentity());
 
         DynamicTask task = new DynamicTask();
-        task.setIdentity(identity);
+        task.setIdentity(account.getIdentity());
+        task.setOrganizationId(DEFAULT_ORGANIZATION_ID);
         task.setName("Task to patch");
         task.setDescription("Should reject foreign dependency");
         task.setDifficulty(3);
@@ -1093,6 +1118,7 @@ class TaskControllerIT {
 
         StaticTask task = new StaticTask();
         task.setIdentity(ownerAccount.getIdentity());
+        task.setOrganizationId(DEFAULT_ORGANIZATION_ID);
         task.setName("Foreign task");
         task.setDescription("Should not be patchable by someone else");
         task.setDifficulty(1);
@@ -1239,6 +1265,7 @@ class TaskControllerIT {
 
         StaticTask task = new StaticTask();
         task.setIdentity(account.getIdentity());
+        task.setOrganizationId(DEFAULT_ORGANIZATION_ID);
         task.setName("Static to delete");
         task.setDescription("Delete me");
         task.setDifficulty(1);
@@ -1262,6 +1289,7 @@ class TaskControllerIT {
 
         DynamicTask predecessor = new DynamicTask();
         predecessor.setIdentity(account.getIdentity());
+        predecessor.setOrganizationId(DEFAULT_ORGANIZATION_ID);
         predecessor.setName("Predecessor");
         predecessor.setDescription("Will be deleted");
         predecessor.setDifficulty(2);
@@ -1287,6 +1315,7 @@ class TaskControllerIT {
 
         DynamicTask dependent = new DynamicTask();
         dependent.setIdentity(account.getIdentity());
+        dependent.setOrganizationId(DEFAULT_ORGANIZATION_ID);
         dependent.setName("Dependent");
         dependent.setDescription("Depends on predecessor");
         dependent.setDifficulty(3);
@@ -1329,6 +1358,7 @@ class TaskControllerIT {
 
         StaticTask task = new StaticTask();
         task.setIdentity(account.getIdentity());
+        task.setOrganizationId(DEFAULT_ORGANIZATION_ID);
         task.setName("Foreign task");
         task.setDescription("Should not be deletable");
         task.setDifficulty(1);

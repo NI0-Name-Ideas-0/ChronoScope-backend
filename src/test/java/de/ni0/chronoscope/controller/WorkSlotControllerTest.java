@@ -35,6 +35,9 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class WorkSlotControllerTest {
 
+    private static final long IDENTITY_ID = 99L;
+    private static final long ACCOUNT_ID = 100L;
+
     @Mock
     private WorkSlotService workSlotService;
 
@@ -49,7 +52,7 @@ class WorkSlotControllerTest {
 
     @Test
     void getWorkSlots_UsesCurrentIdentityAndMapsResponse() {
-        Account account = TestData.account();
+        Account account = TestData.account(IDENTITY_ID, ACCOUNT_ID);
         RequestContext requestContext = new RequestContext();
         requestContext.setAccount(account);
         WorkSlotController controller = new WorkSlotController(workSlotService, workSlotMapper, requestContext, keycloakService);
@@ -73,7 +76,7 @@ class WorkSlotControllerTest {
 
     @Test
     void createWorkSlot_ReturnsCreatedWhenAuthorized() {
-        Account account = TestData.account();
+        Account account = TestData.account(IDENTITY_ID, ACCOUNT_ID);
         RequestContext requestContext = new RequestContext();
         requestContext.setAccount(account);
         WorkSlotController controller = new WorkSlotController(workSlotService, workSlotMapper, requestContext, keycloakService);
@@ -106,7 +109,7 @@ class WorkSlotControllerTest {
 
     @Test
     void updateWorkSlot_DelegatesToServiceAndMapsResponse() {
-        Account account = TestData.account();
+        Account account = TestData.account(IDENTITY_ID, ACCOUNT_ID);
         RequestContext requestContext = new RequestContext();
         requestContext.setAccount(account);
         WorkSlotController controller = new WorkSlotController(workSlotService, workSlotMapper, requestContext, keycloakService);
@@ -133,7 +136,7 @@ class WorkSlotControllerTest {
 
     @Test
     void updateWorkSlot_ThrowsWhenNotFound() {
-        Account account = TestData.account();
+        Account account = TestData.account(IDENTITY_ID, ACCOUNT_ID);
         RequestContext requestContext = new RequestContext();
         requestContext.setAccount(account);
         WorkSlotController controller = new WorkSlotController(workSlotService, workSlotMapper, requestContext, keycloakService);
@@ -149,7 +152,7 @@ class WorkSlotControllerTest {
 
     @Test
     void deleteWorkSlot_DelegatesToService() {
-        Account account = TestData.account();
+        Account account = TestData.account(IDENTITY_ID, ACCOUNT_ID);
         RequestContext requestContext = new RequestContext();
         requestContext.setAccount(account);
         WorkSlotController controller = new WorkSlotController(workSlotService, workSlotMapper, requestContext, keycloakService);
@@ -164,7 +167,7 @@ class WorkSlotControllerTest {
 
     @Test
     void deleteWorkSlot_ThrowsWhenNotFound() {
-        Account account = TestData.account();
+        Account account = TestData.account(IDENTITY_ID, ACCOUNT_ID);
         RequestContext requestContext = new RequestContext();
         requestContext.setAccount(account);
         WorkSlotController controller = new WorkSlotController(workSlotService, workSlotMapper, requestContext, keycloakService);

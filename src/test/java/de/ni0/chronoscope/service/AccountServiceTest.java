@@ -47,8 +47,9 @@ class AccountServiceTest {
         de.ni0.chronoscope.model.Account account = accountService.syncAccount("subject-123");
 
         assertEquals(1L, account.getId());
+        assertEquals(2L, account.getIdentity().getId());
         verify(accountRepository).findBySubject("subject-123");
-        verify(accountRepository, times(2)).save(any(Account.class));
+        verify(accountRepository).save(any(Account.class));
         verify(identityRepository).save(any(Identity.class));
         verifyNoMoreInteractions(accountRepository, identityRepository);
     }
@@ -57,16 +58,14 @@ class AccountServiceTest {
     void syncAccount_ReusesExistingAccountAndOrganization() {
         AccountService accountService = new AccountService(accountRepository, identityRepository);
 
-        Account account = TestData.account();
+        Account account = TestData.account(2L, 1L);
 
         when(accountRepository.findBySubject(account.getSubject())).thenReturn(Optional.of(account));
-        when(accountRepository.save(any(Account.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         de.ni0.chronoscope.model.Account newAccount = accountService.syncAccount(account.getSubject());
 
         assertEquals(account.getId(), newAccount.getId());
         verify(accountRepository, times(1)).findBySubject(account.getSubject());
-        verify(accountRepository).save(account);
         verifyNoMoreInteractions(accountRepository, identityRepository);
     }
 }

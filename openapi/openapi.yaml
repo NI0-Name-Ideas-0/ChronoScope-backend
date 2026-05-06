@@ -922,6 +922,9 @@ components:
         targetMail:
           type: string
           format: email
+          minLength: 1
+      required:
+      - targetMail
     LabelCreateRequest:
       type: object
       properties:

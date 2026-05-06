@@ -41,6 +41,9 @@ import de.ni0.chronoscope.service.TaskService;
 @ExtendWith(MockitoExtension.class)
 class TaskControllerTest {
 
+    private static final long IDENTITY_ID = 99L;
+    private static final long ACCOUNT_ID = 100L;
+
     @Mock
     private TaskService taskService;
 
@@ -55,7 +58,7 @@ class TaskControllerTest {
 
     @Test
     void getTasks_UsesCurrentIdentityAndMapsPolymorphicResponses() {
-        Account account = TestData.account();
+        Account account = TestData.account(IDENTITY_ID, ACCOUNT_ID);
         RequestContext requestContext = new RequestContext();
         requestContext.setAccount(account);
         TaskController controller = new TaskController(taskService, taskMapper, requestContext, keycloakService);
@@ -96,7 +99,7 @@ class TaskControllerTest {
             List.of()
         );
 
-        when(taskService.getTasksForIdentity(99L)).thenReturn(List.of(staticTask, dynamicTask));
+        when(taskService.getTasksForIdentity(IDENTITY_ID)).thenReturn(List.of(staticTask, dynamicTask));
         when(taskMapper.toResponse(staticTask)).thenReturn(staticResponse);
         when(taskMapper.toResponse(dynamicTask)).thenReturn(dynamicResponse);
 
@@ -105,14 +108,14 @@ class TaskControllerTest {
         assertEquals(2, result.size());
         assertEquals(staticResponse, result.get(0));
         assertEquals(dynamicResponse, result.get(1));
-        verify(taskService).getTasksForIdentity(99L);
+        verify(taskService).getTasksForIdentity(IDENTITY_ID);
         verify(taskMapper).toResponse(staticTask);
         verify(taskMapper).toResponse(dynamicTask);
     }
 
     @Test
     void createTask_Static_CreatesStaticTaskWhenAuthorized() {
-        Account account = TestData.account();
+        Account account = TestData.account(IDENTITY_ID, ACCOUNT_ID);
         RequestContext requestContext = new RequestContext();
         requestContext.setAccount(account);
         TaskController controller = new TaskController(taskService, taskMapper, requestContext, keycloakService);
@@ -166,7 +169,7 @@ class TaskControllerTest {
 
     @Test
     void createTask_Static_AllowsBlockerWithoutOrganization() {
-        Account account = TestData.account();
+        Account account = TestData.account(IDENTITY_ID, ACCOUNT_ID);
         RequestContext requestContext = new RequestContext();
         requestContext.setAccount(account);
         TaskController controller = new TaskController(taskService, taskMapper, requestContext, keycloakService);
@@ -221,7 +224,7 @@ class TaskControllerTest {
 
     @Test
     void createTask_Dynamic_CreatesDynamicTaskWhenAuthorized() {
-        Account account = TestData.account();
+        Account account = TestData.account(IDENTITY_ID, ACCOUNT_ID);
         RequestContext requestContext = new RequestContext();
         requestContext.setAccount(account);
         TaskController controller = new TaskController(taskService, taskMapper, requestContext, keycloakService);
@@ -282,7 +285,7 @@ class TaskControllerTest {
 
     @Test
     void deleteTask_DelegatesToServiceWithCurrentIdentity() {
-        Account account = TestData.account();
+        Account account = TestData.account(IDENTITY_ID, ACCOUNT_ID);
         RequestContext requestContext = new RequestContext();
         requestContext.setAccount(account);
         TaskController controller = new TaskController(taskService, taskMapper, requestContext, keycloakService);
@@ -295,7 +298,7 @@ class TaskControllerTest {
 
     @Test
     void getTask_Dynamic_UsesIdentityScopedLookupAndReturnsMappedResponse() {
-        Account account = TestData.account();
+        Account account = TestData.account(IDENTITY_ID, ACCOUNT_ID);
         RequestContext requestContext = new RequestContext();
         requestContext.setAccount(account);
         TaskController controller = new TaskController(taskService, taskMapper, requestContext, keycloakService);
@@ -334,7 +337,7 @@ class TaskControllerTest {
 
     @Test
     void updateTask_Static_UpdatesAndMapsResponse() {
-        Account account = TestData.account();
+        Account account = TestData.account(IDENTITY_ID, ACCOUNT_ID);
         RequestContext requestContext = new RequestContext();
         requestContext.setAccount(account);
         TaskController controller = new TaskController(taskService, taskMapper, requestContext, keycloakService);
@@ -383,7 +386,7 @@ class TaskControllerTest {
 
     @Test
     void updateTask_ThrowsWhenTypeDoesNotMatchPersistedTask() {
-        Account account = TestData.account();
+        Account account = TestData.account(IDENTITY_ID, ACCOUNT_ID);
         RequestContext requestContext = new RequestContext();
         requestContext.setAccount(account);
         TaskController controller = new TaskController(taskService, taskMapper, requestContext, keycloakService);
@@ -417,7 +420,7 @@ class TaskControllerTest {
 
     @Test
     void updateTask_ThrowsWhenStaticPayloadTargetsDynamicTask() {
-        Account account = TestData.account();
+        Account account = TestData.account(IDENTITY_ID, ACCOUNT_ID);
         RequestContext requestContext = new RequestContext();
         requestContext.setAccount(account);
         TaskController controller = new TaskController(taskService, taskMapper, requestContext, keycloakService);
@@ -448,7 +451,7 @@ class TaskControllerTest {
 
     @Test
     void updateTask_Static_ChangesOrganizationWhenProvided() {
-        Account account = TestData.account();
+        Account account = TestData.account(IDENTITY_ID, ACCOUNT_ID);
         RequestContext requestContext = new RequestContext();
         requestContext.setAccount(account);
         TaskController controller = new TaskController(taskService, taskMapper, requestContext, keycloakService);
@@ -506,7 +509,7 @@ class TaskControllerTest {
 
     @Test
     void updateTask_Static_ChangeOrg_OrgNotLinked_Throws() {
-        Account account = TestData.account();
+        Account account = TestData.account(IDENTITY_ID, ACCOUNT_ID);
         RequestContext requestContext = new RequestContext();
         requestContext.setAccount(account);
         TaskController controller = new TaskController(taskService, taskMapper, requestContext, keycloakService);

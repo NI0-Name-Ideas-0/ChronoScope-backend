@@ -41,6 +41,7 @@ class IdentityControllerTest {
         Account account = TestData.account(1L, 2L);
         Identity identity = account.getIdentity();
         when(requestContext.getAccount()).thenReturn(account);
+        when(identityService.getIdentity(identity.getId())).thenReturn(identity);
 
         IdentityResponse expected = new IdentityResponse(identity.getId(), List.of(), Set.of("dhbw-stuttgart"));
         when(keycloakService.getAdminOrganizations(identity)).thenReturn(Set.of("dhbw-stuttgart"));
@@ -52,6 +53,8 @@ class IdentityControllerTest {
 
         assertEquals(expected, actual);
         verify(requestContext).getAccount();
+        verify(identityService).getIdentity(identity.getId());
+        verify(keycloakService).getAdminOrganizations(identity);
         verify(identityMapper).toResponse(identity, Set.of("dhbw-stuttgart"));
     }
 }
