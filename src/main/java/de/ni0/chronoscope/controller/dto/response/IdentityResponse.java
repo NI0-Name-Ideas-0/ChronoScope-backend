@@ -12,7 +12,7 @@ import jakarta.validation.constraints.NotNull;
 public record IdentityResponse(
     @NotNull Long id,
     @NotNull List<AccountResponse> accounts,
-    @Schema(description = "Organization names for which the authenticated identity has admin privileges, derived from JWT groups below /org-admin.")
+    @Schema(description = "Organization IDs for which the authenticated identity has admin privileges, resolved server-side via Keycloak Admin Client lookups.")
     @NotNull Set<String> adminOrganizations,
     @Schema(description = "Organizations to which the identity belongs.")
     @NotNull Set<Organization> organizations
