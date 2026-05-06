@@ -91,7 +91,7 @@ class WorkSlotControllerIT {
 
         String payload = """
                 {
-                  "organizationId": %s,
+                  "organizationId": "%s",
                   "startAt": "2026-04-20T08:00:00Z",
                   "endAt": "2026-04-20T17:00:00Z"
                 }

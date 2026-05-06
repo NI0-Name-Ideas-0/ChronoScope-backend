@@ -49,7 +49,7 @@ class PlanningServiceTest {
     void planTasksForAccount_ReturnsEmptyList_WhenNoTasksForOrganization() {
         PlanningService service = new PlanningService(taskRepository, scopeRepository, workSlotService, accountService, keycloakService);
         String orgId = UUID.randomUUID().toString();
-        Identity identity = TestData.identity();
+        Identity identity = TestData.identity(1);
 
         when(taskRepository.findDynamicTasksByIdentityIdAndOrganization(identity.getId(), orgId)).thenReturn(List.of());
 
@@ -67,7 +67,7 @@ class PlanningServiceTest {
     @Test
     void planTasksForAccount_ThrowsInsufficientSlotsException_WhenNoWorkSlotsAvailable() {
         PlanningService service = new PlanningService(taskRepository, scopeRepository, workSlotService, accountService, keycloakService);
-        Identity identity = TestData.identity();
+        Identity identity = TestData.identity(1);
         String orgId = UUID.randomUUID().toString();
 
         when(taskRepository.findDynamicTasksByIdentityIdAndOrganization(identity.getId(), orgId))
@@ -83,7 +83,7 @@ class PlanningServiceTest {
     @Test
     void planTasksForAccount_ThrowsInvalidRequestException_WhenTasksFormACycle() {
         PlanningService service = new PlanningService(taskRepository, scopeRepository, workSlotService, accountService, keycloakService);
-        Identity identity = TestData.identity();
+        Identity identity = TestData.identity(1);
         String orgId = UUID.randomUUID().toString();
 
         DynamicTask taskA = buildTask(1L, Duration.ofHours(1));
@@ -108,7 +108,7 @@ class PlanningServiceTest {
     @Test
     void planTasksForAccount_ThrowsInsufficientSlotsException_WhenDeadlineCannotBeMet() {
         PlanningService service = new PlanningService(taskRepository, scopeRepository, workSlotService, accountService, keycloakService);
-        Identity identity = TestData.identity();
+        Identity identity = TestData.identity(1);
         String orgId = UUID.randomUUID().toString();
 
         // Task needs 2 hours but its deadline is only 1 hour from slot start
@@ -133,7 +133,7 @@ class PlanningServiceTest {
     @Test
     void planTasksForAccount_DeletesOldScopesAndReturnsNewScopes_WhenPlanSucceeds() {
         PlanningService service = new PlanningService(taskRepository, scopeRepository, workSlotService, accountService, keycloakService);
-        Identity identity = TestData.identity();
+        Identity identity = TestData.identity(1);
         String orgId = UUID.randomUUID().toString();
 
         DynamicTask task = buildTask(1L, Duration.ofHours(1));

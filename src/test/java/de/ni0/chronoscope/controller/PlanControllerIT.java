@@ -63,9 +63,8 @@ class PlanControllerIT {
     /** Creates an identity + account without any organizations pre-linked. */
     private Account createAccount() {
         Account account = TestData.account();
-        identityRepository.saveAndFlush(account.getIdentity());
-        accountRepository.saveAndFlush(account);
-        return account;
+        account.setIdentity(identityRepository.saveAndFlush(account.getIdentity()));
+        return accountRepository.saveAndFlush(account);
     }
 
     private long createDynamicTask(Identity identity, String orgId) {
@@ -121,17 +120,16 @@ class PlanControllerIT {
     }
 
     @Test
-    void plan_Returns400_WhenAccountIdMissing() throws Exception {
+    void plan_Returns403_WhenNoAccessToOrganization() throws Exception {
         String subject = uniqueSubject();
-        String orgName = uniqueOrgName();
 
         mockMvc.perform(post("/v1/plan")
-                        .with(jwt().jwt(jwt -> jwt.subject(subject).claim("email", "").claim("organization", List.of(orgName))))
+                        .with(jwt().jwt(jwt -> jwt.subject(subject)))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 { "organizationId": 1 }
                                 """))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().is(403));
     }
 
     @Test
@@ -140,7 +138,7 @@ class PlanControllerIT {
         String orgId = UUID.randomUUID().toString();
 
         String payload = """
-                { "organizationId": %s }
+                { "organizationId": "%s" }
                 """.formatted(orgId);
 
         mockMvc.perform(post("/v1/plan")
@@ -159,7 +157,7 @@ class PlanControllerIT {
         // No work slots created for this identity → algorithm throws InsufficientSlotsException
 
         String payload = """
-                { "organizationId": %s }
+                { "organizationId": "%s" }
                 """.formatted(orgId);
 
         mockMvc.perform(post("/v1/plan")
@@ -177,7 +175,7 @@ class PlanControllerIT {
         createWorkSlot(account.getIdentity(), "2026-04-26T06:00:00Z", "2026-04-26T20:00:00Z");
 
         String payload = """
-                { "organizationId": %s }
+                { "organizationId": "%s" }
                 """.formatted(orgId);
 
         mockMvc.perform(post("/v1/plan")

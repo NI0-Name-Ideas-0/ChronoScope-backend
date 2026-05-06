@@ -181,7 +181,7 @@ class TaskControllerIT {
         String payload = """
             {
               "type": "static",
-              "organizationId": %s,
+              "organizationId": "%s",
               "name": "Write report",
               "description": "Prepare weekly summary",
               "rrule": "FREQ=WEEKLY;BYDAY=MO",
@@ -271,7 +271,7 @@ class TaskControllerIT {
         String payload = """
             {
               "type": "static",
-              "organizationId": %s,
+              "organizationId": "%s",
               "name": "Write report",
               "description": "Prepare weekly summary",
               "rrule": "FREQ=WEEKLY;BYDAY=MO",
@@ -301,7 +301,7 @@ class TaskControllerIT {
         String payload = """
             {
               "type": "dynamic",
-              "organizationId": %s,
+              "organizationId": "%s",
               "name": "Implement API endpoint",
               "description": "Create and test endpoint",
               "difficulty": 4,
@@ -343,7 +343,7 @@ class TaskControllerIT {
         String payload = """
             {
               "type": "static",
-              "organizationId": %s,
+              "organizationId": "%s",
               "name": "Write report",
               "description": "Prepare weekly summary",
               "rrule": "FREQ=WEEKLY;BYDAY=MO",
@@ -374,7 +374,7 @@ class TaskControllerIT {
         String payload = """
             {
               "type": "static",
-              "organizationId": %s,
+              "organizationId": "%s",
               "name": "Write report",
               "description": "Prepare weekly summary",
               "rrule": "FREQ=WEEKLY;BYDAY=MO",
@@ -405,7 +405,7 @@ class TaskControllerIT {
         String payload = """
             {
               "type": "dynamic",
-              "organizationId": %s,
+              "organizationId": "%s",
               "name": "Implement API endpoint",
               "description": "Create and test endpoint",
               "difficulty": 4,
@@ -437,7 +437,7 @@ class TaskControllerIT {
         String payload = """
             {
               "type": "dynamic",
-              "organizationId": %s,
+              "organizationId": "%s",
               "name": "Implement API endpoint",
               "description": "Create and test endpoint",
               "difficulty": 4,
@@ -492,7 +492,7 @@ class TaskControllerIT {
         String payload = """
             {
               "type": "dynamic",
-              "organizationId": %s,
+              "organizationId": "%s",
               "name": "Task with dependencies",
               "description": "Should link predecessor",
               "difficulty": 4,
@@ -529,7 +529,7 @@ class TaskControllerIT {
             String payload = """
                     {
                         "type": "dynamic",
-                        "organizationId": %s,
+                        "organizationId": "%s",
                         "name": "Cross-account dependency",
                         "description": "Dependency should be allowed within same identity",
                         "difficulty": 4,
@@ -571,7 +571,7 @@ class TaskControllerIT {
             String payload = """
                     {
                         "type": "dynamic",
-                        "organizationId": %s,
+                        "organizationId": "%s",
                         "name": "Cross-identity dependency",
                         "description": "Dependency should be rejected",
                         "difficulty": 4,
@@ -691,7 +691,7 @@ class TaskControllerIT {
         String payload = """
             {
               "type": "static",
-              "organizationId": %s
+              "organizationId": "%s"
             }
             """.formatted(inaccessibleOrganizationId);
 
@@ -1146,7 +1146,7 @@ class TaskControllerIT {
         String payload = """
             {
               "type": "dynamic",
-              "organizationId": %s,
+              "organizationId": "%s",
               "name": "Implement API endpoint",
               "description": "Create and test endpoint",
               "difficulty": 4,
@@ -1178,7 +1178,7 @@ class TaskControllerIT {
         String payload = """
             {
               "type": "static",
-              "organizationId": %s,
+              "organizationId": "%s",
               "name": "Write report",
               "description": "Prepare weekly summary",
               "rrule": "FREQ=WEEKLY;BYDAY=MO",
@@ -1212,7 +1212,7 @@ class TaskControllerIT {
         String payload = """
             {
               "type": "static",
-              "organizationId": %s,
+              "organizationId": "%s",
               "name": "Write report",
               "difficulty": 3,
               "startAt": "2026-04-20T09:00:00Z",
