@@ -6,11 +6,13 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import de.ni0.chronoscope.TestData;
 import de.ni0.chronoscope.exception.AccountAccessDeniedException;
 import de.ni0.chronoscope.service.KeycloakService;
+import org.keycloak.representations.idm.OrganizationRepresentation;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -20,8 +22,10 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.http.MediaType;
 
+import static org.hamcrest.Matchers.hasItem;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -69,10 +73,6 @@ class PlanControllerIT {
         return "it-plan-subject-" + System.nanoTime();
     }
 
-    private String uniqueOrgName() {
-        return "it-plan-org-" + System.nanoTime();
-    }
-
     /** Creates an identity + account without any organizations pre-linked. */
     private Account createAccount() {
         Account account = TestData.account();
@@ -109,6 +109,12 @@ class PlanControllerIT {
         workSlotRepository.saveAndFlush(slot);
     }
 
+    private OrganizationRepresentation organization(String id) {
+        OrganizationRepresentation organization = new OrganizationRepresentation();
+        organization.setId(id);
+        return organization;
+    }
+
     @Test
     void plan_Returns401_WhenNotAuthenticated() throws Exception {
         mockMvc.perform(post("/v1/plan")
@@ -120,17 +126,28 @@ class PlanControllerIT {
     }
 
     @Test
-    void plan_Returns400_WhenOrganizationIdMissing() throws Exception {
-        String subject = uniqueSubject();
-        String orgName = uniqueOrgName();
+    void plan_Returns200WithScopesAcrossOrganizations_WhenOrganizationIdMissing() throws Exception {
+        Account account = createAccount();
+        String orgA = UUID.randomUUID().toString();
+        String orgB = UUID.randomUUID().toString();
+        createDynamicTask(account.getIdentity(), orgA);
+        createDynamicTask(account.getIdentity(), orgB);
+        createWorkSlot(account.getIdentity(), orgA, "2026-04-26T06:00:00Z", "2026-04-26T08:00:00Z");
+        createWorkSlot(account.getIdentity(), orgB, "2026-04-26T10:00:00Z", "2026-04-26T12:00:00Z");
+
+        when(keycloakService.getIdentityOrganizations(any(Identity.class)))
+                .thenReturn(Set.of(organization(orgA), organization(orgB)));
 
         mockMvc.perform(post("/v1/plan")
-                        .with(jwt().jwt(jwt -> jwt.subject(subject).claim("email", "").claim("organizationId", List.of(orgName))))
+                        .with(jwt().jwt(jwt -> jwt.subject(account.getSubject())))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                { "accountId": 1 }
+                                {}
                                 """))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(2))
+                .andExpect(jsonPath("$[*].startAt", hasItem("2026-04-26T06:00:00Z")))
+                .andExpect(jsonPath("$[*].startAt", hasItem("2026-04-26T10:00:00Z")));
     }
 
     @Test
