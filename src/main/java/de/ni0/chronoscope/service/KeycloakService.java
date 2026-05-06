@@ -58,6 +58,7 @@ public class KeycloakService {
      * @param organizationId organizationId that must be accessible
      */
     public void validateIdentityOrgAccess(Identity identity, String organizationId) {
+        if (Objects.equals(organizationId, "private")) return;
         Set<OrganizationRepresentation> organizations = this.getIdentityOrganizations(identity);
         if (organizations.stream().noneMatch(o -> Objects.equals(o.getId(), organizationId))) {
             throw new AccountAccessDeniedException("Account does not have access to the specified organizationId");

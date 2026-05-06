@@ -29,6 +29,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -62,11 +63,13 @@ public class IdentityController {
         Identity identity = this.identityService.getIdentity(this.requestContext.getAccount().getIdentity().getId());
         Set<String> adminOrganizations = this.keycloakService.getAdminOrganizations(identity);
         Set<OrganizationRepresentation> organizations = this.keycloakService.getIdentityOrganizations(identity);
+        List<IdentityResponse.Organization> orgs = new java.util.ArrayList<>(organizations.stream().map(o ->
+                new IdentityResponse.Organization(o.getName(), o.getId())).toList());
+        orgs.add(new IdentityResponse.Organization("Privat", "private"));
         return this.identityMapper.toResponse(
             identity,
             adminOrganizations,
-            new HashSet<>(organizations.stream().map(o ->
-                    new IdentityResponse.Organization(o.getName(), o.getId())).toList())
+            new HashSet<>(orgs)
         );
     }
 
