@@ -677,7 +677,7 @@ class TaskControllerIT {
 
         StaticTask task = new StaticTask();
         task.setIdentity(account.getIdentity());
-        task.setOrganization(organizationId);
+        task.setOrganizationId(organizationId);
         task.setName("Original static task");
         task.setDescription("Original description");
         task.setDifficulty(2);
@@ -756,7 +756,7 @@ class TaskControllerIT {
 
         StaticTask task = new StaticTask();
         task.setIdentity(account.getIdentity());
-        task.setOrganization(organizationId);
+        task.setOrganizationId(organizationId);
         task.setName("Original static task");
         task.setDescription("Original description");
         task.setDifficulty(2);
@@ -792,7 +792,7 @@ class TaskControllerIT {
 
         DynamicTask task = new DynamicTask();
         task.setIdentity(account.getIdentity());
-        task.setOrganization(organizationId);
+        task.setOrganizationId(organizationId);
         task.setName("Dynamic task");
         task.setDescription("Should cap scope durations when duration is lowered");
         task.setDifficulty(3);

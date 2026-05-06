@@ -462,7 +462,7 @@ class TaskControllerTest {
         StaticTask savedTask = new StaticTask();
         savedTask.setId(400L);
         savedTask.setIdentity(account.getIdentity());
-        savedTask.setOrganization(targetOrganization);
+        savedTask.setOrganizationId(targetOrganization);
 
         StaticTaskResponse expectedResponse = new StaticTaskResponse(
             400L,

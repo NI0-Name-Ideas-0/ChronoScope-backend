@@ -83,7 +83,7 @@ class PlanControllerIT {
     private long createDynamicTask(Identity identity, String orgId) {
         DynamicTask task = new DynamicTask();
         task.setIdentity(identity);
-        task.setOrganization(orgId);
+        task.setOrganizationId(orgId);
         task.setName("it-plan-task-" + System.nanoTime());
         task.setDescription("Task for planning IT test");
         task.setDifficulty(2);

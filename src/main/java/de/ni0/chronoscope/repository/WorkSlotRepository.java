@@ -29,6 +29,4 @@ public interface WorkSlotRepository extends JpaRepository<WorkSlot, Long> {
     Optional<WorkSlot> findByIdAndIdentityId(Long id, long identityId);
 
     List<WorkSlot> findByIdentityIdAndOrganization(Long IdentityId, String organization);
-
-    Long id(Long id);
 }

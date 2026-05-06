@@ -110,13 +110,13 @@ public class TaskController {
                     newTask.setRrule(createRrule);
                 }
                 newTask.setIdentity(identity);
-                newTask.setOrganization(staticRequest.organizationId());
+                newTask.setOrganizationId(staticRequest.organizationId());
                 yield taskMapper.toResponse(taskService.createStaticTask(newTask));
             }
             case DynamicTaskCreateRequest dynamicRequest -> {
                 DynamicTask newTask = taskMapper.fromCreateRequest(dynamicRequest);
                 newTask.setIdentity(identity);
-                newTask.setOrganization(dynamicRequest.organizationId());
+                newTask.setOrganizationId(dynamicRequest.organizationId());
                 yield taskMapper.toResponse(taskService.createDynamicTask(newTask));
             }
         };

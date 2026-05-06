@@ -9,9 +9,6 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import de.ni0.chronoscope.exception.AccountAccessDeniedException;
-import de.ni0.chronoscope.model.Account;
-import org.keycloak.representations.idm.OrganizationRepresentation;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -161,6 +158,7 @@ public class TaskService {
         if (!(persistedTask instanceof DynamicTask managedTask)) {
             throw new InvalidRequestException("Task type mismatch: expected dynamic task");
         }
+        this.keycloakService.validateIdentityOrgAccess(persistedTask.getIdentity(), organizationId);
 
         managedTask.setName(task.getName());
         managedTask.setDescription(task.getDescription());
@@ -172,7 +170,7 @@ public class TaskService {
         managedTask.setMinScopeDuration(task.getMinScopeDuration());
         managedTask.setMaxScopeDuration(task.getMaxScopeDuration());
         if (organizationId != null) {
-            managedTask.setOrganization(organizationId);
+            managedTask.setOrganizationId(organizationId);
         }
 
         if (task.getLabels() != null) {
@@ -238,6 +236,7 @@ public class TaskService {
         if (!(persistedTask instanceof StaticTask managedTask)) {
             throw new InvalidRequestException("Task type mismatch: expected static task");
         }
+        this.keycloakService.validateIdentityOrgAccess(persistedTask.getIdentity(), organizationId);
 
         managedTask.setName(task.getName());
         managedTask.setDescription(task.getDescription());
@@ -246,7 +245,7 @@ public class TaskService {
         managedTask.setEndAt(task.getEndAt());
         managedTask.setIsBlocker(task.getIsBlocker());
         if (organizationId != null) {
-            managedTask.setOrganization(organizationId);
+            managedTask.setOrganizationId(organizationId);
         }
 
         if (task.getLabels() != null) {
@@ -267,14 +266,14 @@ public class TaskService {
         if (task.getIsBlocker() == null) {
             throw new InvalidRequestException("isBlocker must be provided");
         }
-        if (!task.getIsBlocker() && task.getOrganization() == null) {
+        if (!task.getIsBlocker() && task.getOrganizationId() == null) {
             throw new InvalidRequestException("organizationId is required unless isBlocker is true");
         }
     }
 
     private void validateAndNormalizeDynamicTask(DynamicTask task) {
         validateCommonTaskFields(task);
-        if (task.getOrganization() == null) {
+        if (task.getOrganizationId() == null) {
             throw new InvalidRequestException("organizationId must be provided");
         }
 

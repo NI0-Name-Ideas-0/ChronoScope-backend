@@ -242,7 +242,7 @@ public class TestController {
         String... labels
     ) {
         task.setIdentity(identity);
-        task.setOrganization(organization);
+        task.setOrganizationId(organization);
         task.setName(name);
         task.setDescription(description);
         task.setDifficulty(difficulty);

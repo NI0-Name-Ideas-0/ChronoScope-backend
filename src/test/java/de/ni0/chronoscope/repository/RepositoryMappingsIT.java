@@ -85,7 +85,7 @@ class RepositoryMappingsIT {
 
         DynamicTask predecessor = new DynamicTask();
         predecessor.setIdentity(identity);
-        predecessor.setOrganization(organization);
+        predecessor.setOrganizationId(organization);
         predecessor.setName("Predecessor");
         predecessor.setDescription("Dependency source");
         predecessor.setDifficulty(1);
@@ -103,7 +103,7 @@ class RepositoryMappingsIT {
 
         DynamicTask dependent = new DynamicTask();
         dependent.setIdentity(identity);
-        dependent.setOrganization(organization);
+        dependent.setOrganizationId(organization);
         dependent.setName("Dependent");
         dependent.setDescription("Depends on predecessor");
         dependent.setDifficulty(2);
@@ -149,7 +149,7 @@ class RepositoryMappingsIT {
     private DynamicTask buildDynamicTask(Identity identity, String organization) {
         DynamicTask task = new DynamicTask();
         task.setIdentity(identity);
-        task.setOrganization(organization);
+        task.setOrganizationId(organization);
         task.setName("repo-it-task-" + System.nanoTime());
         task.setDescription("Test task");
         task.setDifficulty(1);

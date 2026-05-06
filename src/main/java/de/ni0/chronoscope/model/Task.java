@@ -47,7 +47,7 @@ public abstract class Task {
     private Identity identity;
 
     @Column(name = "organization_id", nullable = true)
-    private String organization;
+    private String organizationId;
 
     @Column(nullable = false)
     private String name;

@@ -40,7 +40,7 @@ public interface TaskMapper {
     @Mapping(target = "id", ignore = true)
     // Organization is validated and assigned by controller logic after request parsing.
     @Mapping(target = "identity", ignore = true)
-    @Mapping(target = "organization", ignore = true)
+    @Mapping(target = "organizationId", ignore = true)
     @Mapping(target = "name", source = "name")
     @Mapping(target = "description", source = "description")
     @Mapping(target = "difficulty", source = "difficulty")
@@ -61,7 +61,7 @@ public interface TaskMapper {
     @Mapping(target = "id", ignore = true)
     // Organization is validated and assigned by controller logic after request parsing.
     @Mapping(target = "identity", ignore = true)
-    @Mapping(target = "organization", ignore = true)
+    @Mapping(target = "organizationId", ignore = true)
     @Mapping(target = "name", source = "name")
     @Mapping(target = "description", source = "description")
     @Mapping(target = "difficulty", source = "difficulty")
@@ -88,7 +88,7 @@ public interface TaskMapper {
     @Mapping(target = "id", ignore = true)
     // Organization updates are validated and assigned by service logic.
     @Mapping(target = "identity", ignore = true)
-    @Mapping(target = "organization", ignore = true)
+    @Mapping(target = "organizationId", ignore = true)
     @Mapping(target = "labels", source = "labels")
     @Mapping(target = "name", source = "name")
     @Mapping(target = "description", source = "description")
@@ -111,7 +111,7 @@ public interface TaskMapper {
     @Mapping(target = "id", ignore = true)
     // Organization updates are validated and assigned by service logic.
     @Mapping(target = "identity", ignore = true)
-    @Mapping(target = "organization", ignore = true)
+    @Mapping(target = "organizationId", ignore = true)
     @Mapping(target = "labels", source = "labels")
     @Mapping(target = "scopes", ignore = true)
     @Mapping(target = "dependencies", ignore = true)
@@ -134,7 +134,7 @@ public interface TaskMapper {
      * @param task static task entity
      * @return response DTO
      */
-    @Mapping(target = "organizationId", source = "organization")
+    @Mapping(target = "organizationId", source = "organizationId")
     @Mapping(target = "id", source = "id")
     @Mapping(target = "name", source = "name")
     @Mapping(target = "description", source = "description")
@@ -152,7 +152,7 @@ public interface TaskMapper {
      * @param task dynamic task entity
      * @return response DTO
      */
-    @Mapping(target = "organizationId", source = "organization")
+    @Mapping(target = "organizationId", source = "organizationId")
     @Mapping(target = "id", source = "id")
     @Mapping(target = "name", source = "name")
     @Mapping(target = "description", source = "description")

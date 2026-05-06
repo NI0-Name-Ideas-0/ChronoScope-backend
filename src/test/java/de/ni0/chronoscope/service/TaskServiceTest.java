@@ -43,7 +43,7 @@ class TaskServiceTest {
         task.setStartAt(Instant.parse("2026-04-20T09:00:00Z"));
         task.setEndAt(Instant.parse("2026-04-20T10:00:00Z"));
         task.setRrule("FREQ=DAILY");
-        task.setOrganization(UUID.randomUUID().toString());
+        task.setOrganizationId(UUID.randomUUID().toString());
         task.setIsBlocker(false);
     }
 
@@ -57,7 +57,7 @@ class TaskServiceTest {
         task.setElapsed(Duration.ZERO);
         task.setMinScopeDuration(Duration.ofMinutes(30));
         task.setMaxScopeDuration(Duration.ofMinutes(40));
-        task.setOrganization(UUID.randomUUID().toString());
+        task.setOrganizationId(UUID.randomUUID().toString());
     }
 
     @Test
@@ -222,7 +222,7 @@ class TaskServiceTest {
         StaticTask newTask = new StaticTask();
         populateValidStaticFields(newTask);
         newTask.setIsBlocker(true);
-        newTask.setOrganization(null);
+        newTask.setOrganizationId(null);
 
         when(taskRepository.save(newTask)).thenReturn(newTask);
 
@@ -239,7 +239,7 @@ class TaskServiceTest {
         StaticTask newTask = new StaticTask();
         populateValidStaticFields(newTask);
         newTask.setIsBlocker(false);
-        newTask.setOrganization(null);
+        newTask.setOrganizationId(null);
 
         InvalidRequestException exception = assertThrows(
             InvalidRequestException.class,
@@ -256,7 +256,7 @@ class TaskServiceTest {
 
         DynamicTask newTask = new DynamicTask();
         populateValidDynamicFields(newTask);
-        newTask.setOrganization(null);
+        newTask.setOrganizationId(null);
 
         InvalidRequestException exception = assertThrows(
             InvalidRequestException.class,
