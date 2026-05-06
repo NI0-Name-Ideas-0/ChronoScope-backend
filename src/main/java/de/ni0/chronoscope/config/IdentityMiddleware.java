@@ -1,9 +1,6 @@
 package de.ni0.chronoscope.config;
 
 import java.io.IOException;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
 
 import de.ni0.chronoscope.model.Account;
 import org.springframework.security.core.Authentication;
@@ -26,11 +23,10 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 @Component
 public class IdentityMiddleware extends OncePerRequestFilter {
-    private static final String ORG_ADMIN_GROUP_PREFIX = "org-admin/";
 
     private final AccountService accountService;
     private final RequestContext requestContext;
-    
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -41,44 +37,5 @@ public class IdentityMiddleware extends OncePerRequestFilter {
             this.requestContext.setAccount(account);
         }
         filterChain.doFilter(request, response);
-    }
-
-    /**
-     * Extracts organizationId names for which the authenticated account is an admin.
-     * Admin membership is represented by JWT group paths like /org-admin/{organizationName}.
-     */
-    static List<String> extractAdminOrganizations(List<String> groups) {
-        if (groups == null || groups.isEmpty()) {
-            return List.of();
-        }
-
-        Set<String> adminOrganizations = new LinkedHashSet<>();
-        for (String group : groups) {
-            if (group == null) {
-                continue;
-            }
-
-            String normalizedGroup = group.strip();
-            while (normalizedGroup.startsWith("/")) {
-                normalizedGroup = normalizedGroup.substring(1);
-            }
-
-            if (!normalizedGroup.startsWith(ORG_ADMIN_GROUP_PREFIX)) {
-                continue;
-            }
-
-            String organizationName = normalizedGroup.substring(ORG_ADMIN_GROUP_PREFIX.length());
-            int nestedGroupStart = organizationName.indexOf('/');
-            if (nestedGroupStart >= 0) {
-                organizationName = organizationName.substring(0, nestedGroupStart);
-            }
-            organizationName = organizationName.strip();
-
-            if (!organizationName.isEmpty()) {
-                adminOrganizations.add(organizationName);
-            }
-        }
-
-        return List.copyOf(adminOrganizations);
     }
 }

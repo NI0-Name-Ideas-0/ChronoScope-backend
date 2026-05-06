@@ -11,7 +11,7 @@ public class StaticTaskOrganizationValidator implements ConstraintValidator<Vali
     @Override
     public boolean isValid(StaticTaskCreateRequest request, ConstraintValidatorContext context) {
         if (request == null || request.isBlocker() == null || Boolean.TRUE.equals(request.isBlocker())
-                || request.organizationId() != null) {
+                || (request.organizationId() != null && !request.organizationId().isBlank())) {
             return true;
         }
 

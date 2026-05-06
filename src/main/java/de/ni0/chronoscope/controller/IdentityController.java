@@ -57,7 +57,7 @@ public class IdentityController {
     })
     @GetMapping
     public IdentityResponse getIdentity() {
-        Identity identity = this.requestContext.getAccount().getIdentity();
+        Identity identity = this.identityService.getIdentity(this.requestContext.getAccount().getIdentity().getId());
         Set<String> adminOrganizations = this.keycloakService.getAdminOrganizations(identity);
         return this.identityMapper.toResponse(
             identity,

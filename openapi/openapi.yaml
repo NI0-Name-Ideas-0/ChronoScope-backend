@@ -26,8 +26,9 @@ paths:
   /v1/identity:
     get:
       description: "Retrieve information about the identity contained in the access\
-        \ token, including all linked accounts and organizationId names for which the\
-        \ authenticated account has admin privileges through /org-admin token groups."
+        \ token, including all linked accounts and organizationId names for which\
+        \ the authenticated account has admin privileges through /org-admin token\
+        \ groups."
       operationId: getIdentity
       responses:
         "200":
@@ -107,22 +108,127 @@ paths:
       summary: Confirm account linking
       tags:
       - Identity
-  /v1/organization:
+  /v1/organizations/{organizationId}/invitations:
     get:
-      description: Retrieves members of a specific organizationId.
-      operationId: getOrganizationMembers
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/OrganizationGetMembersRequest"
+      description: Returns all pending invitations for the organization. The identity
+        must be an admin of the organization.
+      operationId: getInvitations
+      parameters:
+      - description: Organization ID
+        in: path
+        name: organizationId
         required: true
+        schema:
+          type: string
       responses:
         "200":
           content:
             '*/*':
               schema:
-                $ref: "#/components/schemas/OrganizationGetMembersResponse"
+                $ref: "#/components/schemas/OrganizationInvitationsResponse"
+          description: Invitations retrieved successfully
+        "401":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Missing or invalid token
+        "403":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Not an admin of the organization
+      summary: List organization invitations
+      tags:
+      - Organization
+  /v1/organizations/{organizationId}/invitations/{invitationId}:
+    delete:
+      description: Deletes a pending invitation. The identity must be an admin of
+        the organization.
+      operationId: deleteInvitation
+      parameters:
+      - description: Organization ID
+        in: path
+        name: organizationId
+        required: true
+        schema:
+          type: string
+      - description: Invitation ID
+        in: path
+        name: invitationId
+        required: true
+        schema:
+          type: string
+      responses:
+        "204":
+          description: Invitation deleted
+        "401":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Missing or invalid token
+        "403":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Not an admin of the organization
+      summary: Delete organization invitation
+      tags:
+      - Organization
+    put:
+      description: Resends an existing invitation email. The identity must be an admin
+        of the organization.
+      operationId: resendInvitation
+      parameters:
+      - description: Organization ID
+        in: path
+        name: organizationId
+        required: true
+        schema:
+          type: string
+      - description: Invitation ID
+        in: path
+        name: invitationId
+        required: true
+        schema:
+          type: string
+      responses:
+        "202":
+          description: Invitation resent
+        "401":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Missing or invalid token
+        "403":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Not an admin of the organization
+      summary: Resend organization invitation
+      tags:
+      - Organization
+  /v1/organizations/{organizationId}/members:
+    get:
+      description: Retrieves members of a specific organization.
+      operationId: getOrganizationMembers
+      parameters:
+      - in: path
+        name: organizationId
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/OrganizationMembersResponse"
           description: Members retrieved successfully
         "401":
           content:
@@ -131,6 +237,83 @@ paths:
                 $ref: "#/components/schemas/ProblemDetail"
           description: Missing or invalid token
       summary: Get Organization members
+      tags:
+      - Organization
+    post:
+      description: Sends an invitation email to the given address. The identity must
+        be an admin of the organization.
+      operationId: inviteUser
+      parameters:
+      - description: Organization ID
+        in: path
+        name: organizationId
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InviteUserRequest"
+        required: true
+      responses:
+        "202":
+          description: Invitation sent
+        "400":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Validation error
+        "401":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Missing or invalid token
+        "403":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Not an admin of the organization
+      summary: Invite user to organization
+      tags:
+      - Organization
+  /v1/organizations/{organizationId}/members/{id}:
+    delete:
+      description: Removes a member from the organization. The identity must be an
+        admin of the organization.
+      operationId: removeMember
+      parameters:
+      - description: Organization ID
+        in: path
+        name: organizationId
+        required: true
+        schema:
+          type: string
+      - description: User ID to remove
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        "204":
+          description: Member removed successfully
+        "401":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Missing or invalid token
+        "403":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Not an admin of the organization
+      summary: Remove organization member
       tags:
       - Organization
   /v1/plan:
@@ -554,10 +737,6 @@ components:
         identityId:
           type: integer
           format: int64
-        organizations:
-          type: array
-          items:
-            $ref: "#/components/schemas/OrganizationResponse"
     DynamicTaskCreateRequest:
       allOf:
       - $ref: "#/components/schemas/TaskCreateRequest"
@@ -715,9 +894,34 @@ components:
             \ admin privileges, derived from JWT groups below /org-admin."
           items:
             type: string
+          uniqueItems: true
         id:
           type: integer
           format: int64
+    Invitation:
+      type: object
+      properties:
+        email:
+          type: string
+        expired:
+          type: boolean
+        expiresAt:
+          type: string
+          format: date-time
+        firstName:
+          type: string
+        id:
+          type: string
+        inviteLink:
+          type: string
+        lastName:
+          type: string
+    InviteUserRequest:
+      type: object
+      properties:
+        targetMail:
+          type: string
+          format: email
     LabelCreateRequest:
       type: object
       properties:
@@ -737,37 +941,33 @@ components:
         taskId:
           type: integer
           format: int64
-    OrganizationGetMembersRequest:
+    OrganizationInvitationsResponse:
       type: object
       properties:
-        organization:
+        invitations:
+          type: array
+          items:
+            $ref: "#/components/schemas/Invitation"
+    OrganizationMember:
+      type: object
+      properties:
+        email:
           type: string
-          minLength: 1
-      required:
-      - organization
-    OrganizationGetMembersResponse:
+        firstName:
+          type: string
+        id:
+          type: string
+        lastName:
+          type: string
+        userName:
+          type: string
+    OrganizationMembersResponse:
       type: object
       properties:
         members:
           type: array
           items:
             $ref: "#/components/schemas/OrganizationMember"
-    OrganizationMember:
-      type: object
-      properties:
-        email:
-          type: string
-        id:
-          type: string
-        name:
-          type: string
-    OrganizationResponse:
-      type: object
-      properties:
-        id:
-          type: string
-        name:
-          type: string
     PlanRequest:
       type: object
       properties:
@@ -835,7 +1035,6 @@ components:
           organizationId:
             type: string
             description: Organization ID. Required unless this static task is a blocker.
-            minLength: 1
           rrule:
             type: string
           startAt:
@@ -849,7 +1048,6 @@ components:
       - isBlocker
       - labels
       - name
-      - organizationId
       - rrule
       - startAt
     StaticTaskResponse:

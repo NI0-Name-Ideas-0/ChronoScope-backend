@@ -20,7 +20,7 @@ import jakarta.validation.constraints.Positive;
 @ValidStaticTaskOrganization
 public record StaticTaskCreateRequest(
     @Schema(description = "Organization ID. Required unless this static task is a blocker.")
-    @NotBlank String organizationId,
+    String organizationId,
     @NotBlank String name,
     @NotNull String description,
     @NotNull String rrule,

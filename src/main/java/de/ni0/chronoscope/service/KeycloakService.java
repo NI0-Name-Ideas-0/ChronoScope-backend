@@ -1,6 +1,7 @@
 package de.ni0.chronoscope.service;
 
 import de.ni0.chronoscope.exception.AccountAccessDeniedException;
+import de.ni0.chronoscope.exception.AccountNotFoundException;
 import de.ni0.chronoscope.model.Account;
 import de.ni0.chronoscope.model.Identity;
 import lombok.RequiredArgsConstructor;
@@ -43,7 +44,11 @@ public class KeycloakService {
     }
 
     public UserRepresentation getAccountByEmail(String email) {
-        return this.client.realm(realm).users().searchByEmail(email, true).getFirst();
+        List<UserRepresentation> results = this.client.realm(realm).users().searchByEmail(email, true);
+        if (results.isEmpty()) {
+            throw new AccountNotFoundException("No account found for email: " + email);
+        }
+        return results.getFirst();
     }
 
     /**
@@ -82,7 +87,6 @@ public class KeycloakService {
     public void inviteUser(String organizationId, String mail) {
         this.client.realm(realm).organizations().get(organizationId)
                 .members().inviteUser(mail, "", "");
-        System.out.println("awdawd");
     }
 
     public List<OrganizationInvitationRepresentation> getInvitations(String organizationId) {

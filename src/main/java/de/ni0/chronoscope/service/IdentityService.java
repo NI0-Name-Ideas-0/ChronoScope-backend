@@ -2,6 +2,7 @@ package de.ni0.chronoscope.service;
 
 import de.ni0.chronoscope.controller.dto.response.AccountLinkConfirmResponse;
 import de.ni0.chronoscope.exception.AccountAccessDeniedException;
+import de.ni0.chronoscope.exception.AccountNotFoundException;
 import de.ni0.chronoscope.model.Account;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -109,7 +110,8 @@ public class IdentityService {
      */
     public void sendLink(long accountId, String targetMail) {
         UserRepresentation targetUser = this.keycloakService.getAccountByEmail(targetMail);
-        Account targetAccount = this.accountRepository.findBySubject(targetUser.getId()).orElseThrow();
+        Account targetAccount = this.accountRepository.findBySubject(targetUser.getId())
+                .orElseThrow(() -> new AccountNotFoundException("No local account found for subject: " + targetUser.getId()));
         String token = generateLinkToken(accountId, targetAccount.getId());
         this.sendLinkEmail(targetMail, token);
     }

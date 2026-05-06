@@ -158,7 +158,9 @@ public class TaskService {
         if (!(persistedTask instanceof DynamicTask managedTask)) {
             throw new InvalidRequestException("Task type mismatch: expected dynamic task");
         }
-        this.keycloakService.validateIdentityOrgAccess(persistedTask.getIdentity(), organizationId);
+        if (organizationId != null) {
+            this.keycloakService.validateIdentityOrgAccess(persistedTask.getIdentity(), organizationId);
+        }
 
         managedTask.setName(task.getName());
         managedTask.setDescription(task.getDescription());
@@ -236,7 +238,9 @@ public class TaskService {
         if (!(persistedTask instanceof StaticTask managedTask)) {
             throw new InvalidRequestException("Task type mismatch: expected static task");
         }
-        this.keycloakService.validateIdentityOrgAccess(persistedTask.getIdentity(), organizationId);
+        if (organizationId != null) {
+            this.keycloakService.validateIdentityOrgAccess(persistedTask.getIdentity(), organizationId);
+        }
 
         managedTask.setName(task.getName());
         managedTask.setDescription(task.getDescription());
@@ -287,12 +291,12 @@ public class TaskService {
         if (duration.isZero() || duration.isNegative()) {
             throw new InvalidRequestException("duration must be greater than 0");
         }
-        if (minScopeDuration.isZero() || minScopeDuration.isNegative()) {  
-            throw new InvalidRequestException("minScopeDuration must be greater than 0");  
-        }  
-        if (maxScopeDuration.isZero() || maxScopeDuration.isNegative()) {  
-            throw new InvalidRequestException("maxScopeDuration must be greater than 0");  
-        }  
+        if (minScopeDuration.isZero() || minScopeDuration.isNegative()) {
+            throw new InvalidRequestException("minScopeDuration must be greater than 0");
+        }
+        if (maxScopeDuration.isZero() || maxScopeDuration.isNegative()) {
+            throw new InvalidRequestException("maxScopeDuration must be greater than 0");
+        }
 
         boolean minScopeWasCapped = false;
         boolean maxScopeWasCapped = false;
@@ -312,7 +316,7 @@ public class TaskService {
         if (maxScopeDuration.compareTo(MAX_SCOPE_DURATION) > 0) {
             throw new InvalidRequestException("maxScopeDuration must be at most 90 minutes");
         }
-        
+
         if (!minScopeWasCapped && minScopeDuration.compareTo(MIN_SCOPE_DURATION) < 0) {
             throw new InvalidRequestException("minScopeDuration must be at least 10 minutes");
         }

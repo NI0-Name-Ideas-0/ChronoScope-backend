@@ -98,7 +98,9 @@ public class TaskController {
     @PostMapping
     public ResponseEntity<TaskResponse> createTask(@Valid @RequestBody TaskCreateRequest request) {
         Identity identity = this.requestContext.getAccount().getIdentity();
-        this.keycloakService.validateIdentityOrgAccess(identity, request.organizationId());
+        if (request.organizationId() != null) {
+            this.keycloakService.validateIdentityOrgAccess(identity, request.organizationId());
+        }
         TaskResponse response = switch (request) {
             case StaticTaskCreateRequest staticRequest -> {
                 StaticTask newTask = taskMapper.fromCreateRequest(staticRequest);
@@ -161,7 +163,9 @@ public class TaskController {
             @Parameter(description = "Task ID") @PathVariable Long id,
             @Valid @RequestBody TaskUpdateRequest request) {
         Identity identity = this.requestContext.getAccount().getIdentity();
-        this.keycloakService.validateIdentityOrgAccess(identity, request.organizationId());
+        if (request.organizationId() != null) {
+            this.keycloakService.validateIdentityOrgAccess(identity, request.organizationId());
+        }
         Task existingTask = taskService.getTaskForIdentity(requestContext.getAccount().getIdentity().getId(), id);
 
         return switch (request) {

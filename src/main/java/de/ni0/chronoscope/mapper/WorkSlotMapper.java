@@ -12,7 +12,7 @@ import org.mapstruct.MappingConstants;
 /**
  * MapStruct mapper for work-slot requests and responses.
  */
-@Mapper(componentModel = MappingConstants.ComponentModel.SPRING, uses = {AccountProxyProvider.class})
+@Mapper(componentModel = MappingConstants.ComponentModel.SPRING)
 public interface WorkSlotMapper {
 
     /**
@@ -22,6 +22,7 @@ public interface WorkSlotMapper {
      * @return new work slot entity
      */
     @Mapping(target = "id", ignore = true)
+    @Mapping(target = "identity", ignore = true)
     @Mapping(target = "organizationId", source = "organizationId")
     WorkSlot fromCreateRequest(WorkSlotCreateRequest request);
 
