@@ -7,7 +7,7 @@ import java.time.Instant;
  */
 public record WorkSlotResponse(
     Long id,
-    Long organizationId,
+    String organizationId,
     Instant startAt,
     Instant endAt
 ) {

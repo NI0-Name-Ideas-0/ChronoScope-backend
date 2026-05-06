@@ -12,7 +12,7 @@ import java.util.List;
 public record StaticTaskResponse(
     Long id,
     @Schema(description = "Organization ID. Null for blocker tasks that are not assigned to an organization.", nullable = true)
-    Long organizationId,
+    String organizationId,
     String name,
     String description,
     Integer difficulty,

@@ -4,9 +4,13 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import de.ni0.chronoscope.TestData;
+import de.ni0.chronoscope.service.KeycloakService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import static org.mockito.ArgumentMatchers.any;
@@ -32,7 +36,6 @@ import de.ni0.chronoscope.exception.InvalidRequestException;
 import de.ni0.chronoscope.mapper.TaskMapper;
 import de.ni0.chronoscope.model.Account;
 import de.ni0.chronoscope.model.DynamicTask;
-import de.ni0.chronoscope.model.Organization;
 import de.ni0.chronoscope.model.StaticTask;
 import de.ni0.chronoscope.service.AccountService;
 import de.ni0.chronoscope.service.TaskService;
@@ -49,11 +52,15 @@ class TaskControllerTest {
     @Mock
     private AccountService accountService;
 
+    @Mock
+    private KeycloakService keycloakService;
+
     @Test
     void getTasks_UsesCurrentIdentityAndMapsPolymorphicResponses() {
+        Account account = TestData.account();
         RequestContext requestContext = new RequestContext();
-        requestContext.setIdentityId(99L);
-        TaskController controller = new TaskController(taskService, taskMapper, accountService, requestContext);
+        requestContext.setAccount(account);
+        TaskController controller = new TaskController(taskService, taskMapper, accountService, requestContext, keycloakService);
 
         StaticTask staticTask = new StaticTask();
         staticTask.setName("Static task");
@@ -63,8 +70,7 @@ class TaskControllerTest {
 
         StaticTaskResponse staticResponse = new StaticTaskResponse(
             1L,
-            10L,
-            1L,
+            UUID.randomUUID().toString(),
             "Static task",
             "desc",
             1,
@@ -76,8 +82,7 @@ class TaskControllerTest {
         );
         DynamicTaskResponse dynamicResponse = new DynamicTaskResponse(
             2L,
-            11L,
-            1L,
+                UUID.randomUUID().toString(),
             "Dynamic task",
             "desc",
             2,
@@ -109,19 +114,13 @@ class TaskControllerTest {
 
     @Test
     void createTask_Static_CreatesStaticTaskWhenAuthorized() {
+        Account account = TestData.account();
         RequestContext requestContext = new RequestContext();
-        requestContext.setIdentityId(99L);
-        TaskController controller = new TaskController(taskService, taskMapper, accountService, requestContext);
-
-        Account account = new Account();
-        account.setId(10L);
-
-        Organization organization = new Organization();
-        organization.setId(1L);
+        requestContext.setAccount(account);
+        TaskController controller = new TaskController(taskService, taskMapper, accountService, requestContext, keycloakService);
 
         StaticTaskCreateRequest request = new StaticTaskCreateRequest(
-            10L,
-            1L,
+            UUID.randomUUID().toString(),
             "Write report",
             "Prepare weekly summary",
             "FREQ=WEEKLY;BYDAY=MO",
@@ -137,13 +136,12 @@ class TaskControllerTest {
 
         StaticTask savedTask = new StaticTask();
         savedTask.setId(123L);
-        savedTask.setAccount(account);
+        savedTask.setIdentity(account.getIdentity());
         savedTask.setName("Write report");
 
         StaticTaskResponse expectedResponse = new StaticTaskResponse(
             123L,
-            10L,
-            1L,
+            request.organizationId(),
             "Write report",
             "Prepare weekly summary",
             3,
@@ -154,8 +152,6 @@ class TaskControllerTest {
             false
         );
 
-        when(accountService.validateAccountOwnership(99L, 10L)).thenReturn(account);
-        when(accountService.resolveOrganizationForAccount(10L, 1L)).thenReturn(organization);
         when(taskMapper.fromCreateRequest(request)).thenReturn(mappedTask);
         when(taskService.createStaticTask(any(StaticTask.class))).thenReturn(savedTask);
         when(taskMapper.toResponse(savedTask)).thenReturn(expectedResponse);
@@ -164,8 +160,6 @@ class TaskControllerTest {
 
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         assertEquals(expectedResponse, response.getBody());
-        verify(accountService).validateAccountOwnership(99L, 10L);
-        verify(accountService).resolveOrganizationForAccount(10L, 1L);
         verify(taskMapper).fromCreateRequest(request);
         verify(taskService).createStaticTask(mappedTask);
         verify(taskMapper).toResponse(savedTask);

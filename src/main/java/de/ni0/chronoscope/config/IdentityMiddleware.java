@@ -30,7 +30,6 @@ public class IdentityMiddleware extends OncePerRequestFilter {
     private static final String ORG_ADMIN_GROUP_PREFIX = "org-admin/";
 
     private final AccountService accountService;
-    private final IdentityService identityService;
     private final RequestContext requestContext;
     
     @Override
@@ -38,14 +37,6 @@ public class IdentityMiddleware extends OncePerRequestFilter {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth instanceof JwtAuthenticationToken token) {
             Jwt jwt = token.getToken();
-            List<String> organizations = jwt.getClaimAsStringList("organization");
-            if (organizations == null || organizations.isEmpty()) {
-                organizations = List.of("private");
-            } else {
-                organizations = List.copyOf(organizations);
-            }
-            String rawEmail = jwt.getClaimAsString("email");
-            String email = rawEmail != null ? rawEmail : "";
             String subject = jwt.getSubject();
             Account account = this.accountService.syncAccount(subject);
             this.requestContext.setAccount(account);

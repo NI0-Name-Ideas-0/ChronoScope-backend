@@ -3,10 +3,7 @@ package de.ni0.chronoscope.repository;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -47,21 +44,10 @@ class RepositoryMappingsIT {
         Account account = new Account();
         account.setSubject("subject-123");
         account.setIdentity(identity);
-        account.setMail("");
         accountRepository.saveAndFlush(account);
 
         assertTrue(accountRepository.findBySubject("subject-123").isPresent());
         assertEquals(account.getId(), accountRepository.findBySubject("subject-123").orElseThrow().getId());
-    }
-
-    @Test
-    void organizationRepository_FindsOrganizationByName() {
-        Organization organization = new Organization();
-        organization.setName("private");
-        organizationRepository.saveAndFlush(organization);
-
-        assertTrue(organizationRepository.findByName("private").isPresent());
-        assertEquals(organization.getId(), organizationRepository.findByName("private").orElseThrow().getId());
     }
 
     @Test
@@ -71,7 +57,6 @@ class RepositoryMappingsIT {
         Account account = new Account();
         account.setSubject("subject-456");
         account.setIdentity(identity);
-        account.setMail("");
         account = accountRepository.saveAndFlush(account);
 
         assertTrue(identityRepository.findByAccountsContains(account).isPresent());
@@ -91,17 +76,15 @@ class RepositoryMappingsIT {
     @Test
     void taskRepository_PersistsDynamicTaskDependenciesViaJoinTable() {
         Identity identity = identityRepository.saveAndFlush(new Identity());
-        Organization organization = createOrganization("repo-it-dependency-org-" + System.nanoTime());
+        String organization = UUID.randomUUID().toString();
 
         Account account = new Account();
         account.setSubject("subject-dependency-test");
         account.setIdentity(identity);
-        account.setMail("");
-        account.setOrganizations(Set.of(organization));
         account = accountRepository.saveAndFlush(account);
 
         DynamicTask predecessor = new DynamicTask();
-        predecessor.setAccount(account);
+        predecessor.setIdentity(identity);
         predecessor.setOrganization(organization);
         predecessor.setName("Predecessor");
         predecessor.setDescription("Dependency source");
@@ -119,7 +102,7 @@ class RepositoryMappingsIT {
         predecessor = taskRepository.saveAndFlush(predecessor);
 
         DynamicTask dependent = new DynamicTask();
-        dependent.setAccount(account);
+        dependent.setIdentity(identity);
         dependent.setOrganization(organization);
         dependent.setName("Dependent");
         dependent.setDescription("Depends on predecessor");
@@ -145,17 +128,10 @@ class RepositoryMappingsIT {
     @Test
     void scopeRepository_DeleteByDynamicTaskIdIn_DeletesOnlyMatchingScopes() {
         Identity identity = identityRepository.saveAndFlush(new Identity());
-        Organization organization = createOrganization("repo-it-scope-org-" + System.nanoTime());
+        String organization = UUID.randomUUID().toString();
 
-        Account account = new Account();
-        account.setSubject("repo-it-scope-subject-" + System.nanoTime());
-        account.setIdentity(identity);
-        account.setMail("");
-        account.setOrganizations(Set.of(organization));
-        account = accountRepository.saveAndFlush(account);
-
-        DynamicTask taskToDelete = buildDynamicTask(account, organization);
-        DynamicTask taskToKeep = buildDynamicTask(account, organization);
+        DynamicTask taskToDelete = buildDynamicTask(identity, organization);
+        DynamicTask taskToKeep = buildDynamicTask(identity, organization);
 
         Scope scopeToDelete = new Scope(null, taskToDelete,
                 Instant.parse("2026-04-26T08:00:00Z"), Instant.parse("2026-04-26T09:00:00Z"));
@@ -170,15 +146,9 @@ class RepositoryMappingsIT {
         assertTrue(scopeRepository.findById(scopeToKeep.getId()).isPresent());
     }
 
-    private Organization createOrganization(String name) {
-        Organization organization = new Organization();
-        organization.setName(name);
-        return organizationRepository.saveAndFlush(organization);
-    }
-
-    private DynamicTask buildDynamicTask(Account account, Organization organization) {
+    private DynamicTask buildDynamicTask(Identity identity, String organization) {
         DynamicTask task = new DynamicTask();
-        task.setAccount(account);
+        task.setIdentity(identity);
         task.setOrganization(organization);
         task.setName("repo-it-task-" + System.nanoTime());
         task.setDescription("Test task");

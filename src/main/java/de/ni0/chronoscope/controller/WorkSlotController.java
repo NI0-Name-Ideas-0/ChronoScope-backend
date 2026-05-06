@@ -5,8 +5,10 @@ import de.ni0.chronoscope.controller.dto.request.WorkSlotCreateRequest;
 import de.ni0.chronoscope.controller.dto.request.WorkSlotUpdateRequest;
 import de.ni0.chronoscope.controller.dto.response.WorkSlotResponse;
 import de.ni0.chronoscope.mapper.WorkSlotMapper;
+import de.ni0.chronoscope.model.Identity;
 import de.ni0.chronoscope.model.WorkSlot;
 import de.ni0.chronoscope.service.AccountService;
+import de.ni0.chronoscope.service.KeycloakService;
 import de.ni0.chronoscope.service.WorkSlotService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -35,8 +37,8 @@ public class WorkSlotController {
 
     private final WorkSlotService workSlotService;
     private final WorkSlotMapper workSlotMapper;
-    private final AccountService accountService;
     private final RequestContext requestContext;
+    private final KeycloakService keycloakService;
 
     /**
      * Lists all work slots visible to the authenticated identity.
@@ -69,6 +71,8 @@ public class WorkSlotController {
     })
     @PostMapping
     public ResponseEntity<WorkSlotResponse> createWorkSlot(@Valid @RequestBody WorkSlotCreateRequest request) {
+        Identity identity = this.requestContext.getAccount().getIdentity();
+        this.keycloakService.validateIdentityOrgAccess(identity, request.organizationId());
         WorkSlot workSlot = workSlotMapper.fromCreateRequest(request);
         WorkSlotResponse response = workSlotMapper.toResponse(workSlotService.createWorkSlot(workSlot));
         return ResponseEntity.status(HttpStatus.CREATED).body(response);

@@ -27,7 +27,6 @@ import de.ni0.chronoscope.controller.dto.request.TaskUpdateRequest;
 import de.ni0.chronoscope.controller.dto.response.TaskResponse;
 import de.ni0.chronoscope.exception.InvalidRequestException;
 import de.ni0.chronoscope.mapper.TaskMapper;
-import de.ni0.chronoscope.service.AccountService;
 import de.ni0.chronoscope.service.TaskService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -50,7 +49,6 @@ public class TaskController {
 
     private final TaskService taskService;
     private final TaskMapper taskMapper;
-    private final AccountService accountService;
     private final RequestContext requestContext;
     private final KeycloakService keycloakService;
 
