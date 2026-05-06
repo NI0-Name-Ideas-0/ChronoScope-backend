@@ -5,26 +5,27 @@ import java.time.Instant;
 import java.util.List;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotNull;
 
 /**
  * API representation of a schedulable task, including generated scopes and graph links.
  */
 @Schema(description = "Response for a dynamic (schedulable) task, including its scopes and dependencies")
 public record DynamicTaskResponse(
-    Long id,
+    @NotNull Long id,
     String organizationId,
-    String name,
+    @NotNull String name,
     String description,
-    Integer difficulty,
-    Instant startAt,
-    Instant endAt,
-    List<LabelResponse> labels,
-    Duration duration,
-    Duration elapsed,
-    Duration minScopeDuration,
-    Duration maxScopeDuration,
-    List<ScopeResponse> scopes,
-    List<Long> dependencies,
-    List<Long> dependents
+    @NotNull Integer difficulty,
+    @NotNull Instant startAt,
+    @NotNull Instant endAt,
+    @NotNull List<LabelResponse> labels,
+    @NotNull Duration duration,
+    @NotNull Duration elapsed,
+    @NotNull Duration minScopeDuration,
+    @NotNull Duration maxScopeDuration,
+    @NotNull List<ScopeResponse> scopes,
+    @NotNull List<Long> dependencies,
+    @NotNull List<Long> dependents
 ) implements TaskResponse {
 }

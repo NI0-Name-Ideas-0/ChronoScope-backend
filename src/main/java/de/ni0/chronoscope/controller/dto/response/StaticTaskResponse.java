@@ -1,6 +1,7 @@
 package de.ni0.chronoscope.controller.dto.response;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.NotNull;
 
 import java.time.Instant;
 import java.util.List;
@@ -10,16 +11,16 @@ import java.util.List;
  */
 @Schema(description = "Response for a static (fixed-time) task")
 public record StaticTaskResponse(
-    Long id,
+    @NotNull Long id,
     @Schema(description = "Organization ID. Null for blocker tasks that are not assigned to an organizationId.", nullable = true)
     String organizationId,
-    String name,
+    @NotNull String name,
     String description,
-    Integer difficulty,
-    Instant startAt,
-    Instant endAt,
-    String rrule,
-    List<LabelResponse> labels,
-    Boolean isBlocker
+    @NotNull Integer difficulty,
+    @NotNull Instant startAt,
+    @NotNull Instant endAt,
+    @NotNull String rrule,
+    @NotNull List<LabelResponse> labels,
+    @NotNull Boolean isBlocker
 ) implements TaskResponse {
 }

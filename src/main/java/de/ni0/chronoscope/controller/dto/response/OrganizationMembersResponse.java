@@ -1,16 +1,18 @@
 package de.ni0.chronoscope.controller.dto.response;
 
+import jakarta.validation.constraints.NotNull;
+
 import java.util.List;
 
 public record OrganizationMembersResponse(
-    List<OrganizationMember> members
+    @NotNull List<OrganizationMember> members
 ) {
 
     public record OrganizationMember(
-            String id,
-            String userName,
-            String firstName,
-            String lastName,
-            String email
+            @NotNull String id,
+            @NotNull String userName,
+            @NotNull String firstName,
+            @NotNull String lastName,
+            @NotNull String email
     ) {}
 }

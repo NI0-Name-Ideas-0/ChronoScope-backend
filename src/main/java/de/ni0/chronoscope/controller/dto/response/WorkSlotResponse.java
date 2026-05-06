@@ -1,14 +1,16 @@
 package de.ni0.chronoscope.controller.dto.response;
 
+import jakarta.validation.constraints.NotNull;
+
 import java.time.Instant;
 
 /**
  * API representation of an availability window.
  */
 public record WorkSlotResponse(
-    Long id,
-    String organizationId,
-    Instant startAt,
-    Instant endAt
+    @NotNull Long id,
+    @NotNull String organizationId,
+    @NotNull Instant startAt,
+    @NotNull Instant endAt
 ) {
 }

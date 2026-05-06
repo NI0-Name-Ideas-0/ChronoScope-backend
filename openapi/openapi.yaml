@@ -719,6 +719,10 @@ components:
         targetAccountId:
           type: integer
           format: int64
+      required:
+      - sourceAccountId
+      - status
+      - targetAccountId
     AccountLinkRequest:
       type: object
       properties:
@@ -737,6 +741,9 @@ components:
         identityId:
           type: integer
           format: int64
+      required:
+      - id
+      - identityId
     DynamicTaskCreateRequest:
       allOf:
       - $ref: "#/components/schemas/TaskCreateRequest"
@@ -840,6 +847,20 @@ components:
             format: date-time
       description: "Response for a dynamic (schedulable) task, including its scopes\
         \ and dependencies"
+      required:
+      - dependencies
+      - dependents
+      - difficulty
+      - duration
+      - elapsed
+      - endAt
+      - id
+      - labels
+      - maxScopeDuration
+      - minScopeDuration
+      - name
+      - scopes
+      - startAt
     DynamicTaskUpdateRequest:
       allOf:
       - $ref: "#/components/schemas/TaskUpdateRequest"
@@ -904,6 +925,11 @@ components:
           items:
             $ref: "#/components/schemas/Organization"
           uniqueItems: true
+      required:
+      - accounts
+      - adminOrganizations
+      - id
+      - organizations
     Invitation:
       type: object
       properties:
@@ -922,6 +948,14 @@ components:
           type: string
         lastName:
           type: string
+      required:
+      - email
+      - expired
+      - expiresAt
+      - firstName
+      - id
+      - inviteLink
+      - lastName
     InviteUserRequest:
       type: object
       properties:
@@ -950,6 +984,10 @@ components:
         taskId:
           type: integer
           format: int64
+      required:
+      - id
+      - name
+      - taskId
     Organization:
       type: object
       properties:
@@ -964,6 +1002,8 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Invitation"
+      required:
+      - invitations
     OrganizationMember:
       type: object
       properties:
@@ -977,6 +1017,12 @@ components:
           type: string
         userName:
           type: string
+      required:
+      - email
+      - firstName
+      - id
+      - lastName
+      - userName
     OrganizationMembersResponse:
       type: object
       properties:
@@ -984,6 +1030,8 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/OrganizationMember"
+      required:
+      - members
     PlanRequest:
       type: object
       properties:
@@ -1023,6 +1071,11 @@ components:
         startAt:
           type: string
           format: date-time
+      required:
+      - dynamicTaskId
+      - endAt
+      - id
+      - startAt
     StaticTaskCreateRequest:
       allOf:
       - $ref: "#/components/schemas/TaskCreateRequest"
@@ -1100,6 +1153,15 @@ components:
             type: string
             format: date-time
       description: Response for a static (fixed-time) task
+      required:
+      - difficulty
+      - endAt
+      - id
+      - isBlocker
+      - labels
+      - name
+      - rrule
+      - startAt
     StaticTaskUpdateRequest:
       allOf:
       - $ref: "#/components/schemas/TaskUpdateRequest"
@@ -1185,6 +1247,11 @@ components:
         startAt:
           type: string
           format: date-time
+      required:
+      - endAt
+      - id
+      - organizationId
+      - startAt
     WorkSlotUpdateRequest:
       type: object
       properties:

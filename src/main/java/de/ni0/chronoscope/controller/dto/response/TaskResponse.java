@@ -5,6 +5,7 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import jakarta.validation.constraints.NotNull;
 
 /**
  * Polymorphic task response contract emitted with the JSON {@code type} discriminator.
@@ -16,12 +17,13 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 })
 public sealed interface TaskResponse permits StaticTaskResponse, DynamicTaskResponse {
 
+    @NotNull
     Long id();
     String organizationId();
-    String name();
+    @NotNull String name();
     String description();
-    Integer difficulty();
-    Instant startAt();
-    Instant endAt();
-    List<LabelResponse> labels();
+    @NotNull Integer difficulty();
+    @NotNull Instant startAt();
+    @NotNull Instant endAt();
+    @NotNull List<LabelResponse> labels();
 }

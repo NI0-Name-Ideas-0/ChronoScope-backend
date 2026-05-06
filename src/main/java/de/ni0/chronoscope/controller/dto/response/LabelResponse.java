@@ -1,11 +1,13 @@
 package de.ni0.chronoscope.controller.dto.response;
 
+import jakarta.validation.constraints.NotNull;
+
 /**
  * API representation of a task label.
  */
 public record LabelResponse(
-    Long id,
-    Long taskId,
-    String name
+    @NotNull Long id,
+    @NotNull Long taskId,
+    @NotNull String name
 ) {
 }
