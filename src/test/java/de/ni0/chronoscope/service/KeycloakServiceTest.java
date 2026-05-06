@@ -105,8 +105,19 @@ class KeycloakServiceTest {
         Identity identity = new Identity();
         account(11L, "admin-subject", identity);
 
+        GroupRepresentation malformedMissingAttributes = new GroupRepresentation();
+        GroupRepresentation malformedEmptyOrgId = new GroupRepresentation();
+        malformedEmptyOrgId.setAttributes(Map.of("org-id", List.of()));
+        GroupRepresentation malformedBlankOrgId = new GroupRepresentation();
+        malformedBlankOrgId.setAttributes(Map.of("org-id", List.of(" ")));
         GroupRepresentation adminRoot = new GroupRepresentation();
-        adminRoot.setSubGroups(List.of(adminGroup("org-a"), adminGroup("org-b")));
+        adminRoot.setSubGroups(List.of(
+            adminGroup("org-a"),
+            malformedMissingAttributes,
+            malformedEmptyOrgId,
+            malformedBlankOrgId,
+            adminGroup("org-b")
+        ));
 
         when(realmResource.users()).thenReturn(usersResource);
         when(usersResource.get("admin-subject")).thenReturn(userResource);

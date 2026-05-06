@@ -77,8 +77,14 @@ public class KeycloakService {
             List<GroupRepresentation> group = this.client.realm(realm).users().get(subject).groups("org-admins", false);
             if (group.isEmpty()) continue;
             GroupRepresentation first = group.getFirst();
+            if (first.getSubGroups() == null) continue;
             for (GroupRepresentation subGroup : first.getSubGroups()) {
-                organizations.add(subGroup.getAttributes().get("org-id").getFirst());
+                if (subGroup == null || subGroup.getAttributes() == null) continue;
+                List<String> orgIds = subGroup.getAttributes().get("org-id");
+                if (orgIds == null || orgIds.isEmpty()) continue;
+                String orgId = orgIds.getFirst();
+                if (orgId == null || orgId.isBlank()) continue;
+                organizations.add(orgId);
             }
         }
         return organizations;
