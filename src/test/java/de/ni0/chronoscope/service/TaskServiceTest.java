@@ -8,6 +8,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import org.junit.jupiter.api.Test;
@@ -23,6 +24,7 @@ import de.ni0.chronoscope.exception.ResourceNotFoundException;
 import de.ni0.chronoscope.model.Account;
 import de.ni0.chronoscope.model.DynamicTask;
 import de.ni0.chronoscope.model.Identity;
+import de.ni0.chronoscope.model.Label;
 import de.ni0.chronoscope.model.StaticTask;
 import de.ni0.chronoscope.model.Task;
 import de.ni0.chronoscope.repository.TaskRepository;
@@ -312,6 +314,165 @@ class TaskServiceTest {
 
         assertEquals("Task id in path does not match target task", exception.getMessage());
         verify(taskRepository, never()).save(task);
+    }
+
+    @Test
+    void updateDynamicTask_ThrowsWhenPathIdDoesNotMatchTaskId() {
+        TaskService taskService = new TaskService(taskRepository, keycloakService);
+
+        DynamicTask task = new DynamicTask();
+        task.setId(100L);
+
+        InvalidRequestException exception = assertThrows(
+            InvalidRequestException.class,
+            () -> taskService.updateDynamicTask(101L, task)
+        );
+
+        assertEquals("Task id in path does not match target task", exception.getMessage());
+        verify(taskRepository, never()).findById(org.mockito.ArgumentMatchers.anyLong());
+    }
+
+    @Test
+    void updateDynamicTask_ThrowsWhenPersistedTaskIsStatic() {
+        TaskService taskService = new TaskService(taskRepository, keycloakService);
+
+        Identity identity = new Identity();
+        identity.setId(42L);
+
+        DynamicTask task = new DynamicTask();
+        task.setId(200L);
+        task.setIdentity(identity);
+        populateValidDynamicFields(task);
+
+        StaticTask persistedTask = new StaticTask();
+        persistedTask.setId(200L);
+
+        when(taskRepository.findById(200L)).thenReturn(Optional.of(persistedTask));
+
+        InvalidRequestException exception = assertThrows(
+            InvalidRequestException.class,
+            () -> taskService.updateDynamicTask(200L, task)
+        );
+
+        assertEquals("Task type mismatch: expected dynamic task", exception.getMessage());
+        verify(taskRepository, never()).flush();
+    }
+
+    @Test
+    void updateDynamicTask_ChangesOrganizationAndWiresLabels() {
+        TaskService taskService = new TaskService(taskRepository, keycloakService);
+
+        Identity identity = new Identity();
+        identity.setId(42L);
+
+        Label label = new Label();
+        label.setName("backend");
+
+        DynamicTask task = new DynamicTask();
+        task.setId(200L);
+        task.setIdentity(identity);
+        populateValidDynamicFields(task);
+        task.setLabels(new java.util.ArrayList<>(List.of(label)));
+        task.setScopes(new java.util.ArrayList<>());
+        task.setDependencies(new java.util.HashSet<>());
+
+        DynamicTask managedTask = new DynamicTask();
+        managedTask.setId(200L);
+        managedTask.setIdentity(identity);
+        populateValidDynamicFields(managedTask);
+        managedTask.setOrganizationId("old-org");
+        managedTask.setLabels(new java.util.ArrayList<>());
+        managedTask.setScopes(new java.util.ArrayList<>());
+        managedTask.setDependencies(new java.util.HashSet<>());
+        managedTask.setDependents(new java.util.HashSet<>());
+
+        when(taskRepository.findById(200L)).thenReturn(Optional.of(managedTask));
+
+        DynamicTask result = taskService.updateDynamicTask(200L, task, null, "new-org");
+
+        assertEquals(managedTask, result);
+        assertEquals("new-org", managedTask.getOrganizationId());
+        assertSame(managedTask, managedTask.getLabels().getFirst().getTask());
+        verify(keycloakService).validateIdentityOrgAccess(identity, "new-org");
+        verify(taskRepository).flush();
+    }
+
+    @Test
+    void updateStaticTask_ChangesOrganizationAndWiresLabels() {
+        TaskService taskService = new TaskService(taskRepository, keycloakService);
+
+        Identity identity = new Identity();
+        identity.setId(42L);
+
+        Label label = new Label();
+        label.setName("ops");
+
+        StaticTask task = new StaticTask();
+        task.setId(300L);
+        task.setIdentity(identity);
+        populateValidStaticFields(task);
+        task.setLabels(new java.util.ArrayList<>(List.of(label)));
+
+        StaticTask managedTask = new StaticTask();
+        managedTask.setId(300L);
+        managedTask.setIdentity(identity);
+        populateValidStaticFields(managedTask);
+        managedTask.setOrganizationId("old-org");
+        managedTask.setLabels(new java.util.ArrayList<>());
+
+        when(taskRepository.findById(300L)).thenReturn(Optional.of(managedTask));
+
+        StaticTask result = taskService.updateStaticTask(300L, task, "new-org");
+
+        assertEquals(managedTask, result);
+        assertEquals("new-org", managedTask.getOrganizationId());
+        assertSame(managedTask, managedTask.getLabels().getFirst().getTask());
+        verify(keycloakService).validateIdentityOrgAccess(identity, "new-org");
+        verify(taskRepository).flush();
+    }
+
+    @Test
+    void createDynamicTask_RejectsMissingOrNonDynamicDependencies() {
+        TaskService taskService = new TaskService(taskRepository, keycloakService);
+
+        Identity identity = new Identity();
+        identity.setId(42L);
+
+        DynamicTask missingDependencyTask = new DynamicTask();
+        missingDependencyTask.setIdentity(identity);
+        populateValidDynamicFields(missingDependencyTask);
+        DynamicTask missingDependencyRef = new DynamicTask();
+        missingDependencyRef.setId(404L);
+        missingDependencyTask.setDependencies(new java.util.HashSet<>(Set.of(missingDependencyRef)));
+
+        when(taskRepository.findAllById(Set.of(404L))).thenReturn(List.of());
+
+        InvalidRequestException missingException = assertThrows(
+            InvalidRequestException.class,
+            () -> taskService.createDynamicTask(missingDependencyTask)
+        );
+        assertEquals("Dependency task not found: 404", missingException.getMessage());
+
+        DynamicTask staticDependencyTask = new DynamicTask();
+        staticDependencyTask.setIdentity(identity);
+        populateValidDynamicFields(staticDependencyTask);
+        DynamicTask staticDependencyRef = new DynamicTask();
+        staticDependencyRef.setId(405L);
+        staticDependencyTask.setDependencies(new java.util.HashSet<>(Set.of(staticDependencyRef)));
+
+        StaticTask persistedStaticDependency = new StaticTask();
+        persistedStaticDependency.setId(405L);
+        persistedStaticDependency.setIdentity(identity);
+        when(taskRepository.findAllById(Set.of(405L))).thenReturn(List.of(persistedStaticDependency));
+
+        InvalidRequestException staticException = assertThrows(
+            InvalidRequestException.class,
+            () -> taskService.createDynamicTask(staticDependencyTask)
+        );
+        assertEquals("Dependency task must be a dynamic task: 405", staticException.getMessage());
+
+        verify(taskRepository, never()).save(missingDependencyTask);
+        verify(taskRepository, never()).save(staticDependencyTask);
     }
 
     @Test
