@@ -39,7 +39,8 @@ public class OrganizationController {
     @Operation(summary = "Get Organization members", description = "Retrieves members of a specific organization.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Members retrieved successfully"),
-            @ApiResponse(responseCode = "401", description = "Missing or invalid token", content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+            @ApiResponse(responseCode = "401", description = "Missing or invalid token", content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+            @ApiResponse(responseCode = "403", description = "Not an admin of the organization", content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     })
     @GetMapping("/{organizationId}/members")
     public OrganizationMembersResponse getOrganizationMembers(@PathVariable String organizationId) {
