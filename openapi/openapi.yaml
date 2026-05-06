@@ -989,8 +989,6 @@ components:
       properties:
         organizationId:
           type: string
-      required:
-      - organizationId
     ProblemDetail:
       type: object
       properties:

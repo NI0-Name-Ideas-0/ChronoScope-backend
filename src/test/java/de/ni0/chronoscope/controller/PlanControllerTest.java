@@ -10,6 +10,7 @@ import de.ni0.chronoscope.model.Account;
 import de.ni0.chronoscope.model.DynamicTask;
 import de.ni0.chronoscope.model.Scope;
 import de.ni0.chronoscope.service.AccountService;
+import de.ni0.chronoscope.service.KeycloakService;
 import de.ni0.chronoscope.service.PlanningService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,13 +39,16 @@ class PlanControllerTest {
     @Mock
     private AccountService accountService;
 
+    @Mock
+    private KeycloakService keycloakService;
+
     @Test
     void plan_ReturnsMappedScopeResponses_WhenPlanSucceeds() {
         Account account = TestData.account();
         String orgId = UUID.randomUUID().toString();
         RequestContext requestContext = new RequestContext();
         requestContext.setAccount(account);
-        PlanController controller = new PlanController(planningService, scopeMapper, accountService, requestContext);
+        PlanController controller = new PlanController(planningService, scopeMapper, requestContext, keycloakService);
 
         DynamicTask task = new DynamicTask();
         task.setId(1L);
@@ -70,7 +74,7 @@ class PlanControllerTest {
         String orgId = UUID.randomUUID().toString();
         RequestContext requestContext = new RequestContext();
         requestContext.setAccount(account);
-        PlanController controller = new PlanController(planningService, scopeMapper, accountService, requestContext);
+        PlanController controller = new PlanController(planningService, scopeMapper, requestContext, keycloakService);
 
         when(planningService.planTasksForIdentity(account.getIdentity(), orgId))
                 .thenThrow(new InsufficientSlotsException("no slots"));

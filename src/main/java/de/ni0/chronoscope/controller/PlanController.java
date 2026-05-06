@@ -4,7 +4,8 @@ import de.ni0.chronoscope.config.RequestContext;
 import de.ni0.chronoscope.controller.dto.request.PlanRequest;
 import de.ni0.chronoscope.controller.dto.response.ScopeResponse;
 import de.ni0.chronoscope.mapper.ScopeMapper;
-import de.ni0.chronoscope.service.AccountService;
+import de.ni0.chronoscope.model.Identity;
+import de.ni0.chronoscope.service.KeycloakService;
 import de.ni0.chronoscope.service.PlanningService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -14,12 +15,14 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.keycloak.representations.idm.OrganizationRepresentation;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -35,9 +38,9 @@ public class PlanController {
 
     private final ScopeMapper scopeMapper;
 
-    private final AccountService accountService;
-
     private final RequestContext requestContext;
+
+    private final KeycloakService keycloakService;
 
     /**
      * Generates and persists a fresh plan for the requested account and organizationId.
@@ -54,7 +57,17 @@ public class PlanController {
     })
     @PostMapping
     public List<ScopeResponse> plan(@Valid @RequestBody PlanRequest request) {
-        var result = planningService.planTasksForIdentity(requestContext.getAccount().getIdentity(), request.organizationId());
-        return result.stream().map(scopeMapper::toResponse).toList();
+        Identity identity = requestContext.getAccount().getIdentity();
+        List<ScopeResponse> scopes = new ArrayList<>();
+        if (request.organizationId() == null) {
+            for (OrganizationRepresentation org : this.keycloakService.getIdentityOrganizations(identity)) {
+                var result = planningService.planTasksForIdentity(identity, org.getId());
+                scopes.addAll(result.stream().map(scopeMapper::toResponse).toList());
+            }
+        } else {
+            var result = planningService.planTasksForIdentity(identity, request.organizationId());
+            scopes.addAll(result.stream().map(scopeMapper::toResponse).toList());
+        }
+        return scopes;
     }
 }
