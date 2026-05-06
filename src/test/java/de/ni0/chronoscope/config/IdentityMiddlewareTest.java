@@ -49,7 +49,7 @@ class IdentityMiddlewareTest {
             .header("alg", "none")
             .claim("sub", "subject-123")
             .claim("email", "")
-            .claim("organization", List.of())
+            .claim("organizationId", List.of())
             .claim("groups", List.of("/org-admin/dhbw-stuttgart", "/other-group", "/org-admin/dhbw-stuttgart"))
             .build();
         Authentication authentication = new JwtAuthenticationToken(jwt, AuthorityUtils.NO_AUTHORITIES);

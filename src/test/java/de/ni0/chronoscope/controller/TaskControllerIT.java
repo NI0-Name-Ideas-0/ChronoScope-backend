@@ -162,7 +162,7 @@ class TaskControllerIT {
         mockMvc.perform(get("/v1/tasks")
                 .with(jwt().jwt(jwt -> jwt
                     .subject(subject)
-                    .claim("organization", List.of("private")))))
+                    .claim("organizationId", List.of("private")))))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$[*].name", hasItem(dynamicTaskName)))
             .andExpect(jsonPath("$[*].name", hasItem(linkedStaticTaskName)))

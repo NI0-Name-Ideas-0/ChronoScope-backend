@@ -1,14 +1,8 @@
 package de.ni0.chronoscope.service;
 
-import java.util.List;
-import java.util.Objects;
-
-import org.keycloak.representations.idm.OrganizationRepresentation;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
-import de.ni0.chronoscope.exception.AccountAccessDeniedException;
-import de.ni0.chronoscope.exception.AccountNotFoundException;
 import de.ni0.chronoscope.model.Account;
 import de.ni0.chronoscope.model.Identity;
 import de.ni0.chronoscope.repository.AccountRepository;
@@ -16,7 +10,7 @@ import de.ni0.chronoscope.repository.IdentityRepository;
 import lombok.RequiredArgsConstructor;
 
 /**
- * Coordinates account ownership, organization access, and account synchronization from JWT data.
+ * Coordinates account ownership, organizationId access, and account synchronization from JWT data.
  */
 @Service
 @RequiredArgsConstructor
@@ -27,7 +21,7 @@ public class AccountService {
     /**
      * Creates or updates the account represented by an authentication token.
      *
-     * <p>The method also reconciles the account's organization memberships with the token
+     * <p>The method also reconciles the account's organizationId memberships with the token
      * claims, creating missing organizations by name.</p>
      *
      * @param subject unique external authentication subject

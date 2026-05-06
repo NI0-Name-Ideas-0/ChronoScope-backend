@@ -59,7 +59,7 @@ class WorkSlotControllerIT {
     private long createWorkSlot(Identity identity, String organizationId, String startAt, String endAt) {
         WorkSlot slot = new WorkSlot();
         slot.setIdentity(identity);
-        slot.setOrganization(organizationId);
+        slot.setOrganizationId(organizationId);
         slot.setStartAt(Instant.parse(startAt));
         slot.setEndAt(Instant.parse(endAt));
         return workSlotRepository.saveAndFlush(slot).getId();
@@ -98,7 +98,7 @@ class WorkSlotControllerIT {
                 """.formatted(orgId);
 
         mockMvc.perform(post("/v1/workslots")
-                        .with(jwt().jwt(jwt -> jwt.subject(subject).claim("organization", java.util.List.of("private"))))
+                        .with(jwt().jwt(jwt -> jwt.subject(subject).claim("organizationId", java.util.List.of("private"))))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(payload))
                 .andExpect(status().isCreated())
@@ -123,7 +123,7 @@ class WorkSlotControllerIT {
                 """;
 
         mockMvc.perform(patch("/v1/workslots/" + slotId)
-                        .with(jwt().jwt(jwt -> jwt.subject(subject).claim("organization", java.util.List.of("private"))))
+                        .with(jwt().jwt(jwt -> jwt.subject(subject).claim("organizationId", java.util.List.of("private"))))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(payload))
                 .andExpect(status().isOk())
@@ -161,7 +161,7 @@ class WorkSlotControllerIT {
         long slotId = createWorkSlot(account.getIdentity(), orgId, "2026-04-20T08:00:00Z", "2026-04-20T17:00:00Z");
 
         mockMvc.perform(delete("/v1/workslots/" + slotId)
-                        .with(jwt().jwt(jwt -> jwt.subject(subject).claim("organization", java.util.List.of("private")))))
+                        .with(jwt().jwt(jwt -> jwt.subject(subject).claim("organizationId", java.util.List.of("private")))))
                 .andExpect(status().isNoContent());
     }
 
@@ -176,7 +176,7 @@ class WorkSlotControllerIT {
         createAccount(attackerSubject);
 
         mockMvc.perform(delete("/v1/workslots/" + slotId)
-                        .with(jwt().jwt(jwt -> jwt.subject(attackerSubject).claim("organization", java.util.List.of("private")))))
+                        .with(jwt().jwt(jwt -> jwt.subject(attackerSubject).claim("organizationId", java.util.List.of("private")))))
                 .andExpect(status().isNotFound());
     }
 }

@@ -10,7 +10,7 @@ import lombok.Setter;
 /**
  * Fixed-time task that already occupies a known interval.
  *
- * <p>Blocker static tasks can be unassigned from an organization; non-blockers must be
+ * <p>Blocker static tasks can be unassigned from an organizationId; non-blockers must be
  * associated with one.</p>
  */
 @Getter

@@ -62,7 +62,7 @@ public class IdentityService {
     }
 
     /**
-     * Returns the identity with its accounts and organization graph.
+     * Returns the identity with its accounts and organizationId graph.
      *
      * @param identityId the identity ID
      * @return the loaded identity

@@ -39,7 +39,7 @@ public class WorkSlotService {
      */
     @Transactional(readOnly = true)
     public List<WorkSlot> getWorkSlotsForIdentity(long identityId, String organizationId) {
-        return workSlotRepository.findByIdentityIdAndOrganization(identityId, organizationId);
+        return workSlotRepository.findByIdentityIdAndOrganizationId(identityId, organizationId);
     }
 
     /**

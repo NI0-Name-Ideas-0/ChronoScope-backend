@@ -1,14 +1,10 @@
 package de.ni0.chronoscope.model;
 
-import java.util.Set;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.JoinTable;
-import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -22,7 +18,7 @@ import lombok.ToString;
  * Login account identified by an external authentication subject.
  *
  * <p>Several accounts can belong to one {@link Identity} after account linking, while the
- * organization set describes which organizations this specific account can access.</p>
+ * organizationId set describes which organizations this specific account can access.</p>
  */
 @Getter
 @Setter

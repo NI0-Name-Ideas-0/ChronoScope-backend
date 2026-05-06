@@ -35,19 +35,19 @@ public class PlanningService {
     private final KeycloakService keycloakService;
 
     /**
-     * Replans all dynamic tasks for an account and organization.
+     * Replans all dynamic tasks for an account and organizationId.
      *
      * <p>Existing scopes for the planned tasks are deleted only after a valid replacement plan
      * has been calculated.</p>
      *
      * @param identity identity whose tasks should be planned
-     * @param orgId organization to constrain the plan to
+     * @param orgId organizationId to constrain the plan to
      * @return newly persisted scopes, or an empty list when there is nothing to plan
      */
     @Transactional
     public List<Scope> planTasksForIdentity(Identity identity, String orgId) {
         keycloakService.validateIdentityOrgAccess(identity, orgId);
-        var dynamicTasks = taskRepository.findDynamicTasksByIdentityIdAndOrganization(identity.getId(), orgId);
+        var dynamicTasks = taskRepository.findDynamicTasksByIdentityIdAndOrganizationId(identity.getId(), orgId);
 
         if (dynamicTasks.isEmpty()) {
             // An exception would imply something went wrong, but "nothing to plan" is not a failure.
@@ -117,7 +117,7 @@ public class PlanningService {
                 TaskGraphNode dependencyNode = nodesByTask.get(dependency);
                 if (dependencyNode == null) {
                     throw new InvalidRequestException(
-                            "Task " + task.getId() + " has a dependency (id=" + dependency.getId() + ") outside the planned organization scope");
+                            "Task " + task.getId() + " has a dependency (id=" + dependency.getId() + ") outside the planned organizationId scope");
                 }
                 node.dependencies().add(dependencyNode);
             }
@@ -126,7 +126,7 @@ public class PlanningService {
                 TaskGraphNode dependentNode = nodesByTask.get(dependent);
                 if (dependentNode == null) {
                     throw new InvalidRequestException(
-                            "Task " + task.getId() + " has a dependent (id=" + dependent.getId() + ") outside the planned organization scope");
+                            "Task " + task.getId() + " has a dependent (id=" + dependent.getId() + ") outside the planned organizationId scope");
                 }
                 node.dependents().add(dependentNode);
             }

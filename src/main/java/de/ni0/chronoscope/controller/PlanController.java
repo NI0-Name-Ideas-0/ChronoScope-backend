@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 
 /**
- * REST controller for generating plans for account-organization task sets.
+ * REST controller for generating plans for account-organizationId task sets.
  */
 @Tag(name = "Planning", description = "Generate optimized task plans from available work slots")
 @RestController
@@ -40,7 +40,7 @@ public class PlanController {
     private final RequestContext requestContext;
 
     /**
-     * Generates and persists a fresh plan for the requested account and organization.
+     * Generates and persists a fresh plan for the requested account and organizationId.
      *
      * @param request plan target payload
      * @return generated scope responses

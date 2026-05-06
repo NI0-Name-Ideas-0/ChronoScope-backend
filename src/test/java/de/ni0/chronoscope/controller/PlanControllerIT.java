@@ -103,7 +103,7 @@ class PlanControllerIT {
     private void createWorkSlot(Identity identity, String org, String startAt, String endAt) {
         WorkSlot slot = new WorkSlot();
         slot.setIdentity(identity);
-        slot.setOrganization(org);
+        slot.setOrganizationId(org);
         slot.setStartAt(Instant.parse(startAt));
         slot.setEndAt(Instant.parse(endAt));
         workSlotRepository.saveAndFlush(slot);
@@ -125,7 +125,7 @@ class PlanControllerIT {
         String orgName = uniqueOrgName();
 
         mockMvc.perform(post("/v1/plan")
-                        .with(jwt().jwt(jwt -> jwt.subject(subject).claim("email", "").claim("organization", List.of(orgName))))
+                        .with(jwt().jwt(jwt -> jwt.subject(subject).claim("email", "").claim("organizationId", List.of(orgName))))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 { "accountId": 1 }

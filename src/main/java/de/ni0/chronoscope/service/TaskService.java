@@ -114,7 +114,7 @@ public class TaskService {
     }
 
     /**
-     * Updates a dynamic task without changing dependencies or organization.
+     * Updates a dynamic task without changing dependencies or organizationId.
      *
      * @param id task ID from the request path
      * @param task merged task data
@@ -139,12 +139,12 @@ public class TaskService {
     }
 
     /**
-     * Updates a dynamic task, optionally changing organization and dependency edges.
+     * Updates a dynamic task, optionally changing organizationId and dependency edges.
      *
      * @param id task ID from the request path
      * @param task merged task data
      * @param dependencyIds replacement dependency IDs, or {@code null} to keep existing dependencies
-     * @param organizationId replacement organization ID, or {@code null} to keep the current organization
+     * @param organizationId replacement organizationId ID, or {@code null} to keep the current organizationId
      * @return managed updated task
      */
     @Transactional
@@ -206,7 +206,7 @@ public class TaskService {
     }
 
     /**
-     * Updates a fixed-time task without changing organization.
+     * Updates a fixed-time task without changing organizationId.
      *
      * @param id task ID from the request path
      * @param task merged task data
@@ -218,11 +218,11 @@ public class TaskService {
     }
 
     /**
-     * Updates a fixed-time task and optionally changes its organization.
+     * Updates a fixed-time task and optionally changes its organizationId.
      *
      * @param id task ID from the request path
      * @param task merged task data
-     * @param organizationId replacement organization ID, or {@code null} to keep the current organization
+     * @param organizationId replacement organizationId ID, or {@code null} to keep the current organizationId
      * @return managed updated task
      */
     @Transactional

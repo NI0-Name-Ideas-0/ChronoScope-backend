@@ -1,7 +1,7 @@
 package de.ni0.chronoscope.controller.dto.response;
 
 /**
- * API representation of an organization.
+ * API representation of an organizationId.
  */
 public record OrganizationResponse(
     String id,

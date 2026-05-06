@@ -25,7 +25,7 @@ public interface IdentityRepository extends JpaRepository<Identity, Long> {
      * Finds an identity by ID and eagerly loads the associated accounts and organizations.
      *
      * @param id the identity ID
-     * @return the identity with its account and organization graph, if present
+     * @return the identity with its account and organizationId graph, if present
      */
     @Query("SELECT DISTINCT i FROM Identity i LEFT JOIN FETCH i.accounts a WHERE i.id = :id")
     Optional<Identity> findByIdWithAccountsAndOrganizations(@Param("id") Long id);

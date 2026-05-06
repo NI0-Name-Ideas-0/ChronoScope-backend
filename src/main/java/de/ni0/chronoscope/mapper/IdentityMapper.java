@@ -18,7 +18,7 @@ public interface IdentityMapper {
      * Converts an identity plus request-specific admin organizations to the API response.
      *
      * @param identity loaded identity entity
-     * @param adminOrganizations organization names where the current account has admin privileges
+     * @param adminOrganizations organizationId names where the current account has admin privileges
      * @return response DTO
      */
     @Mapping(target = "id", source = "identity.id")

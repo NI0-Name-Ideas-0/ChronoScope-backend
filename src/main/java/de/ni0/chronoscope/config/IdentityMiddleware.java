@@ -14,7 +14,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import de.ni0.chronoscope.service.AccountService;
-import de.ni0.chronoscope.service.IdentityService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -45,7 +44,7 @@ public class IdentityMiddleware extends OncePerRequestFilter {
     }
 
     /**
-     * Extracts organization names for which the authenticated account is an admin.
+     * Extracts organizationId names for which the authenticated account is an admin.
      * Admin membership is represented by JWT group paths like /org-admin/{organizationName}.
      */
     static List<String> extractAdminOrganizations(List<String> groups) {

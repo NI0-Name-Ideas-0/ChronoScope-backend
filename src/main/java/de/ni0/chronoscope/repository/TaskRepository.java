@@ -34,14 +34,14 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
     List<DynamicTask> findDynamicTasksByIdentityId(long identityId);
 
     /**
-     * Loads dynamic tasks for planning a single identity and organization.
+     * Loads dynamic tasks for planning a single identity and organizationId.
      *
      * @param identityId identity ID
-     * @param organizationId organization ID
+     * @param organizationId organizationId ID
      * @return matching dynamic tasks
      */
     @EntityGraph(attributePaths = { "dependencies", "dependents" })
-    List<DynamicTask> findDynamicTasksByIdentityIdAndOrganization(Long identityId, String organizationId);
+    List<DynamicTask> findDynamicTasksByIdentityIdAndOrganizationId(Long identityId, String organizationId);
 
     /**
      * Finds one task while enforcing the identity boundary.

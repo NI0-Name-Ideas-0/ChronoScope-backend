@@ -33,7 +33,7 @@ class DevLocalJwtDecoderTest {
 
         assertEquals("local-subject", jwt.getSubject());
         assertEquals("test@example.com", jwt.getClaimAsString("email"));
-        assertEquals(List.of("private", "chronoscope-local"), jwt.getClaimAsStringList("organization"));
+        assertEquals(List.of("private", "chronoscope-local"), jwt.getClaimAsStringList("organizationId"));
         assertEquals(List.of("/org-admin/chronoscope-local"), jwt.getClaimAsStringList("groups"));
         verifyNoInteractions(delegate);
     }

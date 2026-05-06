@@ -319,7 +319,7 @@ public class TestController {
     private WorkSlot workSlot(Identity identity, String organization, Instant startAt, Instant endAt) {
         WorkSlot workSlot = new WorkSlot();
         workSlot.setIdentity(identity);
-        workSlot.setOrganization(organization);
+        workSlot.setOrganizationId(organization);
         workSlot.setStartAt(startAt);
         workSlot.setEndAt(endAt);
         return workSlot;

@@ -30,7 +30,7 @@ class IdentityControllerIT {
         mockMvc.perform(get("/v1/identity")
                 .with(jwt().jwt(jwt -> jwt
                     .subject(subject)
-                    .claim("organization", List.of("private"))
+                    .claim("organizationId", List.of("private"))
                     .claim("groups", List.of(
                         "/org-admin/dhbw-stuttgart",
                         "/users/dhbw-stuttgart",

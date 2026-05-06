@@ -51,12 +51,12 @@ class PlanningServiceTest {
         String orgId = UUID.randomUUID().toString();
         Identity identity = TestData.identity(1);
 
-        when(taskRepository.findDynamicTasksByIdentityIdAndOrganization(identity.getId(), orgId)).thenReturn(List.of());
+        when(taskRepository.findDynamicTasksByIdentityIdAndOrganizationId(identity.getId(), orgId)).thenReturn(List.of());
 
         List<Scope> result = service.planTasksForIdentity(identity, orgId);
 
         assertTrue(result.isEmpty());
-        verify(taskRepository).findDynamicTasksByIdentityIdAndOrganization(identity.getId(), orgId);
+        verify(taskRepository).findDynamicTasksByIdentityIdAndOrganizationId(identity.getId(), orgId);
         verify(workSlotService, never()).getWorkSlotsForIdentity(anyLong());
         verify(workSlotService, never()).getWorkSlotsForIdentity(anyLong(), anyString());
         verify(scopeRepository, never()).deleteByDynamicTaskIdIn(anyList());
@@ -70,7 +70,7 @@ class PlanningServiceTest {
         Identity identity = TestData.identity(1);
         String orgId = UUID.randomUUID().toString();
 
-        when(taskRepository.findDynamicTasksByIdentityIdAndOrganization(identity.getId(), orgId))
+        when(taskRepository.findDynamicTasksByIdentityIdAndOrganizationId(identity.getId(), orgId))
                 .thenReturn(List.of(buildTask(1L, Duration.ofHours(1))));
         when(workSlotService.getWorkSlotsForIdentity(identity.getId(), orgId)).thenReturn(List.of());
 
@@ -95,7 +95,7 @@ class PlanningServiceTest {
                 Instant.parse("2026-04-26T08:00:00Z"),
                 Instant.parse("2026-04-26T18:00:00Z"));
 
-        when(taskRepository.findDynamicTasksByIdentityIdAndOrganization(identity.getId(), orgId))
+        when(taskRepository.findDynamicTasksByIdentityIdAndOrganizationId(identity.getId(), orgId))
                 .thenReturn(List.of(taskA, taskB));
         when(workSlotService.getWorkSlotsForIdentity(identity.getId(), orgId)).thenReturn(List.of(slot));
 
@@ -120,7 +120,7 @@ class PlanningServiceTest {
                 Instant.parse("2026-04-26T08:00:00Z"),
                 Instant.parse("2026-04-26T18:00:00Z"));
 
-        when(taskRepository.findDynamicTasksByIdentityIdAndOrganization(identity.getId(), orgId))
+        when(taskRepository.findDynamicTasksByIdentityIdAndOrganizationId(identity.getId(), orgId))
                 .thenReturn(List.of(task));
         when(workSlotService.getWorkSlotsForIdentity(identity.getId(), orgId)).thenReturn(List.of(slot));
 
@@ -141,7 +141,7 @@ class PlanningServiceTest {
                 Instant.parse("2026-04-26T08:00:00Z"),
                 Instant.parse("2026-04-26T18:00:00Z"));
 
-        when(taskRepository.findDynamicTasksByIdentityIdAndOrganization(identity.getId(), orgId))
+        when(taskRepository.findDynamicTasksByIdentityIdAndOrganizationId(identity.getId(), orgId))
                 .thenReturn(List.of(task));
         when(workSlotService.getWorkSlotsForIdentity(identity.getId(), orgId)).thenReturn(List.of(slot));
         when(scopeRepository.deleteByDynamicTaskIdIn(List.of(1L))).thenReturn(0L);

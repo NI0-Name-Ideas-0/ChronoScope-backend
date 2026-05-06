@@ -6,10 +6,7 @@ import de.ni0.chronoscope.model.Identity;
 import lombok.RequiredArgsConstructor;
 import org.keycloak.admin.client.Keycloak;
 import org.keycloak.admin.client.resource.OrganizationMembersResource;
-import org.keycloak.representations.idm.GroupRepresentation;
-import org.keycloak.representations.idm.MemberRepresentation;
-import org.keycloak.representations.idm.OrganizationRepresentation;
-import org.keycloak.representations.idm.UserRepresentation;
+import org.keycloak.representations.idm.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -50,15 +47,21 @@ public class KeycloakService {
     }
 
     /**
-     * Verifies that the identity is linked to the requested organization.
+     * Verifies that the identity is linked to the requested organizationId.
      *
      * @param identity identity to validate
-     * @param organizationId organization that must be accessible
+     * @param organizationId organizationId that must be accessible
      */
     public void validateIdentityOrgAccess(Identity identity, String organizationId) {
         Set<OrganizationRepresentation> organizations = this.getIdentityOrganizations(identity);
         if (organizations.stream().noneMatch(o -> Objects.equals(o.getId(), organizationId))) {
-            throw new AccountAccessDeniedException("Account does not have access to the specified organization");
+            throw new AccountAccessDeniedException("Account does not have access to the specified organizationId");
+        }
+    }
+
+    public void validateIdentityAdminOrgAccess(Identity identity, String organizationId) {
+        if (!this.getAdminOrganizations(identity).contains(organizationId)) {
+            throw new AccountAccessDeniedException("No access to organizationId");
         }
     }
 
@@ -74,5 +77,30 @@ public class KeycloakService {
             }
         }
         return organizations;
+    }
+
+    public void inviteUser(String organizationId, String mail) {
+        this.client.realm(realm).organizations().get(organizationId)
+                .members().inviteUser(mail, "", "");
+        System.out.println("awdawd");
+    }
+
+    public List<OrganizationInvitationRepresentation> getInvitations(String organizationId) {
+        return this.client.realm(realm).organizations().get(organizationId)
+                .invitations().list();
+    }
+
+    public void deleteInvitation(String organizationId, String id) {
+        this.client.realm(realm).organizations().get(organizationId)
+                .invitations().delete(id);
+    }
+
+    public void resendInvitation(String organizationId, String id) {
+        this.client.realm(realm).organizations().get(organizationId)
+                .invitations().resend(id);
+    }
+
+    public void removeMemberFromOrganization(String organizationId, String id) {
+        this.client.realm(realm).organizations().get(organizationId).members().removeMember(id);
     }
 }

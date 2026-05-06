@@ -32,7 +32,7 @@ public interface TaskMapper {
 
     // --- Static task: create ---
     /**
-     * Converts a static task create request to an entity without account or organization wiring.
+     * Converts a static task create request to an entity without account or organizationId wiring.
      *
      * @param request create payload
      * @return new static task entity
@@ -102,7 +102,7 @@ public interface TaskMapper {
     /**
      * Applies non-null dynamic task patch fields to a managed entity.
      *
-     * <p>Dependency and organization changes are handled by the service after validation.</p>
+     * <p>Dependency and organizationId changes are handled by the service after validation.</p>
      *
      * @param request update payload
      * @param task target task entity

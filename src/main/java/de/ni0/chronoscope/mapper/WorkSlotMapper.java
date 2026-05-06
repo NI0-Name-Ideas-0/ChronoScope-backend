@@ -16,13 +16,13 @@ import org.mapstruct.MappingConstants;
 public interface WorkSlotMapper {
 
     /**
-     * Converts a create request to a work slot with account and organization references.
+     * Converts a create request to a work slot with account and organizationId references.
      *
      * @param request create payload
      * @return new work slot entity
      */
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "organization", source = "organizationId")
+    @Mapping(target = "organizationId", source = "organizationId")
     WorkSlot fromCreateRequest(WorkSlotCreateRequest request);
 
     /**
@@ -33,7 +33,7 @@ public interface WorkSlotMapper {
      */
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "identity", ignore = true)
-    @Mapping(target = "organization", ignore = true)
+    @Mapping(target = "organizationId", ignore = true)
     void fromUpdateRequest(WorkSlotUpdateRequest request, @MappingTarget WorkSlot workSlot);
 
     /**
@@ -42,6 +42,6 @@ public interface WorkSlotMapper {
      * @param workSlot work slot entity
      * @return response DTO
      */
-    @Mapping(target = "organizationId", source = "organization")
+    @Mapping(target = "organizationId", source = "organizationId")
     WorkSlotResponse toResponse(WorkSlot workSlot);
 }
