@@ -7,10 +7,7 @@ import de.ni0.chronoscope.algorithm.WorkSlotProvider;
 import de.ni0.chronoscope.algorithm.dataprovider.CPMDataProvider;
 import de.ni0.chronoscope.exception.InsufficientSlotsException;
 import de.ni0.chronoscope.exception.InvalidRequestException;
-import de.ni0.chronoscope.model.Account;
-import de.ni0.chronoscope.model.DynamicTask;
-import de.ni0.chronoscope.model.Scope;
-import de.ni0.chronoscope.model.WorkSlot;
+import de.ni0.chronoscope.model.*;
 import de.ni0.chronoscope.repository.ScopeRepository;
 import de.ni0.chronoscope.repository.TaskRepository;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +32,7 @@ public class PlanningService {
     private final ScopeRepository scopeRepository;
     private final WorkSlotService workSlotService;
     private final AccountService accountService;
+    private final KeycloakService keycloakService;
 
     /**
      * Replans all dynamic tasks for an account and organization.
@@ -42,15 +40,14 @@ public class PlanningService {
      * <p>Existing scopes for the planned tasks are deleted only after a valid replacement plan
      * has been calculated.</p>
      *
-     * @param account account whose tasks should be planned
+     * @param identity identity whose tasks should be planned
      * @param orgId organization to constrain the plan to
      * @return newly persisted scopes, or an empty list when there is nothing to plan
      */
     @Transactional
-    public List<Scope> planTasksForAccount(Account account, String orgId) {
-        accountService.validateAccountOrgAccess(account, orgId);
-
-        var dynamicTasks = taskRepository.findDynamicTasksByAccountIdAndOrganization(account.getId(), orgId);
+    public List<Scope> planTasksForIdentity(Identity identity, String orgId) {
+        keycloakService.validateIdentityOrgAccess(identity, orgId);
+        var dynamicTasks = taskRepository.findDynamicTasksByIdentityIdAndOrganization(identity.getId(), orgId);
 
         if (dynamicTasks.isEmpty()) {
             // An exception would imply something went wrong, but "nothing to plan" is not a failure.
@@ -59,7 +56,7 @@ public class PlanningService {
         }
 
         var dynamicTaskIds = dynamicTasks.stream().map(DynamicTask::getId).toList();
-        var workSlots = workSlotService.getWorkSlotsForAccount(account.getId());
+        var workSlots = workSlotService.getWorkSlotsForIdentity(identity.getId(), orgId);
 
         var planningResult = plan(dynamicTasks, workSlots);
 

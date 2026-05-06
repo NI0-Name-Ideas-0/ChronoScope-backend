@@ -38,8 +38,6 @@ public interface TaskMapper {
      * @return new static task entity
      */
     @Mapping(target = "id", ignore = true)
-    // Account is validated and assigned by controller logic after request parsing.
-    @Mapping(target = "account", ignore = true)
     // Organization is validated and assigned by controller logic after request parsing.
     @Mapping(target = "organization", ignore = true)
     @Mapping(target = "name", source = "name")
@@ -60,8 +58,6 @@ public interface TaskMapper {
      * @return new dynamic task entity
      */
     @Mapping(target = "id", ignore = true)
-    // Account is validated and assigned by controller logic after request parsing.
-    @Mapping(target = "account", ignore = true)
     // Organization is validated and assigned by controller logic after request parsing.
     @Mapping(target = "organization", ignore = true)
     @Mapping(target = "name", source = "name")
@@ -88,7 +84,6 @@ public interface TaskMapper {
      */
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "account", ignore = true)
     // Organization updates are validated and assigned by service logic.
     @Mapping(target = "organization", ignore = true)
     @Mapping(target = "labels", source = "labels")
@@ -111,7 +106,6 @@ public interface TaskMapper {
      */
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "account", ignore = true)
     // Organization updates are validated and assigned by service logic.
     @Mapping(target = "organization", ignore = true)
     @Mapping(target = "labels", source = "labels")
@@ -136,7 +130,6 @@ public interface TaskMapper {
      * @param task static task entity
      * @return response DTO
      */
-    @Mapping(target = "accountId", source = "account.id")
     @Mapping(target = "organizationId", source = "organization.id")
     @Mapping(target = "id", source = "id")
     @Mapping(target = "name", source = "name")
@@ -155,7 +148,6 @@ public interface TaskMapper {
      * @param task dynamic task entity
      * @return response DTO
      */
-    @Mapping(target = "accountId", source = "account.id")
     @Mapping(target = "organizationId", source = "organization.id")
     @Mapping(target = "id", source = "id")
     @Mapping(target = "name", source = "name")

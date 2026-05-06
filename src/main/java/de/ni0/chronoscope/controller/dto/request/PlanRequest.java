@@ -6,7 +6,6 @@ import jakarta.validation.constraints.NotNull;
  * Request payload selecting the account and organization to plan.
  */
 public record PlanRequest(
-    @NotNull Long accountId,
     @NotNull String organizationId
 ) {
 }

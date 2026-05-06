@@ -15,8 +15,6 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
     @JsonSubTypes.Type(value = DynamicTaskCreateRequest.class, name = "dynamic")
 })
 public sealed interface TaskCreateRequest permits StaticTaskCreateRequest, DynamicTaskCreateRequest {
-
-    Long accountId();
     String organizationId();
     String name();
     String description();

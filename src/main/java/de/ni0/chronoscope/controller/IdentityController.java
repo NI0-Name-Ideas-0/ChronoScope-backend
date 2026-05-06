@@ -58,7 +58,7 @@ public class IdentityController {
     @GetMapping
     public IdentityResponse getIdentity() {
         long identityId = this.requestContext.getAccount().getIdentity().getId();
-        List<String> adminOrganizations = this.keycloakService.getAccountOrganizations(this.requestContext.getAccount().getSubject())
+        List<String> adminOrganizations = this.keycloakService.getIdentityOrganizations(this.requestContext.getAccount().getIdentity())
                 .stream().map(OrganizationRepresentation::getId).toList();
         return this.identityMapper.toResponse(
             this.identityService.getIdentity(identityId),

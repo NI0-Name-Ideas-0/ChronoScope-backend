@@ -69,7 +69,6 @@ public class WorkSlotController {
     })
     @PostMapping
     public ResponseEntity<WorkSlotResponse> createWorkSlot(@Valid @RequestBody WorkSlotCreateRequest request) {
-        accountService.validateAccountOwnership(requestContext.getAccount().getIdentity().getId(), request.accountId());
         WorkSlot workSlot = workSlotMapper.fromCreateRequest(request);
         WorkSlotResponse response = workSlotMapper.toResponse(workSlotService.createWorkSlot(workSlot));
         return ResponseEntity.status(HttpStatus.CREATED).body(response);

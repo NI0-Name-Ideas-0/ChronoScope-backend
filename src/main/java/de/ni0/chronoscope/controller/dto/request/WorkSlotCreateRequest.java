@@ -8,7 +8,6 @@ import java.time.Instant;
  * Request payload for creating an availability window.
  */
 public record WorkSlotCreateRequest(
-    @NotNull Long accountId,
     @NotNull Long organizationId,
     @NotNull Instant startAt,
     @NotNull Instant endAt

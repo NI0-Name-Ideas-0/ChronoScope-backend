@@ -22,7 +22,6 @@ public interface WorkSlotMapper {
      * @return new work slot entity
      */
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "account", source = "accountId", qualifiedByName = "accountProxy")
     @Mapping(target = "organization", source = "organizationId", qualifiedByName = "organizationProxy")
     WorkSlot fromCreateRequest(WorkSlotCreateRequest request);
 

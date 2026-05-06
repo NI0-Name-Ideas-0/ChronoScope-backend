@@ -19,7 +19,6 @@ import jakarta.validation.constraints.Positive;
 @Schema(description = "Create request for a static (fixed-time) task")
 @ValidStaticTaskOrganization
 public record StaticTaskCreateRequest(
-    @NotNull Long accountId,
     @Schema(description = "Organization ID. Required unless this static task is a blocker.")
     @NotBlank String organizationId,
     @NotBlank String name,

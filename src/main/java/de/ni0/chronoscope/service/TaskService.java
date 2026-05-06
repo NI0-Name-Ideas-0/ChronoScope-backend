@@ -38,7 +38,6 @@ public class TaskService {
 
     private final TaskRepository taskRepository;
     private final KeycloakService keycloakService;
-    private final AccountService accountService;
 
     /**
      * Validates and persists a fixed-time task.
@@ -71,9 +70,7 @@ public class TaskService {
      */
     @Transactional(readOnly = true)
     public List<Task> getTasksForIdentity(long identityId) {
-        List<Task> tasks = this.taskRepository.findByAccountIdentityId(identityId);
-        this.taskRepository.findDynamicTasksByAccountIdentityId(identityId);
-        return tasks;
+        return this.taskRepository.findByIdentityId(identityId);
     }
 
     /**
@@ -85,7 +82,7 @@ public class TaskService {
      */
     @Transactional(readOnly = true)
     public Task getTaskForIdentity(long identityId, Long taskId) {
-        return this.taskRepository.findByIdAndAccountIdentityId(taskId, identityId)
+        return this.taskRepository.findByIdAndIdentityId(taskId, identityId)
             .orElseThrow(() -> new ResourceNotFoundException("Task not found: " + taskId));
     }
 
@@ -97,11 +94,11 @@ public class TaskService {
      */
     @Transactional
     public void deleteTask(long identityId, Long taskId) {
-        Task task = this.taskRepository.findByIdAndAccountIdentityId(taskId, identityId)
+        Task task = this.taskRepository.findByIdAndIdentityId(taskId, identityId)
             .orElseThrow(() -> new ResourceNotFoundException("Task not found: " + taskId));
 
         if (task instanceof DynamicTask dynamicTask) {
-            List<DynamicTask> dependents = this.taskRepository.findDependentsByDependencyIdAndAccountIdentityId(taskId, identityId);
+            List<DynamicTask> dependents = this.taskRepository.findDependentsByDependencyIdAndIdentityId(taskId, identityId);
 
             for (DynamicTask dependency : new HashSet<>(dynamicTask.getDependencies())) {
                 dependency.getDependents().remove(dynamicTask);
@@ -165,10 +162,6 @@ public class TaskService {
             throw new InvalidRequestException("Task type mismatch: expected dynamic task");
         }
 
-        if (task.getAccount() != null) {
-            managedTask.setAccount(task.getAccount());
-        }
-        validateAccountOrgAccess(managedTask, organizationId);
         managedTask.setName(task.getName());
         managedTask.setDescription(task.getDescription());
         managedTask.setDifficulty(task.getDifficulty());
@@ -244,10 +237,6 @@ public class TaskService {
             throw new InvalidRequestException("Task type mismatch: expected static task");
         }
 
-        if (task.getAccount() != null) {
-            managedTask.setAccount(task.getAccount());
-        }
-        validateAccountOrgAccess(managedTask, organizationId);
         managedTask.setName(task.getName());
         managedTask.setDescription(task.getDescription());
         managedTask.setDifficulty(task.getDifficulty());
@@ -269,25 +258,12 @@ public class TaskService {
         return managedTask;
     }
 
-    /**
-     * Verifies that the account is linked to the requested organization.
-     *
-     * @param task task to validate
-     * @param organizationId organization that must be accessible
-     */
-    public void validateAccountOrgAccess(Task task, String organizationId) {
-        List<OrganizationRepresentation> organizations = this.keycloakService.getAccountOrganizations(task.getAccount().getSubject());
-        if (organizations.stream().noneMatch(o -> Objects.equals(o.getId(), organizationId))) {
-            throw new AccountAccessDeniedException("Account does not have access to the specified organization");
-        }
-    }
-
     private void validateStaticTask(StaticTask task) {
         validateCommonTaskFields(task);
         if (task.getIsBlocker() == null) {
             throw new InvalidRequestException("isBlocker must be provided");
         }
-        if (!Boolean.TRUE.equals(task.getIsBlocker()) && task.getOrganization() == null) {
+        if (!task.getIsBlocker() && task.getOrganization() == null) {
             throw new InvalidRequestException("organizationId is required unless isBlocker is true");
         }
     }
@@ -372,32 +348,22 @@ public class TaskService {
             return new HashSet<>();
         }
 
-        Long sourceIdentityId = task.getAccount() != null
-            && task.getAccount().getIdentity() != null
-            ? task.getAccount().getIdentity().getId()
-            : null;
-
-        if (sourceIdentityId == null) {
-            throw new InvalidRequestException("Dynamic task account identity must be set");
-        }
+        long sourceIdentityId = task.getIdentity().getId();
 
         Map<Long, Task> dependenciesById = this.taskRepository.findAllById(dependencyIdSet).stream()
             .collect(Collectors.toMap(Task::getId, Function.identity()));
 
         Set<DynamicTask> resolvedDependencies = new HashSet<>();
 
-        for (Long dependencyId : dependencyIdSet) {
+        for (long dependencyId : dependencyIdSet) {
             Task dependencyTask = dependenciesById.get(dependencyId);
             if (!(dependencyTask instanceof DynamicTask dynamicDependency)) {
                 throw new InvalidRequestException("Dependency task not found: " + dependencyId);
             }
 
-            Long dependencyIdentityId = dynamicDependency.getAccount() != null
-                && dynamicDependency.getAccount().getIdentity() != null
-                ? dynamicDependency.getAccount().getIdentity().getId()
-                : null;
+            long dependencyIdentityId = dependencyTask.getIdentity().getId();
 
-            if (!Objects.equals(sourceIdentityId, dependencyIdentityId)) {
+            if (sourceIdentityId != dependencyIdentityId) {
                 throw new InvalidRequestException("Dependency task " + dependencyId + " must belong to the same identity");
             }
 
@@ -424,14 +390,7 @@ public class TaskService {
             return;
         }
 
-        Long sourceIdentityId = task.getAccount() != null
-            && task.getAccount().getIdentity() != null
-            ? task.getAccount().getIdentity().getId()
-            : null;
-
-        if (sourceIdentityId == null) {
-            throw new InvalidRequestException("Dynamic task account identity must be set");
-        }
+        long sourceIdentityId = task.getIdentity().getId();
 
         Map<Long, Task> dependenciesById = this.taskRepository.findAllById(dependencyIds).stream()
             .collect(Collectors.toMap(Task::getId, Function.identity()));
@@ -446,10 +405,7 @@ public class TaskService {
                 throw new InvalidRequestException("Dependency task must be a dynamic task: " + dependencyId);
             }
 
-            Long dependencyIdentityId = dependencyTask.getAccount() != null
-                && dependencyTask.getAccount().getIdentity() != null
-                ? dependencyTask.getAccount().getIdentity().getId()
-                : null;
+            Long dependencyIdentityId = dependencyTask.getIdentity().getId();
 
             if (!Objects.equals(sourceIdentityId, dependencyIdentityId)) {
                 throw new InvalidRequestException("Dependency task " + dependencyId + " must belong to the same identity");
