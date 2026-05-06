@@ -236,6 +236,12 @@ paths:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
           description: Missing or invalid token
+        "403":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Not an admin of the organization
       summary: Get Organization members
       tags:
       - Organization
