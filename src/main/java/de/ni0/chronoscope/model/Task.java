@@ -46,7 +46,7 @@ public abstract class Task {
     @JoinColumn(name = "identity_id")
     private Identity identity;
 
-    @Column(name = "organization_id", nullable = false)
+    @Column(name = "organization_id", nullable = true)
     private String organization;
 
     @Column(nullable = false)
