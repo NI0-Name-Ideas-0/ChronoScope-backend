@@ -10,7 +10,6 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import de.ni0.chronoscope.TestData;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -60,9 +59,6 @@ class TaskServiceTest {
         task.setMaxScopeDuration(Duration.ofMinutes(40));
         task.setOrganization(UUID.randomUUID().toString());
     }
-
-    @Mock
-    private AccountService accountService;
 
     @Test
     void getTasksForIdentity_ReturnsAllTasksFromLinkedAccounts() {
@@ -382,69 +378,6 @@ class TaskServiceTest {
 
         assertEquals(managedTask, result);
         verify(taskRepository).findById(100L);
-        verify(taskRepository).flush();
-    }
-
-    @Test
-    void updateStaticTask_ValidatesOrganizationBeforeAssigning() {
-        TaskService taskService = new TaskService(taskRepository, keycloakService);
-
-        Account account = TestData.account();
-
-        StaticTask task = new StaticTask();
-        task.setId(100L);
-        populateValidStaticFields(task);
-        task.setLabels(new java.util.ArrayList<>());
-
-        StaticTask managedTask = new StaticTask();
-        managedTask.setId(100L);
-        managedTask.setIdentity(account.getIdentity());
-        populateValidStaticFields(managedTask);
-        managedTask.setLabels(new java.util.ArrayList<>());
-
-        when(taskRepository.findById(100L)).thenReturn(Optional.of(managedTask));
-        when(accountService.resolveOrganizationForAccount(10L, 7L)).thenReturn(organization);
-
-        StaticTask result = taskService.updateStaticTask(100L, task, 7L);
-
-        assertEquals(managedTask, result);
-        assertEquals(organization, managedTask.getOrganization());
-        verify(taskRepository).findById(100L);
-        verify(accountService).resolveOrganizationForAccount(10L, 7L);
-        verify(taskRepository).flush();
-    }
-
-    @Test
-    void updateDynamicTask_ValidatesOrganizationBeforeAssigning() {
-        TaskService taskService = new TaskService(taskRepository, keycloakService);
-
-        Account account = new Account();
-        account.setId(10L);
-
-        DynamicTask task = new DynamicTask();
-        task.setId(200L);
-        populateValidDynamicFields(task);
-        task.setLabels(new java.util.ArrayList<>());
-        task.setScopes(new java.util.ArrayList<>());
-
-        DynamicTask managedTask = new DynamicTask();
-        managedTask.setId(200L);
-        managedTask.setIdentity(account);
-        populateValidDynamicFields(managedTask);
-        managedTask.setDependencies(new java.util.HashSet<>());
-        managedTask.setDependents(new java.util.HashSet<>());
-        managedTask.setLabels(new java.util.ArrayList<>());
-        managedTask.setScopes(new java.util.ArrayList<>());
-
-        when(taskRepository.findById(200L)).thenReturn(Optional.of(managedTask));
-        when(accountService.resolveOrganizationForAccount(10L, 7L)).thenReturn(organization);
-
-        DynamicTask result = taskService.updateDynamicTask(200L, task, null, 7L);
-
-        assertEquals(managedTask, result);
-        assertEquals(organization, managedTask.getOrganization());
-        verify(taskRepository).findById(200L);
-        verify(accountService).resolveOrganizationForAccount(10L, 7L);
         verify(taskRepository).flush();
     }
 

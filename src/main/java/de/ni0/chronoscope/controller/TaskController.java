@@ -160,9 +160,9 @@ public class TaskController {
     public TaskResponse updateTask(
             @Parameter(description = "Task ID") @PathVariable Long id,
             @Valid @RequestBody TaskUpdateRequest request) {
-        Task existingTask = taskService.getTaskForIdentity(requestContext.getAccount().getIdentity().getId(), id);
-        Identity identity = this.requestContext.getAccount().getIdentity();;
+        Identity identity = this.requestContext.getAccount().getIdentity();
         this.keycloakService.validateIdentityOrgAccess(identity, request.organizationId());
+        Task existingTask = taskService.getTaskForIdentity(requestContext.getAccount().getIdentity().getId(), id);
 
         return switch (request) {
             case StaticTaskUpdateRequest staticRequest -> {

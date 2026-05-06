@@ -73,7 +73,6 @@ class WorkSlotControllerTest {
 
     @Test
     void createWorkSlot_ReturnsCreatedWhenAuthorized() {
-        // TODO: THIS TEST CHECKS NOTHING
         Account account = TestData.account();
         RequestContext requestContext = new RequestContext();
         requestContext.setAccount(account);

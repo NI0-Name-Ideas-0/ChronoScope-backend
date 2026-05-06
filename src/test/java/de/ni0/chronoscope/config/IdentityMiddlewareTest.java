@@ -43,7 +43,7 @@ class IdentityMiddlewareTest {
     @Test
     void doFilterInternal_UsesPrivateOrganizationWhenClaimIsEmpty() throws ServletException, IOException {
         RequestContext requestContext = new RequestContext();
-        IdentityMiddleware middleware = new IdentityMiddleware(accountService, identityService, requestContext);
+        IdentityMiddleware middleware = new IdentityMiddleware(accountService, requestContext);
 
         Jwt jwt = Jwt.withTokenValue("token")
             .header("alg", "none")

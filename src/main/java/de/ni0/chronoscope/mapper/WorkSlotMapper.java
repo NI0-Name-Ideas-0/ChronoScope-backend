@@ -22,7 +22,7 @@ public interface WorkSlotMapper {
      * @return new work slot entity
      */
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "organization", source = "organizationId", qualifiedByName = "organizationProxy")
+    @Mapping(target = "organization", source = "organizationId")
     WorkSlot fromCreateRequest(WorkSlotCreateRequest request);
 
     /**
@@ -32,7 +32,7 @@ public interface WorkSlotMapper {
      * @param workSlot target work slot
      */
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "account", ignore = true)
+    @Mapping(target = "identity", ignore = true)
     @Mapping(target = "organization", ignore = true)
     void fromUpdateRequest(WorkSlotUpdateRequest request, @MappingTarget WorkSlot workSlot);
 
@@ -42,7 +42,6 @@ public interface WorkSlotMapper {
      * @param workSlot work slot entity
      * @return response DTO
      */
-    @Mapping(target = "accountId", source = "account.id")
-    @Mapping(target = "organizationId", source = "organization.id")
+    @Mapping(target = "organizationId", source = "organization")
     WorkSlotResponse toResponse(WorkSlot workSlot);
 }

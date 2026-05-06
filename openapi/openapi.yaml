@@ -563,9 +563,6 @@ components:
       - $ref: "#/components/schemas/TaskCreateRequest"
       - type: object
         properties:
-          accountId:
-            type: integer
-            format: int64
           dependencies:
             type: array
             items:
@@ -594,15 +591,14 @@ components:
             type: string
             minLength: 1
           organizationId:
-            type: integer
-            format: int64
+            type: string
+            minLength: 1
           startAt:
             type: string
             format: date-time
       description: Create request for a dynamic (schedulable) task with duration and
         scope constraints
       required:
-      - accountId
       - dependencies
       - description
       - difficulty
@@ -619,9 +615,6 @@ components:
       - $ref: "#/components/schemas/TaskResponse"
       - type: object
         properties:
-          accountId:
-            type: integer
-            format: int64
           dependencies:
             type: array
             items:
@@ -658,8 +651,7 @@ components:
           name:
             type: string
           organizationId:
-            type: integer
-            format: int64
+            type: string
           scopes:
             type: array
             items:
@@ -674,9 +666,6 @@ components:
       - $ref: "#/components/schemas/TaskUpdateRequest"
       - type: object
         properties:
-          accountId:
-            type: integer
-            format: int64
           dependencies:
             type: array
             items:
@@ -708,8 +697,7 @@ components:
             maxLength: 2147483647
             minLength: 1
           organizationId:
-            type: integer
-            format: int64
+            type: string
           startAt:
             type: string
             format: date-time
@@ -770,27 +758,22 @@ components:
         email:
           type: string
         id:
-          type: integer
-          format: int64
+          type: string
+        name:
+          type: string
     OrganizationResponse:
       type: object
       properties:
         id:
-          type: integer
-          format: int64
+          type: string
         name:
           type: string
     PlanRequest:
       type: object
       properties:
-        accountId:
-          type: integer
-          format: int64
         organizationId:
-          type: integer
-          format: int64
+          type: string
       required:
-      - accountId
       - organizationId
     ProblemDetail:
       type: object
@@ -831,9 +814,6 @@ components:
       - $ref: "#/components/schemas/TaskCreateRequest"
       - type: object
         properties:
-          accountId:
-            type: integer
-            format: int64
           description:
             type: string
           difficulty:
@@ -853,9 +833,9 @@ components:
             type: string
             minLength: 1
           organizationId:
-            type: integer
-            format: int64
+            type: string
             description: Organization ID. Required unless this static task is a blocker.
+            minLength: 1
           rrule:
             type: string
           startAt:
@@ -863,13 +843,13 @@ components:
             format: date-time
       description: Create request for a static (fixed-time) task
       required:
-      - accountId
       - description
       - difficulty
       - endAt
       - isBlocker
       - labels
       - name
+      - organizationId
       - rrule
       - startAt
     StaticTaskResponse:
@@ -877,9 +857,6 @@ components:
       - $ref: "#/components/schemas/TaskResponse"
       - type: object
         properties:
-          accountId:
-            type: integer
-            format: int64
           description:
             type: string
           difficulty:
@@ -901,9 +878,8 @@ components:
             type: string
           organizationId:
             type:
-            - integer
+            - string
             - "null"
-            format: int64
             description: Organization ID. Null for blocker tasks that are not assigned
               to an organization.
           rrule:
@@ -917,9 +893,6 @@ components:
       - $ref: "#/components/schemas/TaskUpdateRequest"
       - type: object
         properties:
-          accountId:
-            type: integer
-            format: int64
           description:
             type: string
           difficulty:
@@ -940,8 +913,7 @@ components:
             maxLength: 2147483647
             minLength: 1
           organizationId:
-            type: integer
-            format: int64
+            type: string
           rrule:
             type: string
           startAt:
@@ -975,29 +947,21 @@ components:
     WorkSlotCreateRequest:
       type: object
       properties:
-        accountId:
-          type: integer
-          format: int64
         endAt:
           type: string
           format: date-time
         organizationId:
-          type: integer
-          format: int64
+          type: string
         startAt:
           type: string
           format: date-time
       required:
-      - accountId
       - endAt
       - organizationId
       - startAt
     WorkSlotResponse:
       type: object
       properties:
-        accountId:
-          type: integer
-          format: int64
         endAt:
           type: string
           format: date-time
@@ -1005,8 +969,7 @@ components:
           type: integer
           format: int64
         organizationId:
-          type: integer
-          format: int64
+          type: string
         startAt:
           type: string
           format: date-time
