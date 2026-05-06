@@ -17,8 +17,7 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 public sealed interface TaskResponse permits StaticTaskResponse, DynamicTaskResponse {
 
     Long id();
-    Long accountId();
-    Long organizationId();
+    String organizationId();
     String name();
     String description();
     Integer difficulty();

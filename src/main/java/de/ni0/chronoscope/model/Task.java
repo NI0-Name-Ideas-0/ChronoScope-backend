@@ -43,13 +43,11 @@ public abstract class Task {
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "account_id")
-    @ToString.Exclude // bidirectional: Account -> Identity -> Account would recurse infinitely in toString
-    private Account account;
+    @JoinColumn(name = "identity_id")
+    private Identity identity;
 
-    @ManyToOne
-    @JoinColumn(name = "organization_id")
-    private Organization organization;
+    @Column(name = "organization_id", nullable = false)
+    private String organization;
 
     @Column(nullable = false)
     private String name;

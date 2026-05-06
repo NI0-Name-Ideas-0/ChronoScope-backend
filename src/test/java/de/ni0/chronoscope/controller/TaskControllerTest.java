@@ -4,16 +4,19 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import de.ni0.chronoscope.TestData;
+import de.ni0.chronoscope.service.KeycloakService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+
 import org.mockito.Mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -27,12 +30,10 @@ import de.ni0.chronoscope.controller.dto.response.DynamicTaskResponse;
 import de.ni0.chronoscope.controller.dto.response.StaticTaskResponse;
 import de.ni0.chronoscope.controller.dto.response.TaskResponse;
 import de.ni0.chronoscope.exception.AccountAccessDeniedException;
-import de.ni0.chronoscope.exception.AccountNotFoundException;
 import de.ni0.chronoscope.exception.InvalidRequestException;
 import de.ni0.chronoscope.mapper.TaskMapper;
 import de.ni0.chronoscope.model.Account;
 import de.ni0.chronoscope.model.DynamicTask;
-import de.ni0.chronoscope.model.Organization;
 import de.ni0.chronoscope.model.StaticTask;
 import de.ni0.chronoscope.service.AccountService;
 import de.ni0.chronoscope.service.TaskService;
@@ -49,11 +50,15 @@ class TaskControllerTest {
     @Mock
     private AccountService accountService;
 
+    @Mock
+    private KeycloakService keycloakService;
+
     @Test
     void getTasks_UsesCurrentIdentityAndMapsPolymorphicResponses() {
+        Account account = TestData.account();
         RequestContext requestContext = new RequestContext();
-        requestContext.setIdentityId(99L);
-        TaskController controller = new TaskController(taskService, taskMapper, accountService, requestContext);
+        requestContext.setAccount(account);
+        TaskController controller = new TaskController(taskService, taskMapper, requestContext, keycloakService);
 
         StaticTask staticTask = new StaticTask();
         staticTask.setName("Static task");
@@ -63,8 +68,7 @@ class TaskControllerTest {
 
         StaticTaskResponse staticResponse = new StaticTaskResponse(
             1L,
-            10L,
-            1L,
+            UUID.randomUUID().toString(),
             "Static task",
             "desc",
             1,
@@ -76,8 +80,7 @@ class TaskControllerTest {
         );
         DynamicTaskResponse dynamicResponse = new DynamicTaskResponse(
             2L,
-            11L,
-            1L,
+                UUID.randomUUID().toString(),
             "Dynamic task",
             "desc",
             2,
@@ -109,19 +112,13 @@ class TaskControllerTest {
 
     @Test
     void createTask_Static_CreatesStaticTaskWhenAuthorized() {
+        Account account = TestData.account();
         RequestContext requestContext = new RequestContext();
-        requestContext.setIdentityId(99L);
-        TaskController controller = new TaskController(taskService, taskMapper, accountService, requestContext);
-
-        Account account = new Account();
-        account.setId(10L);
-
-        Organization organization = new Organization();
-        organization.setId(1L);
+        requestContext.setAccount(account);
+        TaskController controller = new TaskController(taskService, taskMapper, requestContext, keycloakService);
 
         StaticTaskCreateRequest request = new StaticTaskCreateRequest(
-            10L,
-            1L,
+            UUID.randomUUID().toString(),
             "Write report",
             "Prepare weekly summary",
             "FREQ=WEEKLY;BYDAY=MO",
@@ -137,13 +134,12 @@ class TaskControllerTest {
 
         StaticTask savedTask = new StaticTask();
         savedTask.setId(123L);
-        savedTask.setAccount(account);
+        savedTask.setIdentity(account.getIdentity());
         savedTask.setName("Write report");
 
         StaticTaskResponse expectedResponse = new StaticTaskResponse(
             123L,
-            10L,
-            1L,
+            request.organizationId(),
             "Write report",
             "Prepare weekly summary",
             3,
@@ -154,8 +150,6 @@ class TaskControllerTest {
             false
         );
 
-        when(accountService.validateAccountOwnership(99L, 10L)).thenReturn(account);
-        when(accountService.resolveOrganizationForAccount(10L, 1L)).thenReturn(organization);
         when(taskMapper.fromCreateRequest(request)).thenReturn(mappedTask);
         when(taskService.createStaticTask(any(StaticTask.class))).thenReturn(savedTask);
         when(taskMapper.toResponse(savedTask)).thenReturn(expectedResponse);
@@ -164,8 +158,6 @@ class TaskControllerTest {
 
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         assertEquals(expectedResponse, response.getBody());
-        verify(accountService).validateAccountOwnership(99L, 10L);
-        verify(accountService).resolveOrganizationForAccount(10L, 1L);
         verify(taskMapper).fromCreateRequest(request);
         verify(taskService).createStaticTask(mappedTask);
         verify(taskMapper).toResponse(savedTask);
@@ -174,15 +166,12 @@ class TaskControllerTest {
 
     @Test
     void createTask_Static_AllowsBlockerWithoutOrganization() {
+        Account account = TestData.account();
         RequestContext requestContext = new RequestContext();
-        requestContext.setIdentityId(99L);
-        TaskController controller = new TaskController(taskService, taskMapper, accountService, requestContext);
-
-        Account account = new Account();
-        account.setId(10L);
+        requestContext.setAccount(account);
+        TaskController controller = new TaskController(taskService, taskMapper, requestContext, keycloakService);
 
         StaticTaskCreateRequest request = new StaticTaskCreateRequest(
-            10L,
             null,
             "Maintenance window",
             "Time that should stay blocked",
@@ -199,13 +188,12 @@ class TaskControllerTest {
 
         StaticTask savedTask = new StaticTask();
         savedTask.setId(123L);
-        savedTask.setAccount(account);
+        savedTask.setIdentity(account.getIdentity());
         savedTask.setName("Maintenance window");
         savedTask.setIsBlocker(true);
 
         StaticTaskResponse expectedResponse = new StaticTaskResponse(
             123L,
-            10L,
             null,
             "Maintenance window",
             "Time that should stay blocked",
@@ -217,7 +205,6 @@ class TaskControllerTest {
             true
         );
 
-        when(accountService.validateAccountOwnership(99L, 10L)).thenReturn(account);
         when(taskMapper.fromCreateRequest(request)).thenReturn(mappedTask);
         when(taskService.createStaticTask(any(StaticTask.class))).thenReturn(savedTask);
         when(taskMapper.toResponse(savedTask)).thenReturn(expectedResponse);
@@ -226,7 +213,6 @@ class TaskControllerTest {
 
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         assertEquals(expectedResponse, response.getBody());
-        verify(accountService).validateAccountOwnership(99L, 10L);
         verify(taskMapper).fromCreateRequest(request);
         verify(taskService).createStaticTask(mappedTask);
         verify(taskMapper).toResponse(savedTask);
@@ -235,19 +221,13 @@ class TaskControllerTest {
 
     @Test
     void createTask_Dynamic_CreatesDynamicTaskWhenAuthorized() {
+        Account account = TestData.account();
         RequestContext requestContext = new RequestContext();
-        requestContext.setIdentityId(99L);
-        TaskController controller = new TaskController(taskService, taskMapper, accountService, requestContext);
-
-        Account account = new Account();
-        account.setId(11L);
-
-        Organization organization = new Organization();
-        organization.setId(1L);
+        requestContext.setAccount(account);
+        TaskController controller = new TaskController(taskService, taskMapper, requestContext, keycloakService);
 
         DynamicTaskCreateRequest request = new DynamicTaskCreateRequest(
-            11L,
-            1L,
+            UUID.randomUUID().toString(),
             "Implement API endpoint",
             "Create and test endpoint",
             4,
@@ -265,13 +245,12 @@ class TaskControllerTest {
 
         DynamicTask savedTask = new DynamicTask();
         savedTask.setId(124L);
-        savedTask.setAccount(account);
+        savedTask.setIdentity(account.getIdentity());
         savedTask.setName("Implement API endpoint");
 
         DynamicTaskResponse expectedResponse = new DynamicTaskResponse(
             124L,
-            11L,
-            1L,
+            request.organizationId(),
             "Implement API endpoint",
             "Create and test endpoint",
             4,
@@ -287,8 +266,6 @@ class TaskControllerTest {
             List.of()
         );
 
-        when(accountService.validateAccountOwnership(99L, 11L)).thenReturn(account);
-        when(accountService.resolveOrganizationForAccount(11L, 1L)).thenReturn(organization);
         when(taskMapper.fromCreateRequest(request)).thenReturn(mappedTask);
         when(taskService.createDynamicTask(any(DynamicTask.class))).thenReturn(savedTask);
         when(taskMapper.toResponse(savedTask)).thenReturn(expectedResponse);
@@ -297,8 +274,6 @@ class TaskControllerTest {
 
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
         assertEquals(expectedResponse, response.getBody());
-        verify(accountService).validateAccountOwnership(99L, 11L);
-        verify(accountService).resolveOrganizationForAccount(11L, 1L);
         verify(taskMapper).fromCreateRequest(request);
         verify(taskService).createDynamicTask(mappedTask);
         verify(taskMapper).toResponse(savedTask);
@@ -306,84 +281,31 @@ class TaskControllerTest {
     }
 
     @Test
-    void createTask_ThrowsWhenAccountNotFound() {
-        RequestContext requestContext = new RequestContext();
-        requestContext.setIdentityId(99L);
-        TaskController controller = new TaskController(taskService, taskMapper, accountService, requestContext);
-
-        StaticTaskCreateRequest request = new StaticTaskCreateRequest(
-            12L,
-            1L,
-            "Write report",
-            "Prepare weekly summary",
-            "FREQ=WEEKLY;BYDAY=MO",
-            3,
-            Instant.parse("2026-04-20T09:00:00Z"),
-            Instant.parse("2026-04-20T10:00:00Z"),
-            List.of(),
-            false
-        );
-
-        when(accountService.validateAccountOwnership(99L, 12L)).thenThrow(new AccountNotFoundException());
-
-        AccountNotFoundException ignored = assertThrows(AccountNotFoundException.class, () -> controller.createTask(request));
-        assertEquals(AccountNotFoundException.class, ignored.getClass());
-        verify(accountService).validateAccountOwnership(99L, 12L);
-        verifyNoMoreInteractions(taskMapper, taskService, accountService);
-    }
-
-    @Test
-    void createTask_ThrowsWhenAccountBelongsToDifferentIdentity() {
-        RequestContext requestContext = new RequestContext();
-        requestContext.setIdentityId(99L);
-        TaskController controller = new TaskController(taskService, taskMapper, accountService, requestContext);
-
-        StaticTaskCreateRequest request = new StaticTaskCreateRequest(
-            13L,
-            1L,
-            "Write report",
-            "Prepare weekly summary",
-            "FREQ=WEEKLY;BYDAY=MO",
-            3,
-            Instant.parse("2026-04-20T09:00:00Z"),
-            Instant.parse("2026-04-20T10:00:00Z"),
-            List.of(),
-            false
-        );
-
-        when(accountService.validateAccountOwnership(99L, 13L)).thenThrow(new AccountAccessDeniedException("accountId is not linked to authenticated identity"));
-
-        AccountAccessDeniedException ignored = assertThrows(AccountAccessDeniedException.class, () -> controller.createTask(request));
-        assertEquals(AccountAccessDeniedException.class, ignored.getClass());
-        verify(accountService).validateAccountOwnership(99L, 13L);
-        verifyNoMoreInteractions(taskMapper, taskService, accountService);
-    }
-
-    @Test
     void deleteTask_DelegatesToServiceWithCurrentIdentity() {
+        Account account = TestData.account();
         RequestContext requestContext = new RequestContext();
-        requestContext.setIdentityId(99L);
-        TaskController controller = new TaskController(taskService, taskMapper, accountService, requestContext);
+        requestContext.setAccount(account);
+        TaskController controller = new TaskController(taskService, taskMapper, requestContext, keycloakService);
 
         controller.deleteTask(123L);
 
-        verify(taskService).deleteTask(99L, 123L);
-        verifyNoMoreInteractions(taskService, taskMapper, accountService);
+        verify(taskService).deleteTask(account.getIdentity().getId(), 123L);
+        verifyNoMoreInteractions(taskService, taskMapper);
     }
 
     @Test
     void getTask_Dynamic_UsesIdentityScopedLookupAndReturnsMappedResponse() {
+        Account account = TestData.account();
         RequestContext requestContext = new RequestContext();
-        requestContext.setIdentityId(99L);
-        TaskController controller = new TaskController(taskService, taskMapper, accountService, requestContext);
+        requestContext.setAccount(account);
+        TaskController controller = new TaskController(taskService, taskMapper, requestContext, keycloakService);
 
         DynamicTask dynamicTask = new DynamicTask();
         dynamicTask.setId(500L);
 
         DynamicTaskResponse expectedResponse = new DynamicTaskResponse(
             500L,
-            11L,
-            1L,
+            UUID.randomUUID().toString(),
             "Dynamic task",
             "desc",
             2,
@@ -399,28 +321,28 @@ class TaskControllerTest {
             List.of(600L)
         );
 
-        when(taskService.getTaskForIdentity(99L, 500L)).thenReturn(dynamicTask);
+        when(taskService.getTaskForIdentity(account.getIdentity().getId(), 500L)).thenReturn(dynamicTask);
         when(taskMapper.toResponse(dynamicTask)).thenReturn(expectedResponse);
 
         TaskResponse result = controller.getTask(500L);
 
         assertEquals(expectedResponse, result);
-        verify(taskService).getTaskForIdentity(99L, 500L);
+        verify(taskService).getTaskForIdentity(account.getIdentity().getId(), 500L);
         verify(taskMapper).toResponse(dynamicTask);
-        verifyNoMoreInteractions(taskService, taskMapper, accountService);
+        verifyNoMoreInteractions(taskService, taskMapper);
     }
 
     @Test
     void updateTask_Static_UpdatesAndMapsResponse() {
+        Account account = TestData.account();
         RequestContext requestContext = new RequestContext();
-        requestContext.setIdentityId(99L);
-        TaskController controller = new TaskController(taskService, taskMapper, accountService, requestContext);
+        requestContext.setAccount(account);
+        TaskController controller = new TaskController(taskService, taskMapper, requestContext, keycloakService);
 
         StaticTask existingTask = new StaticTask();
         existingTask.setId(200L);
 
         StaticTaskUpdateRequest request = new StaticTaskUpdateRequest(
-            null,
             null,
             "Updated static task",
             "Updated description",
@@ -434,8 +356,7 @@ class TaskControllerTest {
 
         StaticTaskResponse expectedResponse = new StaticTaskResponse(
             200L,
-            10L,
-            1L,
+            UUID.randomUUID().toString(),
             "Updated static task",
             "Updated description",
             2,
@@ -446,31 +367,31 @@ class TaskControllerTest {
             true
         );
 
-        when(taskService.getTaskForIdentity(99L, 200L)).thenReturn(existingTask);
+        when(taskService.getTaskForIdentity(account.getIdentity().getId(), 200L)).thenReturn(existingTask);
         when(taskService.updateStaticTask(200L, existingTask, null)).thenReturn(existingTask);
         when(taskMapper.toResponse(existingTask)).thenReturn(expectedResponse);
 
         TaskResponse result = controller.updateTask(200L, request);
 
         assertEquals(expectedResponse, result);
-        verify(taskService).getTaskForIdentity(99L, 200L);
+        verify(taskService).getTaskForIdentity(account.getIdentity().getId(), 200L);
         verify(taskMapper).fromUpdateRequest(request, existingTask);
         verify(taskService).updateStaticTask(200L, existingTask, null);
         verify(taskMapper).toResponse(existingTask);
-        verifyNoMoreInteractions(taskService, taskMapper, accountService);
+        verifyNoMoreInteractions(taskService, taskMapper);
     }
 
     @Test
     void updateTask_ThrowsWhenTypeDoesNotMatchPersistedTask() {
+        Account account = TestData.account();
         RequestContext requestContext = new RequestContext();
-        requestContext.setIdentityId(99L);
-        TaskController controller = new TaskController(taskService, taskMapper, accountService, requestContext);
+        requestContext.setAccount(account);
+        TaskController controller = new TaskController(taskService, taskMapper, requestContext, keycloakService);
 
         StaticTask existingTask = new StaticTask();
         existingTask.setId(300L);
 
         DynamicTaskUpdateRequest request = new DynamicTaskUpdateRequest(
-            null,
             null,
             "Dynamic name",
             "Dynamic description",
@@ -485,26 +406,26 @@ class TaskControllerTest {
             List.of()
         );
 
-        when(taskService.getTaskForIdentity(99L, 300L)).thenReturn(existingTask);
+        when(taskService.getTaskForIdentity(account.getIdentity().getId(), 300L)).thenReturn(existingTask);
 
         InvalidRequestException ignored = assertThrows(InvalidRequestException.class, () -> controller.updateTask(300L, request));
         assertEquals(InvalidRequestException.class, ignored.getClass());
 
-        verify(taskService).getTaskForIdentity(99L, 300L);
-        verifyNoMoreInteractions(taskService, taskMapper, accountService);
+        verify(taskService).getTaskForIdentity(account.getIdentity().getId(), 300L);
+        verifyNoMoreInteractions(taskService, taskMapper);
     }
 
     @Test
     void updateTask_ThrowsWhenStaticPayloadTargetsDynamicTask() {
+        Account account = TestData.account();
         RequestContext requestContext = new RequestContext();
-        requestContext.setIdentityId(99L);
-        TaskController controller = new TaskController(taskService, taskMapper, accountService, requestContext);
+        requestContext.setAccount(account);
+        TaskController controller = new TaskController(taskService, taskMapper, requestContext, keycloakService);
 
         DynamicTask existingTask = new DynamicTask();
         existingTask.setId(301L);
 
         StaticTaskUpdateRequest request = new StaticTaskUpdateRequest(
-            null,
             null,
             "Static name",
             "Static description",
@@ -516,37 +437,36 @@ class TaskControllerTest {
             false
         );
 
-        when(taskService.getTaskForIdentity(99L, 301L)).thenReturn(existingTask);
+        when(taskService.getTaskForIdentity(account.getIdentity().getId(), 301L)).thenReturn(existingTask);
 
         InvalidRequestException ignored = assertThrows(InvalidRequestException.class, () -> controller.updateTask(301L, request));
         assertEquals(InvalidRequestException.class, ignored.getClass());
 
-        verify(taskService).getTaskForIdentity(99L, 301L);
-        verifyNoMoreInteractions(taskService, taskMapper, accountService);
+        verify(taskService).getTaskForIdentity(account.getIdentity().getId(), 301L);
+        verifyNoMoreInteractions(taskService, taskMapper);
     }
 
     @Test
     void updateTask_Static_ChangesOrganizationWhenProvided() {
+        Account account = TestData.account();
         RequestContext requestContext = new RequestContext();
-        requestContext.setIdentityId(99L);
-        TaskController controller = new TaskController(taskService, taskMapper, accountService, requestContext);
+        requestContext.setAccount(account);
+        TaskController controller = new TaskController(taskService, taskMapper, requestContext, keycloakService);
 
-        Organization targetOrganization = new Organization();
-        targetOrganization.setId(7L);
+        String targetOrganization = UUID.randomUUID().toString();
 
         StaticTask existingTask = new StaticTask();
         existingTask.setId(400L);
-        existingTask.setAccount(new Account());
+        existingTask.setIdentity(account.getIdentity());
 
         StaticTask savedTask = new StaticTask();
         savedTask.setId(400L);
-        savedTask.setAccount(new Account());
+        savedTask.setIdentity(account.getIdentity());
         savedTask.setOrganization(targetOrganization);
 
         StaticTaskResponse expectedResponse = new StaticTaskResponse(
             400L,
-            12L,
-            7L,
+            targetOrganization,
             "Updated static task",
             "Updated description",
             2,
@@ -558,8 +478,7 @@ class TaskControllerTest {
         );
 
         StaticTaskUpdateRequest request = new StaticTaskUpdateRequest(
-            null,
-            7L,
+            targetOrganization,
             "Updated static task",
             "Updated description",
             "FREQ=WEEKLY",
@@ -570,95 +489,30 @@ class TaskControllerTest {
             true
         );
 
-        when(taskService.getTaskForIdentity(99L, 400L)).thenReturn(existingTask);
-        when(taskService.updateStaticTask(400L, existingTask, 7L)).thenReturn(savedTask);
+        when(taskService.getTaskForIdentity(account.getIdentity().getId(), 400L)).thenReturn(existingTask);
+        when(taskService.updateStaticTask(400L, existingTask, targetOrganization)).thenReturn(savedTask);
         when(taskMapper.toResponse(savedTask)).thenReturn(expectedResponse);
 
         TaskResponse result = controller.updateTask(400L, request);
 
         assertEquals(expectedResponse, result);
-        verify(taskService).getTaskForIdentity(99L, 400L);
+        verify(taskService).getTaskForIdentity(account.getIdentity().getId(), 400L);
         verify(taskMapper).fromUpdateRequest(request, existingTask);
-        verify(taskService).updateStaticTask(400L, existingTask, 7L);
+        verify(taskService).updateStaticTask(400L, existingTask, targetOrganization);
         verify(taskMapper).toResponse(savedTask);
-        verifyNoMoreInteractions(taskService, taskMapper, accountService);
+        verifyNoMoreInteractions(taskService, taskMapper);
     }
 
-    @Test
-    void updateTask_Static_WithAccountAndOrganization_Succeeds() {
-        RequestContext requestContext = new RequestContext();
-        requestContext.setIdentityId(99L);
-        TaskController controller = new TaskController(taskService, taskMapper, accountService, requestContext);
-
-        Account newAccount = new Account();
-        newAccount.setId(55L);
-
-        Organization targetOrganization = new Organization();
-        targetOrganization.setId(77L);
-
-        StaticTask existingTask = new StaticTask();
-        existingTask.setId(500L);
-
-        StaticTask savedTask = new StaticTask();
-        savedTask.setId(500L);
-        savedTask.setAccount(newAccount);
-        savedTask.setOrganization(targetOrganization);
-
-        StaticTaskUpdateRequest request = new StaticTaskUpdateRequest(
-            55L,
-            77L,
-            "Updated static task",
-            "Updated description",
-            "FREQ=WEEKLY",
-            2,
-            Instant.parse("2026-04-20T09:00:00Z"),
-            Instant.parse("2026-04-20T10:00:00Z"),
-            List.of(),
-            true
-        );
-
-        StaticTaskResponse expectedResponse = new StaticTaskResponse(
-            500L,
-            55L,
-            77L,
-            "Updated static task",
-            "Updated description",
-            2,
-            Instant.parse("2026-04-20T09:00:00Z"),
-            Instant.parse("2026-04-20T10:00:00Z"),
-            "FREQ=WEEKLY",
-            List.of(),
-            true
-        );
-
-        when(taskService.getTaskForIdentity(99L, 500L)).thenReturn(existingTask);
-        when(accountService.validateAccountOwnership(99L, 55L)).thenReturn(newAccount);
-        when(taskService.updateStaticTask(500L, existingTask, 77L)).thenReturn(savedTask);
-        when(taskMapper.toResponse(savedTask)).thenReturn(expectedResponse);
-
-        TaskResponse result = controller.updateTask(500L, request);
-
-        assertEquals(expectedResponse, result);
-        verify(taskService).getTaskForIdentity(99L, 500L);
-        verify(accountService).validateAccountOwnership(99L, 55L);
-        verify(taskMapper).fromUpdateRequest(request, existingTask);
-        verify(taskService).updateStaticTask(500L, existingTask, 77L);
-        verify(taskMapper).toResponse(savedTask);
-        verifyNoMoreInteractions(taskService, taskMapper, accountService);
-    }
 
     @Test
-    void updateTask_Static_ChangeAccount_NotLinked_Throws() {
+    void updateTask_Static_ChangeOrg_OrgNotLinked_Throws() {
+        Account account = TestData.account();
         RequestContext requestContext = new RequestContext();
-        requestContext.setIdentityId(99L);
-        TaskController controller = new TaskController(taskService, taskMapper, accountService, requestContext);
-
-        StaticTask existingTask = new StaticTask();
-        existingTask.setId(600L);
+        requestContext.setAccount(account);
+        TaskController controller = new TaskController(taskService, taskMapper, requestContext, keycloakService);
 
         StaticTaskUpdateRequest request = new StaticTaskUpdateRequest(
-            13L,
-            null,
+            UUID.randomUUID().toString(),
             "Updated static task",
             "Updated description",
             "FREQ=WEEKLY",
@@ -669,54 +523,12 @@ class TaskControllerTest {
             false
         );
 
-        when(taskService.getTaskForIdentity(99L, 600L)).thenReturn(existingTask);
-        when(accountService.validateAccountOwnership(99L, 13L)).thenThrow(new AccountAccessDeniedException("accountId is not linked to authenticated identity"));
-
-        AccountAccessDeniedException ignored = assertThrows(AccountAccessDeniedException.class, () -> controller.updateTask(600L, request));
-        assertEquals(AccountAccessDeniedException.class, ignored.getClass());
-
-        verify(taskService).getTaskForIdentity(99L, 600L);
-        verify(taskMapper).fromUpdateRequest(request, existingTask);
-        verify(accountService).validateAccountOwnership(99L, 13L);
-        verifyNoMoreInteractions(taskService, taskMapper, accountService);
-    }
-
-    @Test
-    void updateTask_Static_ChangeAccount_OrgNotLinked_Throws() {
-        RequestContext requestContext = new RequestContext();
-        requestContext.setIdentityId(99L);
-        TaskController controller = new TaskController(taskService, taskMapper, accountService, requestContext);
-
-        Account newAccount = new Account();
-        newAccount.setId(88L);
-
-        StaticTask existingTask = new StaticTask();
-        existingTask.setId(700L);
-
-        StaticTaskUpdateRequest request = new StaticTaskUpdateRequest(
-            88L,
-            999L,
-            "Updated static task",
-            "Updated description",
-            "FREQ=WEEKLY",
-            2,
-            Instant.parse("2026-04-20T09:00:00Z"),
-            Instant.parse("2026-04-20T10:00:00Z"),
-            List.of(),
-            false
-        );
-
-        when(taskService.getTaskForIdentity(99L, 700L)).thenReturn(existingTask);
-        when(accountService.validateAccountOwnership(99L, 88L)).thenReturn(newAccount);
-        when(taskService.updateStaticTask(700L, existingTask, 999L)).thenThrow(new AccountAccessDeniedException("Account does not have access to the specified organization"));
+        doThrow(new AccountAccessDeniedException("")).when(keycloakService)
+                .validateIdentityOrgAccess(account.getIdentity(), request.organizationId());
 
         AccountAccessDeniedException ignored = assertThrows(AccountAccessDeniedException.class, () -> controller.updateTask(700L, request));
         assertEquals(AccountAccessDeniedException.class, ignored.getClass());
 
-        verify(taskService).getTaskForIdentity(99L, 700L);
-        verify(taskMapper).fromUpdateRequest(request, existingTask);
-        verify(accountService).validateAccountOwnership(99L, 88L);
-        verify(taskService).updateStaticTask(700L, existingTask, 999L);
-        verifyNoMoreInteractions(taskService, taskMapper, accountService);
+        verifyNoMoreInteractions(taskService, taskMapper);
     }
 }

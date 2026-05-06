@@ -12,6 +12,8 @@ security:
 tags:
 - description: "Create, read, update and delete tasks and their dependencies"
   name: Tasks
+- description: Gather information about organizations or modify them
+  name: Organization
 - description: Manage available work slots used by the planning algorithm
   name: Work Slots
 - description: Retrieve the current identity and manage account linking
@@ -105,6 +107,32 @@ paths:
       summary: Confirm account linking
       tags:
       - Identity
+  /v1/organization:
+    get:
+      description: Retrieves members of a specific organization.
+      operationId: getOrganizationMembers
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrganizationGetMembersRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/OrganizationGetMembersResponse"
+          description: Members retrieved successfully
+        "401":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Missing or invalid token
+      summary: Get Organization members
+      tags:
+      - Organization
   /v1/plan:
     post:
       description: Run the planning algorithm for the given account. Returns planned
@@ -535,9 +563,6 @@ components:
       - $ref: "#/components/schemas/TaskCreateRequest"
       - type: object
         properties:
-          accountId:
-            type: integer
-            format: int64
           dependencies:
             type: array
             items:
@@ -566,15 +591,14 @@ components:
             type: string
             minLength: 1
           organizationId:
-            type: integer
-            format: int64
+            type: string
+            minLength: 1
           startAt:
             type: string
             format: date-time
       description: Create request for a dynamic (schedulable) task with duration and
         scope constraints
       required:
-      - accountId
       - dependencies
       - description
       - difficulty
@@ -591,9 +615,6 @@ components:
       - $ref: "#/components/schemas/TaskResponse"
       - type: object
         properties:
-          accountId:
-            type: integer
-            format: int64
           dependencies:
             type: array
             items:
@@ -630,8 +651,7 @@ components:
           name:
             type: string
           organizationId:
-            type: integer
-            format: int64
+            type: string
           scopes:
             type: array
             items:
@@ -646,9 +666,6 @@ components:
       - $ref: "#/components/schemas/TaskUpdateRequest"
       - type: object
         properties:
-          accountId:
-            type: integer
-            format: int64
           dependencies:
             type: array
             items:
@@ -680,8 +697,7 @@ components:
             maxLength: 2147483647
             minLength: 1
           organizationId:
-            type: integer
-            format: int64
+            type: string
           startAt:
             type: string
             format: date-time
@@ -721,25 +737,43 @@ components:
         taskId:
           type: integer
           format: int64
+    OrganizationGetMembersRequest:
+      type: object
+      properties:
+        organization:
+          type: string
+          minLength: 1
+      required:
+      - organization
+    OrganizationGetMembersResponse:
+      type: object
+      properties:
+        members:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrganizationMember"
+    OrganizationMember:
+      type: object
+      properties:
+        email:
+          type: string
+        id:
+          type: string
+        name:
+          type: string
     OrganizationResponse:
       type: object
       properties:
         id:
-          type: integer
-          format: int64
+          type: string
         name:
           type: string
     PlanRequest:
       type: object
       properties:
-        accountId:
-          type: integer
-          format: int64
         organizationId:
-          type: integer
-          format: int64
+          type: string
       required:
-      - accountId
       - organizationId
     ProblemDetail:
       type: object
@@ -780,9 +814,6 @@ components:
       - $ref: "#/components/schemas/TaskCreateRequest"
       - type: object
         properties:
-          accountId:
-            type: integer
-            format: int64
           description:
             type: string
           difficulty:
@@ -802,9 +833,9 @@ components:
             type: string
             minLength: 1
           organizationId:
-            type: integer
-            format: int64
+            type: string
             description: Organization ID. Required unless this static task is a blocker.
+            minLength: 1
           rrule:
             type: string
           startAt:
@@ -812,13 +843,13 @@ components:
             format: date-time
       description: Create request for a static (fixed-time) task
       required:
-      - accountId
       - description
       - difficulty
       - endAt
       - isBlocker
       - labels
       - name
+      - organizationId
       - rrule
       - startAt
     StaticTaskResponse:
@@ -826,9 +857,6 @@ components:
       - $ref: "#/components/schemas/TaskResponse"
       - type: object
         properties:
-          accountId:
-            type: integer
-            format: int64
           description:
             type: string
           difficulty:
@@ -850,9 +878,8 @@ components:
             type: string
           organizationId:
             type:
-            - integer
+            - string
             - "null"
-            format: int64
             description: Organization ID. Null for blocker tasks that are not assigned
               to an organization.
           rrule:
@@ -866,9 +893,6 @@ components:
       - $ref: "#/components/schemas/TaskUpdateRequest"
       - type: object
         properties:
-          accountId:
-            type: integer
-            format: int64
           description:
             type: string
           difficulty:
@@ -889,8 +913,7 @@ components:
             maxLength: 2147483647
             minLength: 1
           organizationId:
-            type: integer
-            format: int64
+            type: string
           rrule:
             type: string
           startAt:
@@ -924,29 +947,21 @@ components:
     WorkSlotCreateRequest:
       type: object
       properties:
-        accountId:
-          type: integer
-          format: int64
         endAt:
           type: string
           format: date-time
         organizationId:
-          type: integer
-          format: int64
+          type: string
         startAt:
           type: string
           format: date-time
       required:
-      - accountId
       - endAt
       - organizationId
       - startAt
     WorkSlotResponse:
       type: object
       properties:
-        accountId:
-          type: integer
-          format: int64
         endAt:
           type: string
           format: date-time
@@ -954,8 +969,7 @@ components:
           type: integer
           format: int64
         organizationId:
-          type: integer
-          format: int64
+          type: string
         startAt:
           type: string
           format: date-time

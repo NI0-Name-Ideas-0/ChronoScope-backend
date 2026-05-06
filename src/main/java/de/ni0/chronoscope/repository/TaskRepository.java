@@ -22,7 +22,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
      * @return matching tasks
      */
     @EntityGraph(attributePaths = { "labels" })
-    List<Task> findByAccountIdentityId(long identityId);
+    List<Task> findByIdentityId(long identityId);
 
     /**
      * Loads dynamic tasks visible to an identity with dependency edges eagerly available.
@@ -31,17 +31,17 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
      * @return matching dynamic tasks
      */
     @EntityGraph(attributePaths = { "dependencies", "dependents" })
-    List<DynamicTask> findDynamicTasksByAccountIdentityId(long identityId);
+    List<DynamicTask> findDynamicTasksByIdentityId(long identityId);
 
     /**
-     * Loads dynamic tasks for planning a single account and organization.
+     * Loads dynamic tasks for planning a single identity and organization.
      *
-     * @param accountId account ID
+     * @param identityId identity ID
      * @param organizationId organization ID
      * @return matching dynamic tasks
      */
     @EntityGraph(attributePaths = { "dependencies", "dependents" })
-    List<DynamicTask> findDynamicTasksByAccountIdAndOrganizationId(Long accountId, Long organizationId);
+    List<DynamicTask> findDynamicTasksByIdentityIdAndOrganization(Long identityId, String organizationId);
 
     /**
      * Finds one task while enforcing the identity boundary.
@@ -50,7 +50,7 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
      * @param identityId identity ID
      * @return matching task, if present
      */
-    Optional<Task> findByIdAndAccountIdentityId(Long id, Long identityId);
+    Optional<Task> findByIdAndIdentityId(Long id, Long identityId);
 
     /**
      * Finds dynamic tasks that depend on a given dynamic task within one identity.
@@ -64,8 +64,8 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
             from DynamicTask dt
             join dt.dependencies dep
             where dep.id = :dependencyId
-              and dt.account.identity.id = :identityId
+              and dt.identity.id = :identityId
             """)
-    List<DynamicTask> findDependentsByDependencyIdAndAccountIdentityId(@Param("dependencyId") Long dependencyId,
+    List<DynamicTask> findDependentsByDependencyIdAndIdentityId(@Param("dependencyId") Long dependencyId,
             @Param("identityId") Long identityId);
 }

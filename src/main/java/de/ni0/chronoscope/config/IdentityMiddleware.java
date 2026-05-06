@@ -5,6 +5,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
+import de.ni0.chronoscope.model.Account;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -29,7 +30,6 @@ public class IdentityMiddleware extends OncePerRequestFilter {
     private static final String ORG_ADMIN_GROUP_PREFIX = "org-admin/";
 
     private final AccountService accountService;
-    private final IdentityService identityService;
     private final RequestContext requestContext;
     
     @Override
@@ -37,20 +37,9 @@ public class IdentityMiddleware extends OncePerRequestFilter {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth instanceof JwtAuthenticationToken token) {
             Jwt jwt = token.getToken();
-            List<String> organizations = jwt.getClaimAsStringList("organization");
-            if (organizations == null || organizations.isEmpty()) {
-                organizations = List.of("private");
-            } else {
-                organizations = List.copyOf(organizations);
-            }
-            String rawEmail = jwt.getClaimAsString("email");
-            String email = rawEmail != null ? rawEmail : "";
             String subject = jwt.getSubject();
-            long accountId = this.accountService.syncAccount(subject, email, organizations);
-            long identityId = this.identityService.syncIdentity(subject);
-            this.requestContext.setIdentityId(identityId);
-            this.requestContext.setAccountId(accountId);
-            this.requestContext.setAdminOrganizations(extractAdminOrganizations(jwt.getClaimAsStringList("groups")));
+            Account account = this.accountService.syncAccount(subject);
+            this.requestContext.setAccount(account);
         }
         filterChain.doFilter(request, response);
     }

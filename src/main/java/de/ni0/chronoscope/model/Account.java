@@ -39,20 +39,8 @@ public class Account {
     @Column(unique = true, nullable = false)
     private String subject;
 
-    @Column(unique = true, nullable = false)
-    private String mail;
-
     @ManyToOne(optional = false)
     @JoinColumn(name = "identity_id", nullable = false)
     @ToString.Exclude // bidirectional: Identity.accounts -> this Account, would recurse infinitely in toString
     private Identity identity;
-
-    @ManyToMany
-    @JoinTable(
-        name = "account_organization",
-        joinColumns = @JoinColumn(name = "account_id"),
-        inverseJoinColumns = @JoinColumn(name = "organization_id")
-    )
-    @ToString.Exclude // association excluded to keep toString safe and lightweight
-    private Set<Organization> organizations;
 }

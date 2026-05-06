@@ -28,18 +28,18 @@ public class WorkSlotService {
      */
     @Transactional(readOnly = true)
     public List<WorkSlot> getWorkSlotsForIdentity(long identityId) {
-        return workSlotRepository.findByAccountIdentityId(identityId);
+        return workSlotRepository.findByIdentityId(identityId);
     }
 
     /**
      * Returns work slots owned by a single account.
      *
-     * @param accountId account whose slots should be loaded
+     * @param identityId identity whose slots should be loaded
      * @return matching work slots
      */
     @Transactional(readOnly = true)
-    public List<WorkSlot> getWorkSlotsForAccount(long accountId) {
-        return workSlotRepository.findByAccountId(accountId);
+    public List<WorkSlot> getWorkSlotsForIdentity(long identityId, String organizationId) {
+        return workSlotRepository.findByIdentityIdAndOrganization(identityId, organizationId);
     }
 
     /**
@@ -62,7 +62,7 @@ public class WorkSlotService {
      */
     @Transactional
     public WorkSlot updateWorkSlot(long identityId, Long id, WorkSlotUpdateRequest request) {
-        var workSlot = workSlotRepository.findByIdAndAccountIdentityId(id, identityId)
+        var workSlot = workSlotRepository.findByIdAndIdentityId(id, identityId)
                 .orElseThrow(() -> new ResourceNotFoundException("Work slot not found: " + id));
 
         if (request.startAt() != null) workSlot.setStartAt(request.startAt());
@@ -79,7 +79,7 @@ public class WorkSlotService {
      */
     @Transactional
     public void deleteWorkSlot(long identityId, Long id) {
-        var workSlot = workSlotRepository.findByIdAndAccountIdentityId(id, identityId)
+        var workSlot = workSlotRepository.findByIdAndIdentityId(id, identityId)
                 .orElseThrow(() -> new ResourceNotFoundException("Work slot not found: " + id));
 
         workSlotRepository.delete(workSlot);

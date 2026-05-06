@@ -10,7 +10,7 @@ import org.mapstruct.MappingConstants;
 /**
  * MapStruct mapper for account API responses.
  */
-@Mapper(componentModel = MappingConstants.ComponentModel.SPRING, uses = OrganizationMapper.class)
+@Mapper(componentModel = MappingConstants.ComponentModel.SPRING)
 public interface AccountMapper {
 
     /**

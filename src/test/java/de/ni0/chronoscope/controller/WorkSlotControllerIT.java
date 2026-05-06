@@ -2,12 +2,11 @@ package de.ni0.chronoscope.controller;
 
 import de.ni0.chronoscope.model.Account;
 import de.ni0.chronoscope.model.Identity;
-import de.ni0.chronoscope.model.Organization;
 import de.ni0.chronoscope.model.WorkSlot;
 import de.ni0.chronoscope.repository.AccountRepository;
 import de.ni0.chronoscope.repository.IdentityRepository;
-import de.ni0.chronoscope.repository.OrganizationRepository;
 import de.ni0.chronoscope.repository.WorkSlotRepository;
+import de.ni0.chronoscope.service.KeycloakService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -18,6 +17,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.UUID;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -43,36 +43,23 @@ class WorkSlotControllerIT {
     private AccountRepository accountRepository;
 
     @Autowired
-    private OrganizationRepository organizationRepository;
-
-    @Autowired
     private WorkSlotRepository workSlotRepository;
 
-    private String createAccountSubject() {
-        return "it-ws-subject-" + System.nanoTime();
-    }
+    @Autowired
+    private KeycloakService keycloakService;
 
-    private long createAccount(String subject, String mail) {
+    private Account createAccount(String subject) {
         Identity identity = identityRepository.saveAndFlush(new Identity());
         Account account = new Account();
         account.setIdentity(identity);
-        account.setMail(mail);
         account.setSubject(subject);
-        return accountRepository.saveAndFlush(account).getId();
+        return accountRepository.saveAndFlush(account);
     }
 
-    private Organization findOrCreateOrganization(String name) {
-        return organizationRepository.findByName(name).orElseGet(() -> {
-            Organization org = new Organization();
-            org.setName(name);
-            return organizationRepository.saveAndFlush(org);
-        });
-    }
-
-    private long createWorkSlot(long accountId, long organizationId, String startAt, String endAt) {
+    private long createWorkSlot(Identity identity, String organizationId, String startAt, String endAt) {
         WorkSlot slot = new WorkSlot();
-        slot.setAccount(accountRepository.getReferenceById(accountId));
-        slot.setOrganization(organizationRepository.getReferenceById(organizationId));
+        slot.setIdentity(identity);
+        slot.setOrganization(organizationId);
         slot.setStartAt(Instant.parse(startAt));
         slot.setEndAt(Instant.parse(endAt));
         return workSlotRepository.saveAndFlush(slot).getId();
@@ -80,83 +67,53 @@ class WorkSlotControllerIT {
 
     @Test
     void getWorkSlots_ReturnsOwnSlotsOnly() throws Exception {
-        String subject = createAccountSubject();
-        long accountId = createAccount(subject, "");
-        long orgId = findOrCreateOrganization("it-ws-org-" + System.nanoTime()).getId();
-        createWorkSlot(accountId, orgId, "2026-04-20T08:00:00Z", "2026-04-20T17:00:00Z");
+        String subject = UUID.randomUUID().toString();
+        Account account = createAccount(subject);
+        String orgId = UUID.randomUUID().toString();
+        createWorkSlot(account.getIdentity(), orgId, "2026-04-20T08:00:00Z", "2026-04-20T17:00:00Z");
 
         // A slot belonging to a different identity should not appear
-        long otherAccountId = createAccount(createAccountSubject(), "awd");
-        createWorkSlot(otherAccountId, orgId, "2026-04-21T08:00:00Z", "2026-04-21T17:00:00Z");
+        Account otherAccount = createAccount(UUID.randomUUID().toString());
+        createWorkSlot(otherAccount.getIdentity(), orgId, "2026-04-21T08:00:00Z", "2026-04-21T17:00:00Z");
 
         mockMvc.perform(get("/v1/workslots")
-                        .with(jwt().jwt(jwt -> jwt
-                                .subject(subject)
-                                .claim("email", "")
-                                .claim("organization", java.util.List.of("private")))))
+                        .with(jwt().jwt(jwt -> jwt.subject(subject))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
-                .andExpect(jsonPath("$[0].accountId").value(accountId));
+                .andExpect(jsonPath("$[0].identityId").value(account.getIdentity().getId()));
     }
 
     @Test
     void createWorkSlot_ReturnsCreated() throws Exception {
-        String subject = createAccountSubject();
-        long accountId = createAccount(subject, "");
-        long orgId = findOrCreateOrganization("it-ws-org-" + System.nanoTime()).getId();
+        String subject = UUID.randomUUID().toString();
+        Account account = createAccount(subject);
+        String orgId = UUID.randomUUID().toString();
 
         String payload = """
                 {
-                  "accountId": %d,
-                  "organizationId": %d,
+                  "organizationId": %s,
                   "startAt": "2026-04-20T08:00:00Z",
                   "endAt": "2026-04-20T17:00:00Z"
                 }
-                """.formatted(accountId, orgId);
+                """.formatted(orgId);
 
         mockMvc.perform(post("/v1/workslots")
                         .with(jwt().jwt(jwt -> jwt.subject(subject).claim("organization", java.util.List.of("private"))))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(payload))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.accountId").value(accountId))
+                .andExpect(jsonPath("$.identityId").value(account.getIdentity().getId()))
                 .andExpect(jsonPath("$.organizationId").value(orgId))
                 .andExpect(jsonPath("$.startAt").value("2026-04-20T08:00:00Z"))
                 .andExpect(jsonPath("$.endAt").value("2026-04-20T17:00:00Z"));
     }
 
     @Test
-    void createWorkSlot_ReturnsForbiddenWhenAccountBelongsToDifferentIdentity() throws Exception {
-        String ownerSubject = createAccountSubject();
-        long otherAccountId = createAccount(ownerSubject, "awd");
-        long orgId = findOrCreateOrganization("it-ws-org-" + System.nanoTime()).getId();
-
-        // Authenticated as a different user
-        String attackerSubject = createAccountSubject();
-        createAccount(attackerSubject, "awdawd");
-
-        String payload = """
-                {
-                  "accountId": %d,
-                  "organizationId": %d,
-                  "startAt": "2026-04-20T08:00:00Z",
-                  "endAt": "2026-04-20T17:00:00Z"
-                }
-                """.formatted(otherAccountId, orgId);
-
-        mockMvc.perform(post("/v1/workslots")
-                        .with(jwt().jwt(jwt -> jwt.subject(attackerSubject).claim("organization", java.util.List.of("private"))))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(payload))
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
     void updateWorkSlot_ReturnsUpdatedSlot() throws Exception {
-        String subject = createAccountSubject();
-        long accountId = createAccount(subject, "");
-        long orgId = findOrCreateOrganization("it-ws-org-" + System.nanoTime()).getId();
-        long slotId = createWorkSlot(accountId, orgId, "2026-04-20T08:00:00Z", "2026-04-20T17:00:00Z");
+        String subject = UUID.randomUUID().toString();
+        Account account = createAccount(subject);
+        String orgId = UUID.randomUUID().toString();
+        long slotId = createWorkSlot(account.getIdentity(), orgId, "2026-04-20T08:00:00Z", "2026-04-20T17:00:00Z");
 
         String payload = """
                 {
@@ -177,20 +134,20 @@ class WorkSlotControllerIT {
 
     @Test
     void updateWorkSlot_ReturnsNotFoundWhenSlotDoesNotBelongToIdentity() throws Exception {
-        String ownerSubject = createAccountSubject();
-        long ownerAccountId = createAccount(ownerSubject, "awd");
-        long orgId = findOrCreateOrganization("it-ws-org-" + System.nanoTime()).getId();
-        long slotId = createWorkSlot(ownerAccountId, orgId, "2026-04-20T08:00:00Z", "2026-04-20T17:00:00Z");
+        String ownerSubject = UUID.randomUUID().toString();
+        Account ownerAccount = createAccount(ownerSubject);
+        String orgId = UUID.randomUUID().toString();
+        long slotId = createWorkSlot(ownerAccount.getIdentity(), orgId, "2026-04-20T08:00:00Z", "2026-04-20T17:00:00Z");
 
-        String attackerSubject = createAccountSubject();
-        createAccount(attackerSubject, "awdawd");
+        String attackerSubject = UUID.randomUUID().toString();
+        createAccount(attackerSubject);
 
         String payload = """
                 { "startAt": "2026-04-21T09:00:00Z" }
                 """;
 
         mockMvc.perform(patch("/v1/workslots/" + slotId)
-                        .with(jwt().jwt(jwt -> jwt.subject(attackerSubject).claim("organization", java.util.List.of("private"))))
+                        .with(jwt().jwt(jwt -> jwt.subject(attackerSubject)))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(payload))
                 .andExpect(status().isNotFound());
@@ -198,10 +155,10 @@ class WorkSlotControllerIT {
 
     @Test
     void deleteWorkSlot_ReturnsNoContent() throws Exception {
-        String subject = createAccountSubject();
-        long accountId = createAccount(subject, "");
-        long orgId = findOrCreateOrganization("it-ws-org-" + System.nanoTime()).getId();
-        long slotId = createWorkSlot(accountId, orgId, "2026-04-20T08:00:00Z", "2026-04-20T17:00:00Z");
+        String subject = UUID.randomUUID().toString();
+        Account account = createAccount(subject);
+        String orgId = UUID.randomUUID().toString();
+        long slotId = createWorkSlot(account.getIdentity(), orgId, "2026-04-20T08:00:00Z", "2026-04-20T17:00:00Z");
 
         mockMvc.perform(delete("/v1/workslots/" + slotId)
                         .with(jwt().jwt(jwt -> jwt.subject(subject).claim("organization", java.util.List.of("private")))))
@@ -210,13 +167,13 @@ class WorkSlotControllerIT {
 
     @Test
     void deleteWorkSlot_ReturnsNotFoundWhenSlotDoesNotBelongToIdentity() throws Exception {
-        String ownerSubject = createAccountSubject();
-        long ownerAccountId = createAccount(ownerSubject, "awd");
-        long orgId = findOrCreateOrganization("it-ws-org-" + System.nanoTime()).getId();
-        long slotId = createWorkSlot(ownerAccountId, orgId, "2026-04-20T08:00:00Z", "2026-04-20T17:00:00Z");
+        String ownerSubject = UUID.randomUUID().toString();
+        Account ownerAccount = createAccount(ownerSubject);
+        String orgId = UUID.randomUUID().toString();
+        long slotId = createWorkSlot(ownerAccount.getIdentity(), orgId, "2026-04-20T08:00:00Z", "2026-04-20T17:00:00Z");
 
-        String attackerSubject = createAccountSubject();
-        createAccount(attackerSubject, "awdawd");
+        String attackerSubject = UUID.randomUUID().toString();
+        createAccount(attackerSubject);
 
         mockMvc.perform(delete("/v1/workslots/" + slotId)
                         .with(jwt().jwt(jwt -> jwt.subject(attackerSubject).claim("organization", java.util.List.of("private")))))

@@ -19,3 +19,9 @@ chronoscope:
       - chronoscope-local
     groups:
       - /org-admin/chronoscope-local
+
+keycloak:
+  url: https://auth.ni0.team
+  realm: ni0
+  client-id: chronoscope-admin
+  client-secret: ${KEYCLOAK_CLIENT_SECRET}

@@ -6,7 +6,9 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.UUID;
 
+import de.ni0.chronoscope.TestData;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -23,11 +25,9 @@ import org.springframework.transaction.annotation.Transactional;
 import de.ni0.chronoscope.model.Account;
 import de.ni0.chronoscope.model.DynamicTask;
 import de.ni0.chronoscope.model.Identity;
-import de.ni0.chronoscope.model.Organization;
 import de.ni0.chronoscope.model.WorkSlot;
 import de.ni0.chronoscope.repository.AccountRepository;
 import de.ni0.chronoscope.repository.IdentityRepository;
-import de.ni0.chronoscope.repository.OrganizationRepository;
 import de.ni0.chronoscope.repository.TaskRepository;
 import de.ni0.chronoscope.repository.WorkSlotRepository;
 
@@ -47,9 +47,6 @@ class PlanControllerIT {
     private AccountRepository accountRepository;
 
     @Autowired
-    private OrganizationRepository organizationRepository;
-
-    @Autowired
     private TaskRepository taskRepository;
 
     @Autowired
@@ -64,26 +61,17 @@ class PlanControllerIT {
     }
 
     /** Creates an identity + account without any organizations pre-linked. */
-    private AccountInfo createAccount(String subject, String mail) {
-        Identity identity = identityRepository.saveAndFlush(new Identity());
-        Account account = new Account();
-        account.setIdentity(identity);
-        account.setMail(mail);
-        account.setSubject(subject);
-        account = accountRepository.saveAndFlush(account);
-        return new AccountInfo(identity.getId(), account.getId());
+    private Account createAccount() {
+        Account account = TestData.account();
+        identityRepository.saveAndFlush(account.getIdentity());
+        accountRepository.saveAndFlush(account);
+        return account;
     }
 
-    private long createOrganization(String name) {
-        Organization org = new Organization();
-        org.setName(name);
-        return organizationRepository.saveAndFlush(org).getId();
-    }
-
-    private long createDynamicTask(long accountId, long orgId) {
+    private long createDynamicTask(Identity identity, String orgId) {
         DynamicTask task = new DynamicTask();
-        task.setAccount(accountRepository.getReferenceById(accountId));
-        task.setOrganization(organizationRepository.getReferenceById(orgId));
+        task.setIdentity(identity);
+        task.setOrganization(orgId);
         task.setName("it-plan-task-" + System.nanoTime());
         task.setDescription("Task for planning IT test");
         task.setDifficulty(2);
@@ -100,9 +88,9 @@ class PlanControllerIT {
         return taskRepository.saveAndFlush(task).getId();
     }
 
-    private void createWorkSlot(long accountId, String startAt, String endAt) {
+    private void createWorkSlot(Identity identity, String startAt, String endAt) {
         WorkSlot slot = new WorkSlot();
-        slot.setAccount(accountRepository.getReferenceById(accountId));
+        slot.setIdentity(identity);
         slot.setStartAt(Instant.parse(startAt));
         slot.setEndAt(Instant.parse(endAt));
         workSlotRepository.saveAndFlush(slot);
@@ -147,39 +135,16 @@ class PlanControllerIT {
     }
 
     @Test
-    void plan_Returns403_WhenAccountDoesNotBelongToIdentity() throws Exception {
-        String subjectA = uniqueSubject();
-        String subjectB = uniqueSubject();
-        String orgName = uniqueOrgName();
-
-        createAccount(subjectA, "awd");
-        AccountInfo infoB = createAccount(subjectB, "awdawd");
-        long orgId = createOrganization(orgName);
-
-        String payload = """
-                { "accountId": %d, "organizationId": %d }
-                """.formatted(infoB.accountId(), orgId);
-
-        mockMvc.perform(post("/v1/plan")
-                        .with(jwt().jwt(jwt -> jwt.subject(subjectA).claim("email", "").claim("organization", List.of(orgName))))
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(payload))
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
     void plan_Returns200WithEmptyList_WhenNoTasksForOrganization() throws Exception {
-        String subject = uniqueSubject();
-        String orgName = uniqueOrgName();
-        AccountInfo info = createAccount(subject, "awd");
-        long orgId = createOrganization(orgName);
+        Account account = createAccount();
+        String orgId = UUID.randomUUID().toString();
 
         String payload = """
-                { "accountId": %d, "organizationId": %d }
-                """.formatted(info.accountId(), orgId);
+                { "organizationId": %s }
+                """.formatted(orgId);
 
         mockMvc.perform(post("/v1/plan")
-                        .with(jwt().jwt(jwt -> jwt.subject(subject).claim("organization", List.of(orgName))))
+                        .with(jwt().jwt(jwt -> jwt.subject(account.getSubject())))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(payload))
                 .andExpect(status().isOk())
@@ -188,19 +153,17 @@ class PlanControllerIT {
 
     @Test
     void plan_Returns409_WhenInsufficientWorkSlots() throws Exception {
-        String subject = uniqueSubject();
-        String orgName = uniqueOrgName();
-        AccountInfo info = createAccount(subject, "awd");
-        long orgId = createOrganization(orgName);
-        createDynamicTask(info.accountId(), orgId);
+        Account account = createAccount();
+        String orgId = UUID.randomUUID().toString();
+        createDynamicTask(account.getIdentity(), orgId);
         // No work slots created for this identity → algorithm throws InsufficientSlotsException
 
         String payload = """
-                { "accountId": %d, "organizationId": %d }
-                """.formatted(info.accountId(), orgId);
+                { "organizationId": %s }
+                """.formatted(orgId);
 
         mockMvc.perform(post("/v1/plan")
-                        .with(jwt().jwt(jwt -> jwt.subject(subject).claim("organization", List.of(orgName))))
+                        .with(jwt().jwt(jwt -> jwt.subject(account.getSubject())))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(payload))
                 .andExpect(status().isConflict());
@@ -208,19 +171,17 @@ class PlanControllerIT {
 
     @Test
     void plan_Returns200WithScopes_WhenPlanSucceeds() throws Exception {
-        String subject = uniqueSubject();
-        String orgName = uniqueOrgName();
-        AccountInfo info = createAccount(subject, "awd");
-        long orgId = createOrganization(orgName);
-        createDynamicTask(info.accountId(), orgId);
-        createWorkSlot(info.accountId(), "2026-04-26T06:00:00Z", "2026-04-26T20:00:00Z");
+        Account account = createAccount();
+        String orgId = UUID.randomUUID().toString();
+        createDynamicTask(account.getIdentity(), orgId);
+        createWorkSlot(account.getIdentity(), "2026-04-26T06:00:00Z", "2026-04-26T20:00:00Z");
 
         String payload = """
-                { "accountId": %d, "organizationId": %d }
-                """.formatted(info.accountId(), orgId);
+                { "organizationId": %s }
+                """.formatted(orgId);
 
         mockMvc.perform(post("/v1/plan")
-                        .with(jwt().jwt(jwt -> jwt.subject(subject).claim("organization", List.of(orgName))))
+                        .with(jwt().jwt(jwt -> jwt.subject(account.getSubject())))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(payload))
                 .andExpect(status().isOk())
@@ -228,6 +189,4 @@ class PlanControllerIT {
                 .andExpect(jsonPath("$[0].startAt").value("2026-04-26T06:00:00Z"))
                 .andExpect(jsonPath("$[0].endAt").value("2026-04-26T07:00:00Z"));
     }
-
-    private record AccountInfo(long identityId, long accountId) {}
 }

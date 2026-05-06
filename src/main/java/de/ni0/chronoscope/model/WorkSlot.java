@@ -26,13 +26,12 @@ public class WorkSlot {
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "account_id")
+    @JoinColumn(name = "identity_id")
     @ToString.Exclude // association excluded to keep toString safe and lightweight
-    private Account account;
+    private Identity identity;
 
-    @ManyToOne
-    @JoinColumn(name = "organization_id")
-    private Organization organization;
+    @Column(name = "organization_id", nullable = false)
+    private String organization;
 
     @Column(name = "start_at", nullable = false)
     private Instant startAt;

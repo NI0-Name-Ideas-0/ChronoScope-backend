@@ -17,21 +17,4 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
      * @return matching account, if present
      */
     Optional<Account> findBySubject(String subject);
-
-    /**
-     * Finds an account by its e-mail address.
-     *
-     * @param mail account e-mail
-     * @return matching account, if present
-     */
-    Optional<Account> findByMail(String mail);
-
-    /**
-     * Checks whether an account is linked to an organization.
-     *
-     * @param accountId account ID
-     * @param organizationId organization ID
-     * @return {@code true} when the account has organization access
-     */
-    boolean existsByIdAndOrganizationsId(long accountId, long organizationId);
 }
