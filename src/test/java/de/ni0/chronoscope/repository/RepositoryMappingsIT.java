@@ -7,16 +7,12 @@ import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import de.ni0.chronoscope.model.*;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
-
-import de.ni0.chronoscope.model.Account;
-import de.ni0.chronoscope.model.DynamicTask;
-import de.ni0.chronoscope.model.Identity;
-import de.ni0.chronoscope.model.Label;
-import de.ni0.chronoscope.model.Scope;
 
 @SpringBootTest
 @Transactional
@@ -88,7 +84,7 @@ class RepositoryMappingsIT {
         predecessor.setOrganizationId(organization);
         predecessor.setName("Predecessor");
         predecessor.setDescription("Dependency source");
-        predecessor.setDifficulty(1);
+        predecessor.setDifficulty(Task.Difficulty.TRIVIAL);
         predecessor.setStartAt(Instant.parse("2026-04-20T09:00:00Z"));
         predecessor.setEndAt(Instant.parse("2026-04-20T10:00:00Z"));
         predecessor.setDuration(Duration.of(60, ChronoUnit.MINUTES));
@@ -106,7 +102,7 @@ class RepositoryMappingsIT {
         dependent.setOrganizationId(organization);
         dependent.setName("Dependent");
         dependent.setDescription("Depends on predecessor");
-        dependent.setDifficulty(2);
+        dependent.setDifficulty(Task.Difficulty.TRIVIAL);
         dependent.setStartAt(Instant.parse("2026-04-20T10:00:00Z"));
         dependent.setEndAt(Instant.parse("2026-04-20T12:00:00Z"));
         dependent.setDuration(Duration.of(120, ChronoUnit.MINUTES));
@@ -152,7 +148,7 @@ class RepositoryMappingsIT {
         task.setOrganizationId(organization);
         task.setName("repo-it-task-" + System.nanoTime());
         task.setDescription("Test task");
-        task.setDifficulty(1);
+        task.setDifficulty(Task.Difficulty.TRIVIAL);
         task.setStartAt(Instant.parse("2026-04-26T08:00:00Z"));
         task.setEndAt(Instant.parse("2026-04-26T18:00:00Z"));
         task.setDuration(Duration.of(60, ChronoUnit.MINUTES));

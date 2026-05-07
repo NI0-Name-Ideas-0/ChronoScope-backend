@@ -5,6 +5,7 @@ import de.ni0.chronoscope.algorithm.TaskGraphNode;
 import de.ni0.chronoscope.algorithm.WeightDataProvider;
 import de.ni0.chronoscope.algorithm.WorkSlotProvider;
 import de.ni0.chronoscope.algorithm.dataprovider.CPMDataProvider;
+import de.ni0.chronoscope.algorithm.dataprovider.DifficultyDataProvider;
 import de.ni0.chronoscope.exception.InsufficientSlotsException;
 import de.ni0.chronoscope.exception.InvalidRequestException;
 import de.ni0.chronoscope.model.*;
@@ -93,14 +94,18 @@ public class PlanningService {
             throw new InvalidRequestException("Tasks contain a dependency cycle: no task has zero dependencies");
         }
 
-        List<WeightDataProvider> providers = List.of(new CPMDataProvider());
+        List<WeightDataProvider> providers = List.of(
+                new CPMDataProvider(),
+                new DifficultyDataProvider()
+        );
         Algorithm algorithm = new Algorithm(providers);
         WorkSlotProvider workSlotProvider = new WorkSlotProvider(slots);
         WorkSlot startSlot = workSlotProvider.getNextSlot(null);
 
         return algorithm.plan(startNodes, dependencyCountMap,
                 remainingTaskDurationMap, workSlotProvider, startSlot,
-                startSlot.getStartAt());
+                startSlot.getStartAt(),
+                new ArrayList<>());
     }
 
     private List<TaskGraphNode> toTaskGraphNodes(List<DynamicTask> tasks) {

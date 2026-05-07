@@ -763,9 +763,13 @@ components:
           description:
             type: string
           difficulty:
-            type: integer
-            format: int32
-            maximum: 5
+            type: string
+            enum:
+            - TRIVIAL
+            - EASY
+            - MEDIUM
+            - HARD
+            - EXTREME
           duration:
             type: string
           endAt:
@@ -820,8 +824,13 @@ components:
           description:
             type: string
           difficulty:
-            type: integer
-            format: int32
+            type: string
+            enum:
+            - TRIVIAL
+            - EASY
+            - MEDIUM
+            - HARD
+            - EXTREME
           duration:
             type: string
           elapsed:
@@ -880,9 +889,13 @@ components:
           description:
             type: string
           difficulty:
-            type: integer
-            format: int32
-            maximum: 5
+            type: string
+            enum:
+            - TRIVIAL
+            - EASY
+            - MEDIUM
+            - HARD
+            - EXTREME
           duration:
             type: string
           elapsed:
@@ -1090,9 +1103,13 @@ components:
           description:
             type: string
           difficulty:
-            type: integer
-            format: int32
-            maximum: 5
+            type: string
+            enum:
+            - TRIVIAL
+            - EASY
+            - MEDIUM
+            - HARD
+            - EXTREME
           endAt:
             type: string
             format: date-time
@@ -1131,8 +1148,13 @@ components:
           description:
             type: string
           difficulty:
-            type: integer
-            format: int32
+            type: string
+            enum:
+            - TRIVIAL
+            - EASY
+            - MEDIUM
+            - HARD
+            - EXTREME
           endAt:
             type: string
             format: date-time
@@ -1176,9 +1198,13 @@ components:
           description:
             type: string
           difficulty:
-            type: integer
-            format: int32
-            maximum: 5
+            type: string
+            enum:
+            - TRIVIAL
+            - EASY
+            - MEDIUM
+            - HARD
+            - EXTREME
           endAt:
             type: string
             format: date-time

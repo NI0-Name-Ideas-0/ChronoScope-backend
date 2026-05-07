@@ -17,6 +17,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 
 import de.ni0.chronoscope.exception.AccountAccessDeniedException;
+import de.ni0.chronoscope.model.*;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -35,11 +36,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
 
-import de.ni0.chronoscope.model.Account;
-import de.ni0.chronoscope.model.DynamicTask;
-import de.ni0.chronoscope.model.Identity;
-import de.ni0.chronoscope.model.Scope;
-import de.ni0.chronoscope.model.StaticTask;
 import de.ni0.chronoscope.repository.AccountRepository;
 import de.ni0.chronoscope.repository.IdentityRepository;
 import de.ni0.chronoscope.repository.ScopeRepository;
@@ -105,7 +101,7 @@ class TaskControllerIT {
         predecessor.setOrganizationId(DEFAULT_ORGANIZATION_ID);
         predecessor.setName("Predecessor task");
         predecessor.setDescription("Predecessor task for dependency test");
-        predecessor.setDifficulty(2);
+        predecessor.setDifficulty(Task.Difficulty.TRIVIAL);
         predecessor.setStartAt(Instant.parse("2026-04-20T08:00:00Z"));
         predecessor.setEndAt(Instant.parse("2026-04-22T18:00:00Z"));
         predecessor.setDuration(Duration.of(120, ChronoUnit.MINUTES));
@@ -137,7 +133,7 @@ class TaskControllerIT {
         ownTask.setOrganizationId(DEFAULT_ORGANIZATION_ID);
         ownTask.setName(dynamicTaskName);
         ownTask.setDescription("Dynamic task in current identity");
-        ownTask.setDifficulty(2);
+        ownTask.setDifficulty(Task.Difficulty.TRIVIAL);
         ownTask.setStartAt(Instant.parse("2026-04-20T08:00:00Z"));
         ownTask.setEndAt(Instant.parse("2026-04-22T18:00:00Z"));
         ownTask.setDuration(Duration.of(120, ChronoUnit.MINUTES));
@@ -155,7 +151,7 @@ class TaskControllerIT {
         linkedTask.setOrganizationId(DEFAULT_ORGANIZATION_ID);
         linkedTask.setName(linkedStaticTaskName);
         linkedTask.setDescription("Static task in linked account");
-        linkedTask.setDifficulty(1);
+        linkedTask.setDifficulty(Task.Difficulty.EASY);
         linkedTask.setStartAt(Instant.parse("2026-04-20T09:00:00Z"));
         linkedTask.setEndAt(Instant.parse("2026-04-20T10:00:00Z"));
         linkedTask.setRrule("FREQ=DAILY");
@@ -168,7 +164,7 @@ class TaskControllerIT {
         foreignTask.setOrganizationId(DEFAULT_ORGANIZATION_ID);
         foreignTask.setName(foreignTaskName);
         foreignTask.setDescription("Task from another identity");
-        foreignTask.setDifficulty(1);
+        foreignTask.setDifficulty(Task.Difficulty.EASY);
         foreignTask.setStartAt(Instant.parse("2026-04-20T11:00:00Z"));
         foreignTask.setEndAt(Instant.parse("2026-04-20T12:00:00Z"));
         foreignTask.setRrule("FREQ=DAILY");
@@ -624,7 +620,7 @@ class TaskControllerIT {
             dependent.setOrganizationId(DEFAULT_ORGANIZATION_ID);
             dependent.setName("Dependent dynamic task");
             dependent.setDescription("Depends on predecessor");
-            dependent.setDifficulty(3);
+            dependent.setDifficulty(Task.Difficulty.HARD);
             dependent.setStartAt(Instant.parse("2026-04-21T08:00:00Z"));
             dependent.setEndAt(Instant.parse("2026-04-24T18:00:00Z"));
             dependent.setDuration(Duration.of(180, ChronoUnit.MINUTES));
@@ -658,7 +654,7 @@ class TaskControllerIT {
         task.setOrganizationId(DEFAULT_ORGANIZATION_ID);
         task.setName("Original static task");
         task.setDescription("Original description");
-        task.setDifficulty(2);
+        task.setDifficulty(Task.Difficulty.TRIVIAL);
         task.setStartAt(Instant.parse("2026-04-20T09:00:00Z"));
         task.setEndAt(Instant.parse("2026-04-20T10:00:00Z"));
         task.setRrule("FREQ=DAILY");
@@ -700,7 +696,7 @@ class TaskControllerIT {
         task.setOrganizationId(organizationId);
         task.setName("Original static task");
         task.setDescription("Original description");
-        task.setDifficulty(2);
+        task.setDifficulty(Task.Difficulty.TRIVIAL);
         task.setStartAt(Instant.parse("2026-04-20T09:00:00Z"));
         task.setEndAt(Instant.parse("2026-04-20T10:00:00Z"));
         task.setRrule("FREQ=DAILY");
@@ -737,7 +733,7 @@ class TaskControllerIT {
         task.setOrganizationId(DEFAULT_ORGANIZATION_ID);
         task.setName("Original dynamic task");
         task.setDescription("Original dynamic description");
-        task.setDifficulty(3);
+        task.setDifficulty(Task.Difficulty.HARD);
         task.setStartAt(Instant.parse("2026-04-21T08:00:00Z"));
         task.setEndAt(Instant.parse("2026-04-24T18:00:00Z"));
         task.setDuration(Duration.of(180, ChronoUnit.MINUTES));
@@ -780,7 +776,7 @@ class TaskControllerIT {
         task.setOrganizationId(organizationId);
         task.setName("Original static task");
         task.setDescription("Original description");
-        task.setDifficulty(2);
+        task.setDifficulty(Task.Difficulty.TRIVIAL);
         task.setStartAt(Instant.parse("2026-04-20T09:00:00Z"));
         task.setEndAt(Instant.parse("2026-04-20T10:00:00Z"));
         task.setRrule("FREQ=DAILY");
@@ -816,7 +812,7 @@ class TaskControllerIT {
         task.setOrganizationId(organizationId);
         task.setName("Dynamic task");
         task.setDescription("Should cap scope durations when duration is lowered");
-        task.setDifficulty(3);
+        task.setDifficulty(Task.Difficulty.HARD);
         task.setStartAt(Instant.parse("2026-04-21T08:00:00Z"));
         task.setEndAt(Instant.parse("2026-04-24T18:00:00Z"));
         task.setDuration(Duration.of(180, ChronoUnit.MINUTES));
@@ -855,7 +851,7 @@ class TaskControllerIT {
         task.setOrganizationId(DEFAULT_ORGANIZATION_ID);
         task.setName("Dynamic task");
         task.setDescription("Can reset elapsed to zero");
-        task.setDifficulty(3);
+        task.setDifficulty(Task.Difficulty.HARD);
         task.setStartAt(Instant.parse("2026-04-21T08:00:00Z"));
         task.setEndAt(Instant.parse("2026-04-24T18:00:00Z"));
         task.setDuration(Duration.of(180, ChronoUnit.MINUTES));
@@ -897,7 +893,7 @@ class TaskControllerIT {
         task.setOrganizationId(DEFAULT_ORGANIZATION_ID);
         task.setName("Dynamic task");
         task.setDescription("Should reject negative elapsed");
-        task.setDifficulty(3);
+        task.setDifficulty(Task.Difficulty.HARD);
         task.setStartAt(Instant.parse("2026-04-21T08:00:00Z"));
         task.setEndAt(Instant.parse("2026-04-24T18:00:00Z"));
         task.setDuration(Duration.of(180, ChronoUnit.MINUTES));
@@ -936,7 +932,7 @@ class TaskControllerIT {
         task.setOrganizationId(DEFAULT_ORGANIZATION_ID);
         task.setName("Dynamic task");
         task.setDescription("Type mismatch case");
-        task.setDifficulty(3);
+        task.setDifficulty(Task.Difficulty.HARD);
         task.setStartAt(Instant.parse("2026-04-21T08:00:00Z"));
         task.setEndAt(Instant.parse("2026-04-24T18:00:00Z"));
         task.setDuration(Duration.of(180, ChronoUnit.MINUTES));
@@ -977,7 +973,7 @@ class TaskControllerIT {
         dependent.setOrganizationId(DEFAULT_ORGANIZATION_ID);
         dependent.setName("Dependent task");
         dependent.setDescription("Initially depends on predecessor");
-        dependent.setDifficulty(3);
+        dependent.setDifficulty(Task.Difficulty.HARD);
         dependent.setStartAt(Instant.parse("2026-04-21T08:00:00Z"));
         dependent.setEndAt(Instant.parse("2026-04-24T18:00:00Z"));
         dependent.setDuration(Duration.of(180, ChronoUnit.MINUTES));
@@ -1028,7 +1024,7 @@ class TaskControllerIT {
         dependent.setOrganizationId(DEFAULT_ORGANIZATION_ID);
         dependent.setName("Independent task");
         dependent.setDescription("Will gain a dependency");
-        dependent.setDifficulty(3);
+        dependent.setDifficulty(Task.Difficulty.HARD);
         dependent.setStartAt(Instant.parse("2026-04-21T08:00:00Z"));
         dependent.setEndAt(Instant.parse("2026-04-24T18:00:00Z"));
         dependent.setDuration(Duration.of(180, ChronoUnit.MINUTES));
@@ -1081,7 +1077,7 @@ class TaskControllerIT {
         task.setOrganizationId(DEFAULT_ORGANIZATION_ID);
         task.setName("Task to patch");
         task.setDescription("Should reject foreign dependency");
-        task.setDifficulty(3);
+        task.setDifficulty(Task.Difficulty.HARD);
         task.setStartAt(Instant.parse("2026-04-21T08:00:00Z"));
         task.setEndAt(Instant.parse("2026-04-24T18:00:00Z"));
         task.setDuration(Duration.of(180, ChronoUnit.MINUTES));
@@ -1121,7 +1117,7 @@ class TaskControllerIT {
         task.setOrganizationId(DEFAULT_ORGANIZATION_ID);
         task.setName("Foreign task");
         task.setDescription("Should not be patchable by someone else");
-        task.setDifficulty(1);
+        task.setDifficulty(Task.Difficulty.EASY);
         task.setStartAt(Instant.parse("2026-04-20T09:00:00Z"));
         task.setEndAt(Instant.parse("2026-04-20T10:00:00Z"));
         task.setRrule("FREQ=DAILY");
@@ -1268,7 +1264,7 @@ class TaskControllerIT {
         task.setOrganizationId(DEFAULT_ORGANIZATION_ID);
         task.setName("Static to delete");
         task.setDescription("Delete me");
-        task.setDifficulty(1);
+        task.setDifficulty(Task.Difficulty.EASY);
         task.setStartAt(Instant.parse("2026-04-20T09:00:00Z"));
         task.setEndAt(Instant.parse("2026-04-20T10:00:00Z"));
         task.setRrule("FREQ=DAILY");
@@ -1292,7 +1288,7 @@ class TaskControllerIT {
         predecessor.setOrganizationId(DEFAULT_ORGANIZATION_ID);
         predecessor.setName("Predecessor");
         predecessor.setDescription("Will be deleted");
-        predecessor.setDifficulty(2);
+        predecessor.setDifficulty(Task.Difficulty.TRIVIAL);
         predecessor.setStartAt(Instant.parse("2026-04-20T08:00:00Z"));
         predecessor.setEndAt(Instant.parse("2026-04-22T18:00:00Z"));
         predecessor.setDuration(Duration.of(120, ChronoUnit.MINUTES));
@@ -1318,7 +1314,7 @@ class TaskControllerIT {
         dependent.setOrganizationId(DEFAULT_ORGANIZATION_ID);
         dependent.setName("Dependent");
         dependent.setDescription("Depends on predecessor");
-        dependent.setDifficulty(3);
+        dependent.setDifficulty(Task.Difficulty.HARD);
         dependent.setStartAt(Instant.parse("2026-04-20T08:00:00Z"));
         dependent.setEndAt(Instant.parse("2026-04-24T18:00:00Z"));
         dependent.setDuration(Duration.of(240, ChronoUnit.MINUTES));
@@ -1361,7 +1357,7 @@ class TaskControllerIT {
         task.setOrganizationId(DEFAULT_ORGANIZATION_ID);
         task.setName("Foreign task");
         task.setDescription("Should not be deletable");
-        task.setDifficulty(1);
+        task.setDifficulty(Task.Difficulty.EASY);
         task.setStartAt(Instant.parse("2026-04-20T09:00:00Z"));
         task.setEndAt(Instant.parse("2026-04-20T10:00:00Z"));
         task.setRrule("FREQ=DAILY");

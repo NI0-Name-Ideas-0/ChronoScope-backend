@@ -22,7 +22,7 @@ class CPMDataProviderTest {
         TaskGraphNode relaxed = node(2L, Duration.ofHours(1), START.plus(Duration.ofHours(3)));
         CPMDataProvider provider = new CPMDataProvider();
 
-        provider.calculate(new DataProviderContext(START), List.of(urgent, relaxed));
+        provider.calculate(new DataProviderContext(START, new ArrayList<>()), List.of(urgent, relaxed));
 
         assertEquals(1.0, provider.getWeight(urgent), 0.000_001);
         assertEquals(0.0, provider.getWeight(relaxed), 0.000_001);
@@ -34,7 +34,7 @@ class CPMDataProviderTest {
         TaskGraphNode second = node(2L, Duration.ofHours(1), START.plus(Duration.ofHours(2)));
         CPMDataProvider provider = new CPMDataProvider();
 
-        provider.calculate(new DataProviderContext(START), List.of(first, second));
+        provider.calculate(new DataProviderContext(START, new ArrayList<>()), List.of(first, second));
 
         assertEquals(1.0, provider.getWeight(first), 0.000_001);
         assertEquals(1.0, provider.getWeight(second), 0.000_001);

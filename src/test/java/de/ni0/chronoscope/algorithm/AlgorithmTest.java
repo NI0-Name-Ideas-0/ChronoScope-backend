@@ -42,7 +42,8 @@ class AlgorithmTest {
                 remainingDurations(firstDependency, secondDependency, successor),
                 new WorkSlotProvider(List.of(slot)),
                 slot,
-                START);
+                START,
+                new ArrayList<>());
 
         assertNotNull(result);
         assertEquals(3, result.size());
@@ -64,7 +65,8 @@ class AlgorithmTest {
                 remainingDurations(task),
                 new ExhaustingWorkSlotProvider(List.of(firstSlot, secondSlot)),
                 firstSlot,
-                START);
+                START,
+                new ArrayList<>());
 
         assertNotNull(result);
         assertEquals(2, result.size());
@@ -88,7 +90,8 @@ class AlgorithmTest {
                 remainingDurations(longLooseTask, urgentTask),
                 new ExhaustingWorkSlotProvider(List.of(firstSlot, secondSlot)),
                 firstSlot,
-                START);
+                START,
+                new ArrayList<>());
 
         assertNotNull(result);
         assertEquals(2, result.size());
@@ -114,7 +117,8 @@ class AlgorithmTest {
                 remainingDurations(dependency, urgentTask, successor),
                 new WorkSlotProvider(List.of(slot)),
                 slot,
-                START);
+                START,
+                new ArrayList<>());
 
         assertNotNull(result);
         assertEquals(3, result.size());
@@ -135,7 +139,8 @@ class AlgorithmTest {
                 remainingDurations(impossibleTask),
                 new WorkSlotProvider(List.of(slot)),
                 slot,
-                START);
+                START,
+                new ArrayList<>());
 
         assertNull(result);
         assertEquals(0, provider.calculateCalls);
@@ -152,7 +157,8 @@ class AlgorithmTest {
                 remainingDurations(task),
                 new ExhaustingWorkSlotProvider(List.of(slot)),
                 slot,
-                START);
+                START,
+                new ArrayList<>());
 
         assertNull(result);
     }
@@ -167,7 +173,8 @@ class AlgorithmTest {
                 new HashMap<>(),
                 new WorkSlotProvider(List.of(slot)),
                 slot,
-                START);
+                START,
+                new ArrayList<>());
 
         assertNull(result);
     }

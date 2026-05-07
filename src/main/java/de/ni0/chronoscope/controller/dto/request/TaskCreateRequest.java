@@ -5,6 +5,7 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import de.ni0.chronoscope.model.Task;
 
 /**
  * Polymorphic task creation contract selected by the JSON {@code type} discriminator.
@@ -18,7 +19,7 @@ public sealed interface TaskCreateRequest permits StaticTaskCreateRequest, Dynam
     String organizationId();
     String name();
     String description();
-    Integer difficulty();
+    Task.Difficulty difficulty();
     Instant startAt();
     Instant endAt();
     List<LabelCreateRequest> labels();

@@ -5,6 +5,7 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import de.ni0.chronoscope.model.Task;
 import jakarta.validation.constraints.NotNull;
 
 /**
@@ -22,7 +23,7 @@ public sealed interface TaskResponse permits StaticTaskResponse, DynamicTaskResp
     String organizationId();
     @NotNull String name();
     String description();
-    @NotNull Integer difficulty();
+    @NotNull Task.Difficulty difficulty();
     @NotNull Instant startAt();
     @NotNull Instant endAt();
     @NotNull List<LabelResponse> labels();
