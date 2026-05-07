@@ -53,8 +53,7 @@ public class IdentityController {
      *
      * @return the identity response including linked accounts
      */
-    @Operation(summary = "Get current identity", description = "Retrieve information about the identity contained in the access token, including all linked accounts and organizationId names for which the authenticated account has admin privileges through /org-admin token groups.")
-    @ApiResponses({
+    @Operation(summary = "Get current identity", description = "Retrieve information about the authenticated identity, including all linked accounts and the organizations for which the identity has admin privileges, as resolved server-side.")    @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Identity retrieved successfully"),
         @ApiResponse(responseCode = "401", description = "Missing or invalid token", content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     })

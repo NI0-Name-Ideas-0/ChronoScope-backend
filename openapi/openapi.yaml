@@ -25,10 +25,9 @@ tags:
 paths:
   /v1/identity:
     get:
-      description: "Retrieve information about the identity contained in the access\
-        \ token, including all linked accounts and organizationId names for which\
-        \ the authenticated account has admin privileges through /org-admin token\
-        \ groups."
+      description: "Retrieve information about the authenticated identity, including\
+        \ all linked accounts and the organizations for which the identity has admin\
+        \ privileges, as resolved server-side."
       operationId: getIdentity
       responses:
         "200":
