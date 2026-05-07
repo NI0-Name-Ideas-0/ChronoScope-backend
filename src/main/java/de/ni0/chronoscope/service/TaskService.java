@@ -339,10 +339,6 @@ public class TaskService {
     }
 
     private void validateCommonTaskFields(Task task) {
-        if (task.getDifficulty() == null || task.getDifficulty() < MIN_DIFFICULTY || task.getDifficulty() > MAX_DIFFICULTY) {
-            throw new InvalidRequestException("difficulty must be between 1 and 5");
-        }
-
         if (task.getStartAt() == null || task.getEndAt() == null || !task.getStartAt().isBefore(task.getEndAt())) {
             throw new InvalidRequestException("startAt must be before endAt");
         }

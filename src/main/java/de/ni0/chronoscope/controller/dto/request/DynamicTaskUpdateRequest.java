@@ -6,12 +6,11 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
+import de.ni0.chronoscope.model.Task;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
-import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 
 /**
@@ -25,7 +24,7 @@ public record DynamicTaskUpdateRequest(
     String organizationId,
     @Size(min = 1) String name,
     String description,
-    @Positive @Max(5) Integer difficulty,
+    Task.Difficulty difficulty,
     Instant startAt,
     Instant endAt,
     List<@Valid @NotNull LabelCreateRequest> labels,

@@ -41,7 +41,7 @@ class TaskServiceTest {
     private static void populateValidStaticFields(StaticTask task) {
         task.setName("Valid static task");
         task.setDescription("Valid static description");
-        task.setDifficulty(3);
+        task.setDifficulty(Task.Difficulty.TRIVIAL);
         task.setStartAt(Instant.parse("2026-04-20T09:00:00Z"));
         task.setEndAt(Instant.parse("2026-04-20T10:00:00Z"));
         task.setRrule("FREQ=DAILY");
@@ -52,7 +52,7 @@ class TaskServiceTest {
     private static void populateValidDynamicFields(DynamicTask task) {
         task.setName("Valid dynamic task");
         task.setDescription("Valid dynamic description");
-        task.setDifficulty(3);
+        task.setDifficulty(Task.Difficulty.TRIVIAL);
         task.setStartAt(Instant.parse("2026-04-20T09:00:00Z"));
         task.setEndAt(Instant.parse("2026-04-21T10:00:00Z"));
         task.setDuration(Duration.ofMinutes(60));

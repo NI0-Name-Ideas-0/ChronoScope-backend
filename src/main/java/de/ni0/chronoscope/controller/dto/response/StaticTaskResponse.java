@@ -1,5 +1,6 @@
 package de.ni0.chronoscope.controller.dto.response;
 
+import de.ni0.chronoscope.model.Task;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 
@@ -16,7 +17,7 @@ public record StaticTaskResponse(
     String organizationId,
     @NotNull String name,
     String description,
-    @NotNull Integer difficulty,
+    @NotNull Task.Difficulty difficulty,
     @NotNull Instant startAt,
     @NotNull Instant endAt,
     @NotNull String rrule,

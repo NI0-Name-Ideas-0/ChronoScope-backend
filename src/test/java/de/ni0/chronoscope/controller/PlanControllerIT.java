@@ -5,12 +5,12 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
 import de.ni0.chronoscope.TestData;
 import de.ni0.chronoscope.exception.AccountAccessDeniedException;
+import de.ni0.chronoscope.model.*;
 import de.ni0.chronoscope.service.KeycloakService;
 import org.keycloak.representations.idm.OrganizationRepresentation;
 import org.junit.jupiter.api.Test;
@@ -35,10 +35,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import org.springframework.transaction.annotation.Transactional;
 
-import de.ni0.chronoscope.model.Account;
-import de.ni0.chronoscope.model.DynamicTask;
-import de.ni0.chronoscope.model.Identity;
-import de.ni0.chronoscope.model.WorkSlot;
 import de.ni0.chronoscope.repository.AccountRepository;
 import de.ni0.chronoscope.repository.IdentityRepository;
 import de.ni0.chronoscope.repository.TaskRepository;
@@ -86,7 +82,7 @@ class PlanControllerIT {
         task.setOrganizationId(orgId);
         task.setName("it-plan-task-" + System.nanoTime());
         task.setDescription("Task for planning IT test");
-        task.setDifficulty(2);
+        task.setDifficulty(Task.Difficulty.TRIVIAL);
         task.setStartAt(Instant.parse("2026-04-26T06:00:00Z"));
         task.setEndAt(Instant.parse("2026-04-26T20:00:00Z"));
         task.setDuration(Duration.of(60, ChronoUnit.MINUTES));
