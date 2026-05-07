@@ -10,6 +10,7 @@ import org.keycloak.admin.client.resource.OrganizationMembersResource;
 import org.keycloak.representations.idm.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashSet;
 import java.util.List;
@@ -35,6 +36,7 @@ public class KeycloakService {
         return new HashSet<>(organizations);
     }
 
+    @Transactional(readOnly = true)
     public Set<OrganizationRepresentation> getIdentityOrganizations(Identity identity) {
         Set<OrganizationRepresentation> organizations = new HashSet<>();
         for (Account account : identity.getAccounts()) {
@@ -57,6 +59,7 @@ public class KeycloakService {
      * @param identity identity to validate
      * @param organizationId organizationId that must be accessible
      */
+    @Transactional(readOnly = true)
     public void validateIdentityOrgAccess(Identity identity, String organizationId) {
         if (Objects.equals(organizationId, "private")) return;
         Set<OrganizationRepresentation> organizations = this.getIdentityOrganizations(identity);
@@ -65,12 +68,14 @@ public class KeycloakService {
         }
     }
 
+    @Transactional(readOnly = true)
     public void validateIdentityAdminOrgAccess(Identity identity, String organizationId) {
         if (!this.getAdminOrganizations(identity).contains(organizationId)) {
             throw new AccountAccessDeniedException("No access to organizationId");
         }
     }
 
+    @Transactional(readOnly = true)
     public Set<String> getAdminOrganizations(Identity identity) {
         Set<String> organizations = new HashSet<>();
         for (Account account : identity.getAccounts()) {
