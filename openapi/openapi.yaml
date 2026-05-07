@@ -27,8 +27,8 @@ paths:
     get:
       description: "Retrieve information about the identity contained in the access\
         \ token, including all linked accounts and organizationId names for which\
-        \ the authenticated account has admin privileges through /org-admin token\
-        \ groups."
+        \ the authenticated account has admin privileges, resolved via the Keycloak\
+        \ Admin Client."
       operationId: getIdentity
       responses:
         "200":
