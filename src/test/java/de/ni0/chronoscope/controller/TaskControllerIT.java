@@ -196,7 +196,7 @@ class TaskControllerIT {
               "name": "Write report",
               "description": "Prepare weekly summary",
               "rrule": "FREQ=WEEKLY;BYDAY=MO",
-              "difficulty": 3,
+              "difficulty": "HARD",
               "startAt": "2026-04-20T09:00:00Z",
               "endAt": "2026-04-20T10:00:00Z",
               "labels": [],
@@ -212,7 +212,7 @@ class TaskControllerIT {
             .andExpect(jsonPath("$.organizationId").value(organizationId))
             .andExpect(jsonPath("$.name").value("Write report"))
             .andExpect(jsonPath("$.description").value("Prepare weekly summary"))
-            .andExpect(jsonPath("$.difficulty").value(3))
+            .andExpect(jsonPath("$.difficulty").value("HARD"))
             .andExpect(jsonPath("$.rrule").value("FREQ=WEEKLY;BYDAY=MO"))
             .andExpect(jsonPath("$.isBlocker").value(false));
     }
@@ -274,36 +274,6 @@ class TaskControllerIT {
     }
 
     @Test
-    void createTask_Static_DifficultyAboveFive_ReturnsValidationError() throws Exception {
-        Account account = createAccount();
-        String organizationId = UUID.randomUUID().toString();
-
-        String payload = """
-            {
-              "type": "static",
-              "organizationId": "%s",
-              "name": "Write report",
-              "description": "Prepare weekly summary",
-              "rrule": "FREQ=WEEKLY;BYDAY=MO",
-              "difficulty": 6,
-              "startAt": "2026-04-20T09:00:00Z",
-              "endAt": "2026-04-20T10:00:00Z",
-              "labels": [],
-              "isBlocker": false
-            }
-            """.formatted(organizationId);
-
-        mockMvc.perform(post("/v1/tasks")
-            .with(createJwt(account.getSubject()))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(payload))
-            .andExpect(status().isBadRequest())
-            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
-            .andExpect(jsonPath("$.type").value("urn:chronoscope:error:validation-error"))
-            .andExpect(jsonPath("$.fieldErrors[*].field", hasItem("difficulty")));
-    }
-
-    @Test
     void createTask_Dynamic_ReturnsCreatedWithDefaults() throws Exception {
         Account account = createAccount();
         String organizationId = UUID.randomUUID().toString();
@@ -314,7 +284,7 @@ class TaskControllerIT {
               "organizationId": "%s",
               "name": "Implement API endpoint",
               "description": "Create and test endpoint",
-              "difficulty": 4,
+              "difficulty": "EXTREME",
               "startAt": "2026-04-20T08:00:00Z",
               "endAt": "2026-04-25T18:00:00Z",
               "labels": [],
@@ -332,7 +302,7 @@ class TaskControllerIT {
             .andExpect(status().isCreated())
             .andExpect(jsonPath("$.organizationId").value(organizationId))
             .andExpect(jsonPath("$.name").value("Implement API endpoint"))
-            .andExpect(jsonPath("$.difficulty").value(4))
+            .andExpect(jsonPath("$.difficulty").value("EXTREME"))
             .andExpect(jsonPath("$.duration").value("PT4H"))
             .andExpect(jsonPath("$.elapsed").value("PT0S"))
             .andExpect(jsonPath("$.minScopeDuration").value("PT30M"))
@@ -422,7 +392,7 @@ class TaskControllerIT {
               "organizationId": "%s",
               "name": "Implement API endpoint",
               "description": "Create and test endpoint",
-              "difficulty": 4,
+              "difficulty": "EXTREME",
               "startAt": "2026-04-25T18:00:00Z",
               "endAt": "2026-04-20T08:00:00Z",
               "labels": [],
@@ -454,7 +424,7 @@ class TaskControllerIT {
               "organizationId": "%s",
               "name": "Implement API endpoint",
               "description": "Create and test endpoint",
-              "difficulty": 4,
+              "difficulty": "EXTREME",
               "startAt": "2026-04-20T08:00:00Z",
               "endAt": "2026-04-25T18:00:00Z",
               "labels": [],
@@ -509,7 +479,7 @@ class TaskControllerIT {
               "organizationId": "%s",
               "name": "Task with dependencies",
               "description": "Should link predecessor",
-              "difficulty": 4,
+              "difficulty": "EXTREME",
               "startAt": "2026-04-20T08:00:00Z",
               "endAt": "2026-04-25T18:00:00Z",
               "labels": [],
@@ -546,7 +516,7 @@ class TaskControllerIT {
                         "organizationId": "%s",
                         "name": "Cross-account dependency",
                         "description": "Dependency should be allowed within same identity",
-                        "difficulty": 4,
+                        "difficulty": "EXTREME",
                         "startAt": "2026-04-20T08:00:00Z",
                         "endAt": "2026-04-25T18:00:00Z",
                         "labels": [],
@@ -586,7 +556,7 @@ class TaskControllerIT {
                         "organizationId": "%s",
                         "name": "Cross-identity dependency",
                         "description": "Dependency should be rejected",
-                        "difficulty": 4,
+                        "difficulty": "EXTREME",
                         "startAt": "2026-04-20T08:00:00Z",
                         "endAt": "2026-04-25T18:00:00Z",
                         "labels": [],
@@ -678,7 +648,7 @@ class TaskControllerIT {
             .andExpect(jsonPath("$.type").value("static"))
             .andExpect(jsonPath("$.name").value("Updated static task"))
             .andExpect(jsonPath("$.description").value("Original description"))
-            .andExpect(jsonPath("$.difficulty").value(2))
+            .andExpect(jsonPath("$.difficulty").value("TRIVIAL"))
             .andExpect(jsonPath("$.rrule").value("FREQ=DAILY"))
             .andExpect(jsonPath("$.isBlocker").value(false));
     }
@@ -763,42 +733,6 @@ class TaskControllerIT {
             .andExpect(jsonPath("$.description").value("Updated dynamic description"))
             .andExpect(jsonPath("$.dependencies.length()").value(1))
             .andExpect(jsonPath("$.dependencies[0]").value(predecessorId));
-    }
-
-    @Test
-    void updateTask_Static_DifficultyAboveFive_ReturnsValidationError() throws Exception {
-        Account account = createAccount();
-        String organizationId = UUID.randomUUID().toString();
-        
-
-        StaticTask task = new StaticTask();
-        task.setIdentity(account.getIdentity());
-        task.setOrganizationId(organizationId);
-        task.setName("Original static task");
-        task.setDescription("Original description");
-        task.setDifficulty(Task.Difficulty.TRIVIAL);
-        task.setStartAt(Instant.parse("2026-04-20T09:00:00Z"));
-        task.setEndAt(Instant.parse("2026-04-20T10:00:00Z"));
-        task.setRrule("FREQ=DAILY");
-        task.setLabels(new ArrayList<>());
-        task.setIsBlocker(false);
-        long taskId = taskRepository.saveAndFlush(task).getId();
-
-        String payload = """
-            {
-              "type": "static",
-              "difficulty": 6
-            }
-            """;
-
-        mockMvc.perform(patch("/v1/tasks/{id}", taskId)
-                .with(jwt().jwt(jwt -> jwt.subject(account.getSubject())))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(payload))
-            .andExpect(status().isBadRequest())
-            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
-            .andExpect(jsonPath("$.type").value("urn:chronoscope:error:validation-error"))
-            .andExpect(jsonPath("$.fieldErrors[*].field", hasItem("difficulty")));
     }
 
     @Test
@@ -1171,7 +1105,7 @@ class TaskControllerIT {
               "organizationId": "%s",
               "name": "Implement API endpoint",
               "description": "Create and test endpoint",
-              "difficulty": 4,
+              "difficulty": "EXTREME",
               "startAt": "2026-04-20T08:00:00Z",
               "endAt": "2026-04-25T18:00:00Z",
               "labels": [],
