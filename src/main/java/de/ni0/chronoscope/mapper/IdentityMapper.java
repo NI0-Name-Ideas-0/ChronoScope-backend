@@ -1,6 +1,6 @@
 package de.ni0.chronoscope.mapper;
 
-import java.util.List;
+import java.util.Set;
 
 import de.ni0.chronoscope.controller.dto.response.IdentityResponse;
 import de.ni0.chronoscope.model.Identity;
@@ -18,11 +18,12 @@ public interface IdentityMapper {
      * Converts an identity plus request-specific admin organizations to the API response.
      *
      * @param identity loaded identity entity
-     * @param adminOrganizations organization names where the current account has admin privileges
+     * @param adminOrganizations organizationId names where the current account has admin privileges
      * @return response DTO
      */
     @Mapping(target = "id", source = "identity.id")
     @Mapping(target = "accounts", source = "identity.accounts")
     @Mapping(target = "adminOrganizations", source = "adminOrganizations")
-    IdentityResponse toResponse(Identity identity, List<String> adminOrganizations);
+    @Mapping(target = "organizations", source = "organizations")
+    IdentityResponse toResponse(Identity identity, Set<String> adminOrganizations, Set<IdentityResponse.Organization> organizations);
 }

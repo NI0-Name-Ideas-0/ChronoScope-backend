@@ -1,13 +1,12 @@
 package de.ni0.chronoscope.controller.dto.response;
 
-import java.util.List;
+import jakarta.validation.constraints.NotNull;
 
 /**
  * API representation of a linked login account and its accessible organizations.
  */
 public record AccountResponse(
-    Long id,
-    Long identityId,
-    List<OrganizationResponse> organizations
+    @NotNull Long id,
+    @NotNull Long identityId
 ) {
 }

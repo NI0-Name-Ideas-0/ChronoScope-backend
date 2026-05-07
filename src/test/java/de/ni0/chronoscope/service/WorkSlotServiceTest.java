@@ -34,12 +34,12 @@ class WorkSlotServiceTest {
         WorkSlot slot = new WorkSlot();
         slot.setId(1L);
 
-        when(workSlotRepository.findByAccountIdentityId(identityId)).thenReturn(List.of(slot));
+        when(workSlotRepository.findByIdentityId(identityId)).thenReturn(List.of(slot));
 
         List<WorkSlot> result = service.getWorkSlotsForIdentity(identityId);
 
         assertEquals(List.of(slot), result);
-        verify(workSlotRepository).findByAccountIdentityId(identityId);
+        verify(workSlotRepository).findByIdentityId(identityId);
         verifyNoMoreInteractions(workSlotRepository);
     }
 
@@ -81,13 +81,13 @@ class WorkSlotServiceTest {
                 Instant.parse("2026-04-21T18:00:00Z")
         );
 
-        when(workSlotRepository.findByIdAndAccountIdentityId(slotId, identityId)).thenReturn(Optional.of(existing));
+        when(workSlotRepository.findByIdAndIdentityId(slotId, identityId)).thenReturn(Optional.of(existing));
 
         WorkSlot result = service.updateWorkSlot(identityId, slotId, request);
 
         assertEquals(Instant.parse("2026-04-21T09:00:00Z"), result.getStartAt());
         assertEquals(Instant.parse("2026-04-21T18:00:00Z"), result.getEndAt());
-        verify(workSlotRepository).findByIdAndAccountIdentityId(slotId, identityId);
+        verify(workSlotRepository).findByIdAndIdentityId(slotId, identityId);
         verifyNoMoreInteractions(workSlotRepository);
     }
 
@@ -107,13 +107,13 @@ class WorkSlotServiceTest {
 
         WorkSlotUpdateRequest request = new WorkSlotUpdateRequest(null, null);
 
-        when(workSlotRepository.findByIdAndAccountIdentityId(slotId, identityId)).thenReturn(Optional.of(existing));
+        when(workSlotRepository.findByIdAndIdentityId(slotId, identityId)).thenReturn(Optional.of(existing));
 
         WorkSlot result = service.updateWorkSlot(identityId, slotId, request);
 
         assertEquals(originalStart, result.getStartAt());
         assertEquals(originalEnd, result.getEndAt());
-        verify(workSlotRepository).findByIdAndAccountIdentityId(slotId, identityId);
+        verify(workSlotRepository).findByIdAndIdentityId(slotId, identityId);
         verifyNoMoreInteractions(workSlotRepository);
     }
 
@@ -123,11 +123,11 @@ class WorkSlotServiceTest {
         long identityId = 42L;
         Long slotId = 99L;
 
-        when(workSlotRepository.findByIdAndAccountIdentityId(slotId, identityId)).thenReturn(Optional.empty());
+        when(workSlotRepository.findByIdAndIdentityId(slotId, identityId)).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class,
                 () -> service.updateWorkSlot(identityId, slotId, new WorkSlotUpdateRequest(null, null)));
-        verify(workSlotRepository).findByIdAndAccountIdentityId(slotId, identityId);
+        verify(workSlotRepository).findByIdAndIdentityId(slotId, identityId);
         verifyNoMoreInteractions(workSlotRepository);
     }
 
@@ -140,11 +140,11 @@ class WorkSlotServiceTest {
         WorkSlot existing = new WorkSlot();
         existing.setId(slotId);
 
-        when(workSlotRepository.findByIdAndAccountIdentityId(slotId, identityId)).thenReturn(Optional.of(existing));
+        when(workSlotRepository.findByIdAndIdentityId(slotId, identityId)).thenReturn(Optional.of(existing));
 
         service.deleteWorkSlot(identityId, slotId);
 
-        verify(workSlotRepository).findByIdAndAccountIdentityId(slotId, identityId);
+        verify(workSlotRepository).findByIdAndIdentityId(slotId, identityId);
         verify(workSlotRepository).delete(existing);
         verifyNoMoreInteractions(workSlotRepository);
     }
@@ -155,10 +155,10 @@ class WorkSlotServiceTest {
         long identityId = 42L;
         Long slotId = 99L;
 
-        when(workSlotRepository.findByIdAndAccountIdentityId(slotId, identityId)).thenReturn(Optional.empty());
+        when(workSlotRepository.findByIdAndIdentityId(slotId, identityId)).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class, () -> service.deleteWorkSlot(identityId, slotId));
-        verify(workSlotRepository).findByIdAndAccountIdentityId(slotId, identityId);
+        verify(workSlotRepository).findByIdAndIdentityId(slotId, identityId);
         verifyNoMoreInteractions(workSlotRepository);
     }
 }

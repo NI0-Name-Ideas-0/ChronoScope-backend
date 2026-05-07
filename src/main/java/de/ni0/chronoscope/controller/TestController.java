@@ -10,6 +10,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import de.ni0.chronoscope.model.*;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,16 +21,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import de.ni0.chronoscope.config.DevAuthProperties;
-import de.ni0.chronoscope.model.Account;
-import de.ni0.chronoscope.model.DynamicTask;
-import de.ni0.chronoscope.model.Label;
-import de.ni0.chronoscope.model.Organization;
-import de.ni0.chronoscope.model.Scope;
-import de.ni0.chronoscope.model.StaticTask;
-import de.ni0.chronoscope.model.Task;
-import de.ni0.chronoscope.model.WorkSlot;
 import de.ni0.chronoscope.repository.AccountRepository;
-import de.ni0.chronoscope.repository.OrganizationRepository;
 import de.ni0.chronoscope.repository.TaskRepository;
 import de.ni0.chronoscope.repository.WorkSlotRepository;
 import de.ni0.chronoscope.service.AccountService;
@@ -49,7 +41,6 @@ public class TestController {
     private final DevAuthProperties devAuthProperties;
     private final AccountService accountService;
     private final AccountRepository accountRepository;
-    private final OrganizationRepository organizationRepository;
     private final TaskRepository taskRepository;
     private final WorkSlotRepository workSlotRepository;
     private final TaskService taskService;
@@ -78,62 +69,56 @@ public class TestController {
     @Transactional
     public SeedDataResponse seedDatabase() {
         Account account = syncSeedAccount();
+        Identity identity = account.getIdentity();
         clearSeedData(account);
 
-        List<Organization> organizations = devAuthProperties.organizations().stream()
-            .map(this::getOrganization)
-            .toList();
+        List<String> organizations = devAuthProperties.organizations();
         ZoneId zone = ZoneId.systemDefault();
         LocalDate startDate = LocalDate.now(zone).plusDays(1);
 
-        List<Task> tasks = createTasks(account, organizations, startDate, zone);
-        List<WorkSlot> workSlots = createWorkSlots(account, organizations, startDate, zone);
+        List<Task> tasks = createTasks(identity, organizations, startDate, zone);
+        List<WorkSlot> workSlots = createWorkSlots(identity, organizations, startDate, zone);
 
         return new SeedDataResponse(
             devAuthProperties.subject(),
             devAuthProperties.token(),
             account.getIdentity().getId(),
             account.getId(),
-            organizations.stream().map(Organization::getId).toList(),
+            organizations,
             tasks.stream().map(Task::getId).toList(),
             workSlots.stream().map(WorkSlot::getId).toList()
         );
     }
 
     private Account syncSeedAccount() {
-        accountService.syncAccount(devAuthProperties.subject(), "", devAuthProperties.organizations());
+        accountService.syncAccount(devAuthProperties.subject());
         return accountRepository.findBySubject(devAuthProperties.subject())
             .orElseThrow(() -> new IllegalStateException("Seed account was not created"));
-    }
-
-    private Organization getOrganization(String name) {
-        return organizationRepository.findByName(name)
-            .orElseThrow(() -> new IllegalStateException("Seed organization was not created: " + name));
     }
 
     private void clearSeedData(Account account) {
         long identityId = account.getIdentity().getId();
 
-        List<WorkSlot> workSlots = workSlotRepository.findByAccountIdentityId(identityId);
+        List<WorkSlot> workSlots = workSlotRepository.findByIdentityId(identityId);
         workSlotRepository.deleteAll(workSlots);
         workSlotRepository.flush();
 
-        List<Task> tasks = List.copyOf(taskRepository.findByAccountIdentityId(identityId));
+        List<Task> tasks = List.copyOf(taskRepository.findByIdentityId(identityId));
         for (Task task : tasks) {
             taskService.deleteTask(identityId, task.getId());
         }
     }
 
-    private List<Task> createTasks(Account account, List<Organization> organizations, LocalDate startDate, ZoneId zone) {
-        Organization organization = organizations.getFirst();
+    private List<Task> createTasks(Identity identity, List<String> organizations, LocalDate startDate, ZoneId zone) {
+        String organization = organizations.getFirst();
         List<Task> tasks = new ArrayList<>();
 
         tasks.add(taskService.createStaticTask(staticTask(
-            account,
+            identity,
             organization,
             "Daily standup",
             "Recurring team check-in for local development data.",
-            1,
+            Task.Difficulty.TRIVIAL,
             at(startDate, 9, 0, zone),
             at(startDate, 9, 30, zone),
             "FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR",
@@ -143,11 +128,11 @@ public class TestController {
         )));
 
         tasks.add(taskService.createStaticTask(staticTask(
-            account,
+            identity,
             organization,
             "Architecture review",
             "A one-off blocker for validating the scheduling flow.",
-            3,
+            Task.Difficulty.HARD,
             at(startDate.plusDays(2), 14, 0, zone),
             at(startDate.plusDays(2), 15, 30, zone),
             "FREQ=DAILY;COUNT=1",
@@ -157,11 +142,11 @@ public class TestController {
         )));
 
         DynamicTask planningView = taskService.createDynamicTask(dynamicTask(
-            account,
+            identity,
             organization,
             "Implement planning view",
             "Build the first pass of the planning timeline.",
-            4,
+            Task.Difficulty.TRIVIAL,
             at(startDate, 8, 0, zone),
             at(startDate.plusDays(14), 18, 0, zone),
             Duration.ofHours(8),
@@ -178,11 +163,11 @@ public class TestController {
         tasks.add(planningView);
 
         DynamicTask releaseNotes = dynamicTask(
-            account,
+            identity,
             organization,
             "Write release notes",
             "Summarize the local seed workflow and planning changes.",
-            2,
+            Task.Difficulty.TRIVIAL,
             at(startDate, 8, 0, zone),
             at(startDate.plusDays(14), 18, 0, zone),
             Duration.ofHours(2),
@@ -200,11 +185,11 @@ public class TestController {
     }
 
     private StaticTask staticTask(
-        Account account,
-        Organization organization,
+        Identity identity,
+        String organization,
         String name,
         String description,
-        int difficulty,
+        Task.Difficulty difficulty,
         Instant startAt,
         Instant endAt,
         String rrule,
@@ -212,18 +197,18 @@ public class TestController {
         String... labels
     ) {
         StaticTask task = new StaticTask();
-        applyTaskFields(task, account, organization, name, description, difficulty, startAt, endAt, labels);
+        applyTaskFields(task, identity, organization, name, description, difficulty, startAt, endAt, labels);
         task.setRrule(rrule);
         task.setIsBlocker(isBlocker);
         return task;
     }
 
     private DynamicTask dynamicTask(
-        Account account,
-        Organization organization,
+        Identity identity,
+        String organization,
         String name,
         String description,
-        int difficulty,
+        Task.Difficulty difficulty,
         Instant startAt,
         Instant endAt,
         Duration duration,
@@ -234,7 +219,7 @@ public class TestController {
         String... labels
     ) {
         DynamicTask task = new DynamicTask();
-        applyTaskFields(task, account, organization, name, description, difficulty, startAt, endAt, labels);
+        applyTaskFields(task, identity, organization, name, description, difficulty, startAt, endAt, labels);
         task.setDuration(duration);
         task.setElapsed(elapsed);
         task.setMinScopeDuration(minScopeDuration);
@@ -247,17 +232,17 @@ public class TestController {
 
     private void applyTaskFields(
         Task task,
-        Account account,
-        Organization organization,
+        Identity identity,
+        String organization,
         String name,
         String description,
-        int difficulty,
+        Task.Difficulty difficulty,
         Instant startAt,
         Instant endAt,
         String... labels
     ) {
-        task.setAccount(account);
-        task.setOrganization(organization);
+        task.setIdentity(identity);
+        task.setOrganizationId(organization);
         task.setName(name);
         task.setDescription(description);
         task.setDifficulty(difficulty);
@@ -289,7 +274,7 @@ public class TestController {
         return scopes;
     }
 
-    private void validateOrganizationsForWorkSlots(List<Organization> organizations) {
+    private void validateOrganizationsForWorkSlots(List<String> organizations) {
         if (organizations == null || organizations.size() < 2) {
             throw new org.springframework.web.server.ResponseStatusException(
                 HttpStatus.BAD_REQUEST,
@@ -298,32 +283,32 @@ public class TestController {
         }
     }
 
-    private List<WorkSlot> createWorkSlots(Account account, List<Organization> organizations, LocalDate startDate, ZoneId zone) {
+    private List<WorkSlot> createWorkSlots(Identity identity, List<String> organizations, LocalDate startDate, ZoneId zone) {
         validateOrganizationsForWorkSlots(organizations);
-        Organization privateOrganization = organizations.get(0);
-        Organization localOrganization = organizations.get(1);
+        String privateOrganization = organizations.get(0);
+        String localOrganization = organizations.get(1);
 
         return List.of(
             workSlotService.createWorkSlot(workSlot(
-                account,
+                identity,
                 privateOrganization,
                 at(startDate, 10, 0, zone),
                 at(startDate, 12, 0, zone)
             )),
             workSlotService.createWorkSlot(workSlot(
-                account,
+                identity,
                 localOrganization,
                 at(startDate, 13, 0, zone),
                 at(startDate, 16, 0, zone)
             )),
             workSlotService.createWorkSlot(workSlot(
-                account,
+                identity,
                 localOrganization,
                 at(startDate.plusDays(1), 9, 0, zone),
                 at(startDate.plusDays(1), 12, 30, zone)
             )),
             workSlotService.createWorkSlot(workSlot(
-                account,
+                identity,
                 privateOrganization,
                 at(startDate.plusDays(2), 14, 0, zone),
                 at(startDate.plusDays(2), 17, 0, zone)
@@ -331,10 +316,10 @@ public class TestController {
         );
     }
 
-    private WorkSlot workSlot(Account account, Organization organization, Instant startAt, Instant endAt) {
+    private WorkSlot workSlot(Identity identity, String organization, Instant startAt, Instant endAt) {
         WorkSlot workSlot = new WorkSlot();
-        workSlot.setAccount(account);
-        workSlot.setOrganization(organization);
+        workSlot.setIdentity(identity);
+        workSlot.setOrganizationId(organization);
         workSlot.setStartAt(startAt);
         workSlot.setEndAt(endAt);
         return workSlot;
@@ -352,7 +337,7 @@ public class TestController {
         String devBearerToken,
         Long identityId,
         Long accountId,
-        List<Long> organizationIds,
+        List<String> organizationIds,
         List<Long> taskIds,
         List<Long> workSlotIds
     ) {

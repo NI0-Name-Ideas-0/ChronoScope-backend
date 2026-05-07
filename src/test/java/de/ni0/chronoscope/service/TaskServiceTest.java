@@ -5,9 +5,12 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -21,7 +24,7 @@ import de.ni0.chronoscope.exception.ResourceNotFoundException;
 import de.ni0.chronoscope.model.Account;
 import de.ni0.chronoscope.model.DynamicTask;
 import de.ni0.chronoscope.model.Identity;
-import de.ni0.chronoscope.model.Organization;
+import de.ni0.chronoscope.model.Label;
 import de.ni0.chronoscope.model.StaticTask;
 import de.ni0.chronoscope.model.Task;
 import de.ni0.chronoscope.repository.TaskRepository;
@@ -31,108 +34,100 @@ class TaskServiceTest {
 
     @Mock
     private TaskRepository taskRepository;
+    
+    @Mock
+    private KeycloakService keycloakService;
 
     private static void populateValidStaticFields(StaticTask task) {
         task.setName("Valid static task");
         task.setDescription("Valid static description");
-        task.setDifficulty(3);
+        task.setDifficulty(Task.Difficulty.TRIVIAL);
         task.setStartAt(Instant.parse("2026-04-20T09:00:00Z"));
         task.setEndAt(Instant.parse("2026-04-20T10:00:00Z"));
         task.setRrule("FREQ=DAILY");
-        task.setOrganization(organization(1L));
+        task.setOrganizationId(UUID.randomUUID().toString());
         task.setIsBlocker(false);
     }
 
     private static void populateValidDynamicFields(DynamicTask task) {
         task.setName("Valid dynamic task");
         task.setDescription("Valid dynamic description");
-        task.setDifficulty(3);
+        task.setDifficulty(Task.Difficulty.TRIVIAL);
         task.setStartAt(Instant.parse("2026-04-20T09:00:00Z"));
         task.setEndAt(Instant.parse("2026-04-21T10:00:00Z"));
         task.setDuration(Duration.ofMinutes(60));
         task.setElapsed(Duration.ZERO);
         task.setMinScopeDuration(Duration.ofMinutes(30));
         task.setMaxScopeDuration(Duration.ofMinutes(40));
-        task.setOrganization(organization(1L));
+        task.setOrganizationId(UUID.randomUUID().toString());
     }
-
-    private static Organization organization(Long id) {
-        Organization organization = new Organization();
-        organization.setId(id);
-        return organization;
-    }
-
-    @Mock
-    private AccountService accountService;
 
     @Test
     void getTasksForIdentity_ReturnsAllTasksFromLinkedAccounts() {
-        TaskService taskService = new TaskService(taskRepository, accountService);
+        TaskService taskService = new TaskService(taskRepository, keycloakService);
         long identityId = 42L;
         List<Task> expectedTasks = List.of();
 
-        when(taskRepository.findByAccountIdentityId(identityId)).thenReturn(expectedTasks);
-        when(taskRepository.findDynamicTasksByAccountIdentityId(identityId)).thenReturn(List.of());
+        when(taskRepository.findByIdentityId(identityId)).thenReturn(expectedTasks);
 
         List<Task> result = taskService.getTasksForIdentity(identityId);
 
         assertEquals(expectedTasks, result);
-        verify(taskRepository).findByAccountIdentityId(identityId);
-        verify(taskRepository).findDynamicTasksByAccountIdentityId(identityId);
+        verify(taskRepository).findByIdentityId(identityId);
     }
 
     @Test
     void getTaskForIdentity_ReturnsTaskWhenFound() {
-        TaskService taskService = new TaskService(taskRepository, accountService);
+        TaskService taskService = new TaskService(taskRepository, keycloakService);
         long identityId = 42L;
         long taskId = 101L;
         Task expectedTask = new StaticTask();
         expectedTask.setId(taskId);
 
-        when(taskRepository.findByIdAndAccountIdentityId(taskId, identityId)).thenReturn(Optional.of(expectedTask));
+        when(taskRepository.findByIdAndIdentityId(taskId, identityId)).thenReturn(Optional.of(expectedTask));
 
         Task result = taskService.getTaskForIdentity(identityId, taskId);
 
         assertEquals(expectedTask, result);
-        verify(taskRepository).findByIdAndAccountIdentityId(taskId, identityId);
+        verify(taskRepository).findByIdAndIdentityId(taskId, identityId);
     }
 
     @Test
     void getTaskForIdentity_ThrowsWhenNotFound() {
-        TaskService taskService = new TaskService(taskRepository, accountService);
+        TaskService taskService = new TaskService(taskRepository, keycloakService);
         long identityId = 42L;
         long taskId = 101L;
 
-        when(taskRepository.findByIdAndAccountIdentityId(taskId, identityId)).thenReturn(Optional.empty());
+        when(taskRepository.findByIdAndIdentityId(taskId, identityId)).thenReturn(Optional.empty());
 
         ResourceNotFoundException ignored = assertThrows(ResourceNotFoundException.class, () -> taskService.getTaskForIdentity(identityId, taskId));
         assertEquals(ResourceNotFoundException.class, ignored.getClass());
 
-        verify(taskRepository).findByIdAndAccountIdentityId(taskId, identityId);
+        verify(taskRepository).findByIdAndIdentityId(taskId, identityId);
     }
 
     @Test
     void deleteTask_DeletesStaticTaskByIdentityScopedLookup() {
-        TaskService taskService = new TaskService(taskRepository, accountService);
+        TaskService taskService = new TaskService(taskRepository, keycloakService);
         long identityId = 42L;
         long taskId = 10L;
 
         StaticTask task = new StaticTask();
         task.setId(taskId);
 
-        when(taskRepository.findByIdAndAccountIdentityId(taskId, identityId)).thenReturn(Optional.of(task));
+        when(taskRepository.findByIdAndIdentityId(taskId, identityId)).thenReturn(Optional.of(task));
 
         taskService.deleteTask(identityId, taskId);
 
-        verify(taskRepository).findByIdAndAccountIdentityId(taskId, identityId);
-        verify(taskRepository, never()).findDependentsByDependencyIdAndAccountIdentityId(taskId, identityId);
+        verify(taskRepository).findByIdAndIdentityId(taskId, identityId);
+        verify(taskRepository, never()).findDependentsByDependencyIdAndIdentityId(taskId, identityId);
         verify(taskRepository).delete(task);
         verify(taskRepository).flush();
     }
 
     @Test
     void deleteTask_DeletesDynamicTaskAndClearsDependencyRelations() {
-        TaskService taskService = new TaskService(taskRepository, accountService);
+        TaskService taskService = new TaskService(taskRepository, keycloakService);
         long identityId = 42L;
         long taskId = 11L;
 
@@ -156,8 +151,8 @@ class TaskServiceTest {
         task.setDependencies(new java.util.HashSet<>(task.getDependencies()));
         task.setDependents(new java.util.HashSet<>(task.getDependents()));
 
-        when(taskRepository.findByIdAndAccountIdentityId(taskId, identityId)).thenReturn(Optional.of(task));
-        when(taskRepository.findDependentsByDependencyIdAndAccountIdentityId(taskId, identityId)).thenReturn(List.of(dependent));
+        when(taskRepository.findByIdAndIdentityId(taskId, identityId)).thenReturn(Optional.of(task));
+        when(taskRepository.findDependentsByDependencyIdAndIdentityId(taskId, identityId)).thenReturn(List.of(dependent));
 
         taskService.deleteTask(identityId, taskId);
 
@@ -165,41 +160,37 @@ class TaskServiceTest {
         assertEquals(0, task.getDependents().size());
         assertEquals(0, predecessor.getDependents().size());
         assertEquals(0, dependent.getDependencies().size());
-        verify(taskRepository).findDependentsByDependencyIdAndAccountIdentityId(taskId, identityId);
+        verify(taskRepository).findDependentsByDependencyIdAndIdentityId(taskId, identityId);
         verify(taskRepository).delete(task);
         verify(taskRepository).flush();
     }
 
     @Test
     void deleteTask_ThrowsWhenTaskNotFoundForIdentity() {
-        TaskService taskService = new TaskService(taskRepository, accountService);
+        TaskService taskService = new TaskService(taskRepository, keycloakService);
         long identityId = 42L;
         long taskId = 999L;
 
-        when(taskRepository.findByIdAndAccountIdentityId(taskId, identityId)).thenReturn(Optional.empty());
+        when(taskRepository.findByIdAndIdentityId(taskId, identityId)).thenReturn(Optional.empty());
 
         ResourceNotFoundException ignored = assertThrows(ResourceNotFoundException.class, () -> taskService.deleteTask(identityId, taskId));
         assertEquals(ResourceNotFoundException.class, ignored.getClass());
 
-        verify(taskRepository).findByIdAndAccountIdentityId(taskId, identityId);
-        verify(taskRepository, never()).findDependentsByDependencyIdAndAccountIdentityId(taskId, identityId);
+        verify(taskRepository).findByIdAndIdentityId(taskId, identityId);
+        verify(taskRepository, never()).findDependentsByDependencyIdAndIdentityId(taskId, identityId);
         verify(taskRepository, never()).delete(org.mockito.ArgumentMatchers.any());
         verify(taskRepository, never()).flush();
     }
 
     @Test
     void createDynamicTask_AllowsDependenciesFromDifferentAccountWithSameIdentity() {
-        TaskService taskService = new TaskService(taskRepository, accountService);
+        TaskService taskService = new TaskService(taskRepository, keycloakService);
 
         Identity identity = new Identity();
         identity.setId(42L);
 
-        Account sourceAccount = new Account();
-        sourceAccount.setId(10L);
-        sourceAccount.setIdentity(identity);
-
         DynamicTask newTask = new DynamicTask();
-        newTask.setAccount(sourceAccount);
+        newTask.setIdentity(identity);
         populateValidDynamicFields(newTask);
 
         DynamicTask dependency = new DynamicTask();
@@ -212,7 +203,7 @@ class TaskServiceTest {
 
         DynamicTask persistedDependency = new DynamicTask();
         persistedDependency.setId(100L);
-        persistedDependency.setAccount(dependencyAccount);
+        persistedDependency.setIdentity(dependencyAccount.getIdentity());
 
         when(taskRepository.findAllById(Set.of(100L))).thenReturn(List.of(persistedDependency));
         when(taskRepository.save(newTask)).thenReturn(newTask);
@@ -226,12 +217,12 @@ class TaskServiceTest {
 
     @Test
     void createStaticTask_AllowsBlockerWithoutOrganization() {
-        TaskService taskService = new TaskService(taskRepository, accountService);
+        TaskService taskService = new TaskService(taskRepository, keycloakService);
 
         StaticTask newTask = new StaticTask();
         populateValidStaticFields(newTask);
         newTask.setIsBlocker(true);
-        newTask.setOrganization(null);
+        newTask.setOrganizationId(null);
 
         when(taskRepository.save(newTask)).thenReturn(newTask);
 
@@ -243,12 +234,12 @@ class TaskServiceTest {
 
     @Test
     void createStaticTask_ThrowsWhenNonBlockerHasNoOrganization() {
-        TaskService taskService = new TaskService(taskRepository, accountService);
+        TaskService taskService = new TaskService(taskRepository, keycloakService);
 
         StaticTask newTask = new StaticTask();
         populateValidStaticFields(newTask);
         newTask.setIsBlocker(false);
-        newTask.setOrganization(null);
+        newTask.setOrganizationId(null);
 
         InvalidRequestException exception = assertThrows(
             InvalidRequestException.class,
@@ -261,11 +252,11 @@ class TaskServiceTest {
 
     @Test
     void createDynamicTask_ThrowsWhenOrganizationMissing() {
-        TaskService taskService = new TaskService(taskRepository, accountService);
+        TaskService taskService = new TaskService(taskRepository, keycloakService);
 
         DynamicTask newTask = new DynamicTask();
         populateValidDynamicFields(newTask);
-        newTask.setOrganization(null);
+        newTask.setOrganizationId(null);
 
         InvalidRequestException exception = assertThrows(
             InvalidRequestException.class,
@@ -278,23 +269,15 @@ class TaskServiceTest {
 
     @Test
     void createDynamicTask_ThrowsWhenDependencyBelongsToDifferentIdentity() {
-        TaskService taskService = new TaskService(taskRepository, accountService);
+        TaskService taskService = new TaskService(taskRepository, keycloakService);
 
         Identity sourceIdentity = new Identity();
         sourceIdentity.setId(42L);
         Identity dependencyIdentity = new Identity();
         dependencyIdentity.setId(99L);
 
-        Account sourceAccount = new Account();
-        sourceAccount.setId(10L);
-        sourceAccount.setIdentity(sourceIdentity);
-
-        Account dependencyAccount = new Account();
-        dependencyAccount.setId(20L);
-        dependencyAccount.setIdentity(dependencyIdentity);
-
         DynamicTask newTask = new DynamicTask();
-        newTask.setAccount(sourceAccount);
+        newTask.setIdentity(sourceIdentity);
         populateValidDynamicFields(newTask);
 
         DynamicTask dependencyReference = new DynamicTask();
@@ -303,7 +286,7 @@ class TaskServiceTest {
 
         DynamicTask persistedDependency = new DynamicTask();
         persistedDependency.setId(100L);
-        persistedDependency.setAccount(dependencyAccount);
+        persistedDependency.setIdentity(dependencyIdentity);
 
         when(taskRepository.findAllById(Set.of(100L))).thenReturn(List.of(persistedDependency));
 
@@ -319,7 +302,7 @@ class TaskServiceTest {
 
     @Test
     void updateStaticTask_ThrowsWhenPathIdDoesNotMatchTaskId() {
-        TaskService taskService = new TaskService(taskRepository, accountService);
+        TaskService taskService = new TaskService(taskRepository, keycloakService);
 
         StaticTask task = new StaticTask();
         task.setId(100L);
@@ -334,26 +317,181 @@ class TaskServiceTest {
     }
 
     @Test
-    void updateDynamicTask_ValidatesDependenciesBeforeSave() {
-        TaskService taskService = new TaskService(taskRepository, accountService);
+    void updateDynamicTask_ThrowsWhenPathIdDoesNotMatchTaskId() {
+        TaskService taskService = new TaskService(taskRepository, keycloakService);
+
+        DynamicTask task = new DynamicTask();
+        task.setId(100L);
+
+        InvalidRequestException exception = assertThrows(
+            InvalidRequestException.class,
+            () -> taskService.updateDynamicTask(101L, task)
+        );
+
+        assertEquals("Task id in path does not match target task", exception.getMessage());
+        verify(taskRepository, never()).findById(org.mockito.ArgumentMatchers.anyLong());
+    }
+
+    @Test
+    void updateDynamicTask_ThrowsWhenPersistedTaskIsStatic() {
+        TaskService taskService = new TaskService(taskRepository, keycloakService);
 
         Identity identity = new Identity();
         identity.setId(42L);
 
-        Account account = new Account();
-        account.setId(10L);
-        account.setIdentity(identity);
+        DynamicTask task = new DynamicTask();
+        task.setId(200L);
+        task.setIdentity(identity);
+        populateValidDynamicFields(task);
+
+        StaticTask persistedTask = new StaticTask();
+        persistedTask.setId(200L);
+
+        when(taskRepository.findById(200L)).thenReturn(Optional.of(persistedTask));
+
+        InvalidRequestException exception = assertThrows(
+            InvalidRequestException.class,
+            () -> taskService.updateDynamicTask(200L, task)
+        );
+
+        assertEquals("Task type mismatch: expected dynamic task", exception.getMessage());
+        verify(taskRepository, never()).flush();
+    }
+
+    @Test
+    void updateDynamicTask_ChangesOrganizationAndWiresLabels() {
+        TaskService taskService = new TaskService(taskRepository, keycloakService);
+
+        Identity identity = new Identity();
+        identity.setId(42L);
+
+        Label label = new Label();
+        label.setName("backend");
+
+        DynamicTask task = new DynamicTask();
+        task.setId(200L);
+        task.setIdentity(identity);
+        populateValidDynamicFields(task);
+        task.setLabels(new java.util.ArrayList<>(List.of(label)));
+        task.setScopes(new java.util.ArrayList<>());
+        task.setDependencies(new java.util.HashSet<>());
+
+        DynamicTask managedTask = new DynamicTask();
+        managedTask.setId(200L);
+        managedTask.setIdentity(identity);
+        populateValidDynamicFields(managedTask);
+        managedTask.setOrganizationId("old-org");
+        managedTask.setLabels(new java.util.ArrayList<>());
+        managedTask.setScopes(new java.util.ArrayList<>());
+        managedTask.setDependencies(new java.util.HashSet<>());
+        managedTask.setDependents(new java.util.HashSet<>());
+
+        when(taskRepository.findById(200L)).thenReturn(Optional.of(managedTask));
+
+        DynamicTask result = taskService.updateDynamicTask(200L, task, null, "new-org");
+
+        assertEquals(managedTask, result);
+        assertEquals("new-org", managedTask.getOrganizationId());
+        assertSame(managedTask, managedTask.getLabels().getFirst().getTask());
+        verify(keycloakService).validateIdentityOrgAccess(identity, "new-org");
+        verify(taskRepository).flush();
+    }
+
+    @Test
+    void updateStaticTask_ChangesOrganizationAndWiresLabels() {
+        TaskService taskService = new TaskService(taskRepository, keycloakService);
+
+        Identity identity = new Identity();
+        identity.setId(42L);
+
+        Label label = new Label();
+        label.setName("ops");
+
+        StaticTask task = new StaticTask();
+        task.setId(300L);
+        task.setIdentity(identity);
+        populateValidStaticFields(task);
+        task.setLabels(new java.util.ArrayList<>(List.of(label)));
+
+        StaticTask managedTask = new StaticTask();
+        managedTask.setId(300L);
+        managedTask.setIdentity(identity);
+        populateValidStaticFields(managedTask);
+        managedTask.setOrganizationId("old-org");
+        managedTask.setLabels(new java.util.ArrayList<>());
+
+        when(taskRepository.findById(300L)).thenReturn(Optional.of(managedTask));
+
+        StaticTask result = taskService.updateStaticTask(300L, task, "new-org");
+
+        assertEquals(managedTask, result);
+        assertEquals("new-org", managedTask.getOrganizationId());
+        assertSame(managedTask, managedTask.getLabels().getFirst().getTask());
+        verify(keycloakService).validateIdentityOrgAccess(identity, "new-org");
+        verify(taskRepository).flush();
+    }
+
+    @Test
+    void createDynamicTask_RejectsMissingOrNonDynamicDependencies() {
+        TaskService taskService = new TaskService(taskRepository, keycloakService);
+
+        Identity identity = new Identity();
+        identity.setId(42L);
+
+        DynamicTask missingDependencyTask = new DynamicTask();
+        missingDependencyTask.setIdentity(identity);
+        populateValidDynamicFields(missingDependencyTask);
+        DynamicTask missingDependencyRef = new DynamicTask();
+        missingDependencyRef.setId(404L);
+        missingDependencyTask.setDependencies(new java.util.HashSet<>(Set.of(missingDependencyRef)));
+
+        when(taskRepository.findAllById(Set.of(404L))).thenReturn(List.of());
+
+        InvalidRequestException missingException = assertThrows(
+            InvalidRequestException.class,
+            () -> taskService.createDynamicTask(missingDependencyTask)
+        );
+        assertEquals("Dependency task not found: 404", missingException.getMessage());
+
+        DynamicTask staticDependencyTask = new DynamicTask();
+        staticDependencyTask.setIdentity(identity);
+        populateValidDynamicFields(staticDependencyTask);
+        DynamicTask staticDependencyRef = new DynamicTask();
+        staticDependencyRef.setId(405L);
+        staticDependencyTask.setDependencies(new java.util.HashSet<>(Set.of(staticDependencyRef)));
+
+        StaticTask persistedStaticDependency = new StaticTask();
+        persistedStaticDependency.setId(405L);
+        persistedStaticDependency.setIdentity(identity);
+        when(taskRepository.findAllById(Set.of(405L))).thenReturn(List.of(persistedStaticDependency));
+
+        InvalidRequestException staticException = assertThrows(
+            InvalidRequestException.class,
+            () -> taskService.createDynamicTask(staticDependencyTask)
+        );
+        assertEquals("Dependency task must be a dynamic task: 405", staticException.getMessage());
+
+        verify(taskRepository, never()).save(missingDependencyTask);
+        verify(taskRepository, never()).save(staticDependencyTask);
+    }
+
+    @Test
+    void updateDynamicTask_ValidatesDependenciesBeforeSave() {
+        TaskService taskService = new TaskService(taskRepository, keycloakService);
+
+        Identity identity = new Identity();
+        identity.setId(42L);
 
         DynamicTask dependencyRef = new DynamicTask();
         dependencyRef.setId(500L);
 
         DynamicTask dependency = new DynamicTask();
         dependency.setId(500L);
-        dependency.setAccount(account);
+        dependency.setIdentity(identity);
 
         DynamicTask task = new DynamicTask();
         task.setId(200L);
-        task.setAccount(account);
+        task.setIdentity(identity);
         populateValidDynamicFields(task);
         task.setDependencies(new java.util.HashSet<>(Set.of(dependencyRef)));
         task.setLabels(new java.util.ArrayList<>());
@@ -361,7 +499,7 @@ class TaskServiceTest {
 
         DynamicTask managedTask = new DynamicTask();
         managedTask.setId(200L);
-        managedTask.setAccount(account);
+        managedTask.setIdentity(identity);
         populateValidDynamicFields(managedTask);
         managedTask.setDependencies(new java.util.HashSet<>(Set.of(dependencyRef)));
         managedTask.setDependents(new java.util.HashSet<>());
@@ -380,50 +518,8 @@ class TaskServiceTest {
     }
 
     @Test
-    void updateDynamicTask_PersistsAccountChanges() {
-        TaskService taskService = new TaskService(taskRepository, accountService);
-
-        Identity identity = new Identity();
-        identity.setId(42L);
-
-        Account currentAccount = new Account();
-        currentAccount.setId(10L);
-        currentAccount.setIdentity(identity);
-
-        Account newAccount = new Account();
-        newAccount.setId(11L);
-        newAccount.setIdentity(identity);
-
-        DynamicTask task = new DynamicTask();
-        task.setId(210L);
-        task.setAccount(newAccount);
-        populateValidDynamicFields(task);
-        task.setDependencies(new java.util.HashSet<>());
-        task.setLabels(new java.util.ArrayList<>());
-        task.setScopes(new java.util.ArrayList<>());
-
-        DynamicTask managedTask = new DynamicTask();
-        managedTask.setId(210L);
-        managedTask.setAccount(currentAccount);
-        populateValidDynamicFields(managedTask);
-        managedTask.setDependencies(new java.util.HashSet<>());
-        managedTask.setDependents(new java.util.HashSet<>());
-        managedTask.setLabels(new java.util.ArrayList<>());
-        managedTask.setScopes(new java.util.ArrayList<>());
-
-        when(taskRepository.findById(210L)).thenReturn(Optional.of(managedTask));
-
-        DynamicTask result = taskService.updateDynamicTask(210L, task);
-
-        assertEquals(managedTask, result);
-        assertEquals(newAccount, managedTask.getAccount());
-        verify(taskRepository).findById(210L);
-        verify(taskRepository).flush();
-    }
-
-    @Test
     void updateStaticTask_PersistsAndFlushes() {
-        TaskService taskService = new TaskService(taskRepository, accountService);
+        TaskService taskService = new TaskService(taskRepository, keycloakService);
 
         StaticTask task = new StaticTask();
         task.setId(100L);
@@ -445,125 +541,14 @@ class TaskServiceTest {
     }
 
     @Test
-    void updateStaticTask_ValidatesOrganizationBeforeAssigning() {
-        TaskService taskService = new TaskService(taskRepository, accountService);
-
-        Account account = new Account();
-        account.setId(10L);
-
-        Organization organization = new Organization();
-        organization.setId(7L);
-
-        StaticTask task = new StaticTask();
-        task.setId(100L);
-        populateValidStaticFields(task);
-        task.setLabels(new java.util.ArrayList<>());
-
-        StaticTask managedTask = new StaticTask();
-        managedTask.setId(100L);
-        managedTask.setAccount(account);
-        populateValidStaticFields(managedTask);
-        managedTask.setLabels(new java.util.ArrayList<>());
-
-        when(taskRepository.findById(100L)).thenReturn(Optional.of(managedTask));
-        when(accountService.resolveOrganizationForAccount(10L, 7L)).thenReturn(organization);
-
-        StaticTask result = taskService.updateStaticTask(100L, task, 7L);
-
-        assertEquals(managedTask, result);
-        assertEquals(organization, managedTask.getOrganization());
-        verify(taskRepository).findById(100L);
-        verify(accountService).resolveOrganizationForAccount(10L, 7L);
-        verify(taskRepository).flush();
-    }
-
-    @Test
-    void updateDynamicTask_ValidatesOrganizationBeforeAssigning() {
-        TaskService taskService = new TaskService(taskRepository, accountService);
-
-        Account account = new Account();
-        account.setId(10L);
-
-        Organization organization = new Organization();
-        organization.setId(7L);
-
-        DynamicTask task = new DynamicTask();
-        task.setId(200L);
-        populateValidDynamicFields(task);
-        task.setLabels(new java.util.ArrayList<>());
-        task.setScopes(new java.util.ArrayList<>());
-
-        DynamicTask managedTask = new DynamicTask();
-        managedTask.setId(200L);
-        managedTask.setAccount(account);
-        populateValidDynamicFields(managedTask);
-        managedTask.setDependencies(new java.util.HashSet<>());
-        managedTask.setDependents(new java.util.HashSet<>());
-        managedTask.setLabels(new java.util.ArrayList<>());
-        managedTask.setScopes(new java.util.ArrayList<>());
-
-        when(taskRepository.findById(200L)).thenReturn(Optional.of(managedTask));
-        when(accountService.resolveOrganizationForAccount(10L, 7L)).thenReturn(organization);
-
-        DynamicTask result = taskService.updateDynamicTask(200L, task, null, 7L);
-
-        assertEquals(managedTask, result);
-        assertEquals(organization, managedTask.getOrganization());
-        verify(taskRepository).findById(200L);
-        verify(accountService).resolveOrganizationForAccount(10L, 7L);
-        verify(taskRepository).flush();
-    }
-
-    @Test
-    void updateStaticTask_PersistsAccountChanges() {
-        TaskService taskService = new TaskService(taskRepository, accountService);
-
-        Identity identity = new Identity();
-        identity.setId(42L);
-
-        Account currentAccount = new Account();
-        currentAccount.setId(10L);
-        currentAccount.setIdentity(identity);
-
-        Account newAccount = new Account();
-        newAccount.setId(11L);
-        newAccount.setIdentity(identity);
-
-        StaticTask task = new StaticTask();
-        task.setId(110L);
-        task.setAccount(newAccount);
-        populateValidStaticFields(task);
-        task.setLabels(new java.util.ArrayList<>());
-
-        StaticTask managedTask = new StaticTask();
-        managedTask.setId(110L);
-        managedTask.setAccount(currentAccount);
-        populateValidStaticFields(managedTask);
-        managedTask.setLabels(new java.util.ArrayList<>());
-
-        when(taskRepository.findById(110L)).thenReturn(Optional.of(managedTask));
-
-        StaticTask result = taskService.updateStaticTask(110L, task);
-
-        assertEquals(managedTask, result);
-        assertEquals(newAccount, managedTask.getAccount());
-        verify(taskRepository).findById(110L);
-        verify(taskRepository).flush();
-    }
-
-    @Test
     void createDynamicTask_ThrowsWhenDependencyIdIsNull() {
-        TaskService taskService = new TaskService(taskRepository, accountService);
+        TaskService taskService = new TaskService(taskRepository, keycloakService);
 
         Identity identity = new Identity();
         identity.setId(42L);
-
-        Account sourceAccount = new Account();
-        sourceAccount.setId(10L);
-        sourceAccount.setIdentity(identity);
 
         DynamicTask newTask = new DynamicTask();
-        newTask.setAccount(sourceAccount);
+        newTask.setIdentity(identity);
         populateValidDynamicFields(newTask);
 
         DynamicTask dependencyWithoutId = new DynamicTask();
@@ -581,17 +566,13 @@ class TaskServiceTest {
 
     @Test
     void createDynamicTask_CapsDurationsToDuration_WhenMinOrMaxExceedDuration() {
-        TaskService taskService = new TaskService(taskRepository, accountService);
+        TaskService taskService = new TaskService(taskRepository, keycloakService);
 
         Identity identity = new Identity();
         identity.setId(42L);
 
-        Account account = new Account();
-        account.setId(10L);
-        account.setIdentity(identity);
-
         DynamicTask newTask = new DynamicTask();
-        newTask.setAccount(account);
+        newTask.setIdentity(identity);
         populateValidDynamicFields(newTask);
         newTask.setDuration(Duration.ofMinutes(8));
         newTask.setMinScopeDuration(Duration.ofMinutes(20));
@@ -610,17 +591,13 @@ class TaskServiceTest {
 
     @Test
     void createDynamicTask_ThrowsWhenMinScopeDurationBelowTenWithoutCapping() {
-        TaskService taskService = new TaskService(taskRepository, accountService);
+        TaskService taskService = new TaskService(taskRepository, keycloakService);
 
         Identity identity = new Identity();
         identity.setId(42L);
 
-        Account account = new Account();
-        account.setId(10L);
-        account.setIdentity(identity);
-
         DynamicTask newTask = new DynamicTask();
-        newTask.setAccount(account);
+        newTask.setIdentity(identity);
         populateValidDynamicFields(newTask);
         newTask.setDuration(Duration.ofMinutes(40));
         newTask.setMinScopeDuration(Duration.ofMinutes(9));
@@ -638,17 +615,13 @@ class TaskServiceTest {
 
     @Test
     void createDynamicTask_ThrowsWhenMaxScopeDurationExceedsNinety() {
-        TaskService taskService = new TaskService(taskRepository, accountService);
+        TaskService taskService = new TaskService(taskRepository, keycloakService);
 
         Identity identity = new Identity();
         identity.setId(42L);
 
-        Account account = new Account();
-        account.setId(10L);
-        account.setIdentity(identity);
-
         DynamicTask newTask = new DynamicTask();
-        newTask.setAccount(account);
+        newTask.setIdentity(identity);
         populateValidDynamicFields(newTask);
         newTask.setDuration(Duration.ofMinutes(120));
         newTask.setMinScopeDuration(Duration.ofMinutes(30));
@@ -666,17 +639,13 @@ class TaskServiceTest {
 
     @Test
     void createDynamicTask_ThrowsWhenGapIsLessThanFiveMinutesWithoutCapping() {
-        TaskService taskService = new TaskService(taskRepository, accountService);
+        TaskService taskService = new TaskService(taskRepository, keycloakService);
 
         Identity identity = new Identity();
         identity.setId(42L);
 
-        Account account = new Account();
-        account.setId(10L);
-        account.setIdentity(identity);
-
         DynamicTask newTask = new DynamicTask();
-        newTask.setAccount(account);
+        newTask.setIdentity(identity);
         populateValidDynamicFields(newTask);
         newTask.setDuration(Duration.ofMinutes(60));
         newTask.setMinScopeDuration(Duration.ofMinutes(30));
@@ -694,7 +663,7 @@ class TaskServiceTest {
 
     @Test
     void updateStaticTask_ThrowsWhenStartAtIsNotBeforeEndAt() {
-        TaskService taskService = new TaskService(taskRepository, accountService);
+        TaskService taskService = new TaskService(taskRepository, keycloakService);
 
         StaticTask task = new StaticTask();
         task.setId(120L);
@@ -721,18 +690,14 @@ class TaskServiceTest {
 
     @Test
     void updateDynamicTask_CapsMaxScopeDurationWhenDurationIsReduced() {
-        TaskService taskService = new TaskService(taskRepository, accountService);
+        TaskService taskService = new TaskService(taskRepository, keycloakService);
 
         Identity identity = new Identity();
         identity.setId(42L);
 
-        Account account = new Account();
-        account.setId(10L);
-        account.setIdentity(identity);
-
         DynamicTask task = new DynamicTask();
         task.setId(220L);
-        task.setAccount(account);
+        task.setIdentity(identity);
         populateValidDynamicFields(task);
         task.setDuration(Duration.ofMinutes(20));
         task.setMinScopeDuration(Duration.ofMinutes(15));
@@ -743,7 +708,7 @@ class TaskServiceTest {
 
         DynamicTask managedTask = new DynamicTask();
         managedTask.setId(220L);
-        managedTask.setAccount(account);
+        managedTask.setIdentity(identity);
         populateValidDynamicFields(managedTask);
         managedTask.setDependencies(new java.util.HashSet<>());
         managedTask.setDependents(new java.util.HashSet<>());

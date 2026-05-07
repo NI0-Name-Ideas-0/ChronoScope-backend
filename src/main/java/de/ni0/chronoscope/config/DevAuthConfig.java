@@ -61,7 +61,7 @@ final class DevLocalJwtDecoder implements JwtDecoder {
                 .header("alg", "none")
                 .claim("sub", properties.subject())
                 .claim("email", properties.mail())
-                .claim("organization", List.copyOf(properties.organizations()))
+                .claim("organizationId", List.copyOf(properties.organizations()))
                 .claim("groups", List.copyOf(properties.groups()))
                 .build();
         }

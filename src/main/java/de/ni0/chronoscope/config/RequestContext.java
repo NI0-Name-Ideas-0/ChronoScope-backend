@@ -2,6 +2,7 @@ package de.ni0.chronoscope.config;
 
 import java.util.List;
 
+import de.ni0.chronoscope.model.Account;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.annotation.RequestScope;
 
@@ -16,9 +17,5 @@ import lombok.Setter;
 @Getter
 @RequestScope
 public class RequestContext {
-    private long identityId;
-    private long accountId;
-    private String email;
-    private List<String> adminOrganizations = List.of();
-
+    private Account account;
 }

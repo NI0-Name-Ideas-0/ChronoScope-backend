@@ -1,7 +1,8 @@
 package de.ni0.chronoscope.controller;
 
+import de.ni0.chronoscope.config.RequestContext;
 import de.ni0.chronoscope.controller.dto.response.ScopeResponse;
-import de.ni0.chronoscope.exception.ApiNotImplementedException;
+import de.ni0.chronoscope.model.Identity;
 import de.ni0.chronoscope.service.ScopeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -25,6 +26,7 @@ import java.util.List;
 @RequestMapping("/v1/scopes")
 @RequiredArgsConstructor
 public class ScopeController {
+    private final RequestContext requestContext;
 
     private final ScopeService scopeService;
 
@@ -40,6 +42,9 @@ public class ScopeController {
     })
     @GetMapping
     public List<ScopeResponse> getScopes() {
-        throw new ApiNotImplementedException();
+        Identity identity = requestContext.getAccount().getIdentity();
+        return scopeService.getScopes(identity).stream().map(s ->
+            new ScopeResponse(s.getId(), s.getDynamicTask().getId(), s.getStartAt(), s.getEndAt())
+        ).toList();
     }
 }

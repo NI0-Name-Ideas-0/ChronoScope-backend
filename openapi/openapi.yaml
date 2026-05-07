@@ -12,6 +12,8 @@ security:
 tags:
 - description: "Create, read, update and delete tasks and their dependencies"
   name: Tasks
+- description: Gather information about organizations or modify them
+  name: Organization
 - description: Manage available work slots used by the planning algorithm
   name: Work Slots
 - description: Retrieve the current identity and manage account linking
@@ -23,9 +25,9 @@ tags:
 paths:
   /v1/identity:
     get:
-      description: "Retrieve information about the identity contained in the access\
-        \ token, including all linked accounts and organization names for which the\
-        \ authenticated account has admin privileges through /org-admin token groups."
+      description: "Retrieve information about the authenticated identity, including\
+        \ all linked accounts and the organizations for which the identity has admin\
+        \ privileges, as resolved server-side."
       operationId: getIdentity
       responses:
         "200":
@@ -105,6 +107,220 @@ paths:
       summary: Confirm account linking
       tags:
       - Identity
+  /v1/organizations/{organizationId}/invitations:
+    get:
+      description: Returns all pending invitations for the organization. The identity
+        must be an admin of the organization.
+      operationId: getInvitations
+      parameters:
+      - description: Organization ID
+        in: path
+        name: organizationId
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/OrganizationInvitationsResponse"
+          description: Invitations retrieved successfully
+        "401":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Missing or invalid token
+        "403":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Not an admin of the organization
+      summary: List organization invitations
+      tags:
+      - Organization
+  /v1/organizations/{organizationId}/invitations/{invitationId}:
+    delete:
+      description: Deletes a pending invitation. The identity must be an admin of
+        the organization.
+      operationId: deleteInvitation
+      parameters:
+      - description: Organization ID
+        in: path
+        name: organizationId
+        required: true
+        schema:
+          type: string
+      - description: Invitation ID
+        in: path
+        name: invitationId
+        required: true
+        schema:
+          type: string
+      responses:
+        "204":
+          description: Invitation deleted
+        "401":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Missing or invalid token
+        "403":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Not an admin of the organization
+      summary: Delete organization invitation
+      tags:
+      - Organization
+    put:
+      description: Resends an existing invitation email. The identity must be an admin
+        of the organization.
+      operationId: resendInvitation
+      parameters:
+      - description: Organization ID
+        in: path
+        name: organizationId
+        required: true
+        schema:
+          type: string
+      - description: Invitation ID
+        in: path
+        name: invitationId
+        required: true
+        schema:
+          type: string
+      responses:
+        "202":
+          description: Invitation resent
+        "401":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Missing or invalid token
+        "403":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Not an admin of the organization
+      summary: Resend organization invitation
+      tags:
+      - Organization
+  /v1/organizations/{organizationId}/members:
+    get:
+      description: Retrieves members of a specific organization.
+      operationId: getOrganizationMembers
+      parameters:
+      - in: path
+        name: organizationId
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/OrganizationMembersResponse"
+          description: Members retrieved successfully
+        "401":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Missing or invalid token
+        "403":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Not an admin of the organization
+      summary: Get Organization members
+      tags:
+      - Organization
+    post:
+      description: Sends an invitation email to the given address. The identity must
+        be an admin of the organization.
+      operationId: inviteUser
+      parameters:
+      - description: Organization ID
+        in: path
+        name: organizationId
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InviteUserRequest"
+        required: true
+      responses:
+        "202":
+          description: Invitation sent
+        "400":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Validation error
+        "401":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Missing or invalid token
+        "403":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Not an admin of the organization
+      summary: Invite user to organization
+      tags:
+      - Organization
+  /v1/organizations/{organizationId}/members/{id}:
+    delete:
+      description: Removes a member from the organization. The identity must be an
+        admin of the organization.
+      operationId: removeMember
+      parameters:
+      - description: Organization ID
+        in: path
+        name: organizationId
+        required: true
+        schema:
+          type: string
+      - description: User ID to remove
+        in: path
+        name: id
+        required: true
+        schema:
+          type: string
+      responses:
+        "204":
+          description: Member removed successfully
+        "401":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Missing or invalid token
+        "403":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Not an admin of the organization
+      summary: Remove organization member
+      tags:
+      - Organization
   /v1/plan:
     post:
       description: Run the planning algorithm for the given account. Returns planned
@@ -508,6 +724,10 @@ components:
         targetAccountId:
           type: integer
           format: int64
+      required:
+      - sourceAccountId
+      - status
+      - targetAccountId
     AccountLinkRequest:
       type: object
       properties:
@@ -526,18 +746,14 @@ components:
         identityId:
           type: integer
           format: int64
-        organizations:
-          type: array
-          items:
-            $ref: "#/components/schemas/OrganizationResponse"
+      required:
+      - id
+      - identityId
     DynamicTaskCreateRequest:
       allOf:
       - $ref: "#/components/schemas/TaskCreateRequest"
       - type: object
         properties:
-          accountId:
-            type: integer
-            format: int64
           dependencies:
             type: array
             items:
@@ -546,9 +762,13 @@ components:
           description:
             type: string
           difficulty:
-            type: integer
-            format: int32
-            maximum: 5
+            type: string
+            enum:
+            - TRIVIAL
+            - EASY
+            - MEDIUM
+            - HARD
+            - EXTREME
           duration:
             type: string
           endAt:
@@ -566,15 +786,14 @@ components:
             type: string
             minLength: 1
           organizationId:
-            type: integer
-            format: int64
+            type: string
+            minLength: 1
           startAt:
             type: string
             format: date-time
       description: Create request for a dynamic (schedulable) task with duration and
         scope constraints
       required:
-      - accountId
       - dependencies
       - description
       - difficulty
@@ -591,9 +810,6 @@ components:
       - $ref: "#/components/schemas/TaskResponse"
       - type: object
         properties:
-          accountId:
-            type: integer
-            format: int64
           dependencies:
             type: array
             items:
@@ -607,8 +823,13 @@ components:
           description:
             type: string
           difficulty:
-            type: integer
-            format: int32
+            type: string
+            enum:
+            - TRIVIAL
+            - EASY
+            - MEDIUM
+            - HARD
+            - EXTREME
           duration:
             type: string
           elapsed:
@@ -630,8 +851,7 @@ components:
           name:
             type: string
           organizationId:
-            type: integer
-            format: int64
+            type: string
           scopes:
             type: array
             items:
@@ -641,14 +861,25 @@ components:
             format: date-time
       description: "Response for a dynamic (schedulable) task, including its scopes\
         \ and dependencies"
+      required:
+      - dependencies
+      - dependents
+      - difficulty
+      - duration
+      - elapsed
+      - endAt
+      - id
+      - labels
+      - maxScopeDuration
+      - minScopeDuration
+      - name
+      - scopes
+      - startAt
     DynamicTaskUpdateRequest:
       allOf:
       - $ref: "#/components/schemas/TaskUpdateRequest"
       - type: object
         properties:
-          accountId:
-            type: integer
-            format: int64
           dependencies:
             type: array
             items:
@@ -657,9 +888,13 @@ components:
           description:
             type: string
           difficulty:
-            type: integer
-            format: int32
-            maximum: 5
+            type: string
+            enum:
+            - TRIVIAL
+            - EASY
+            - MEDIUM
+            - HARD
+            - EXTREME
           duration:
             type: string
           elapsed:
@@ -680,8 +915,7 @@ components:
             maxLength: 2147483647
             minLength: 1
           organizationId:
-            type: integer
-            format: int64
+            type: string
           startAt:
             type: string
             format: date-time
@@ -695,13 +929,60 @@ components:
             $ref: "#/components/schemas/AccountResponse"
         adminOrganizations:
           type: array
-          description: "Organization names for which the authenticated account has\
-            \ admin privileges, derived from JWT groups below /org-admin."
+          description: "Organization IDs for which the authenticated identity has\
+            \ admin privileges, resolved server-side via Keycloak Admin Client lookups."
           items:
             type: string
+          uniqueItems: true
         id:
           type: integer
           format: int64
+        organizations:
+          type: array
+          description: Organizations to which the identity belongs.
+          items:
+            $ref: "#/components/schemas/Organization"
+          uniqueItems: true
+      required:
+      - accounts
+      - adminOrganizations
+      - id
+      - organizations
+    Invitation:
+      type: object
+      properties:
+        email:
+          type: string
+        expired:
+          type: boolean
+        expiresAt:
+          type: string
+          format: date-time
+        firstName:
+          type: string
+        id:
+          type: string
+        inviteLink:
+          type: string
+        lastName:
+          type: string
+      required:
+      - email
+      - expired
+      - expiresAt
+      - firstName
+      - id
+      - inviteLink
+      - lastName
+    InviteUserRequest:
+      type: object
+      properties:
+        targetMail:
+          type: string
+          format: email
+          minLength: 1
+      required:
+      - targetMail
     LabelCreateRequest:
       type: object
       properties:
@@ -721,26 +1002,59 @@ components:
         taskId:
           type: integer
           format: int64
-    OrganizationResponse:
+      required:
+      - id
+      - name
+      - taskId
+    Organization:
       type: object
       properties:
         id:
-          type: integer
-          format: int64
+          type: string
         name:
           type: string
+    OrganizationInvitationsResponse:
+      type: object
+      properties:
+        invitations:
+          type: array
+          items:
+            $ref: "#/components/schemas/Invitation"
+      required:
+      - invitations
+    OrganizationMember:
+      type: object
+      properties:
+        email:
+          type: string
+        firstName:
+          type: string
+        id:
+          type: string
+        lastName:
+          type: string
+        userName:
+          type: string
+      required:
+      - email
+      - firstName
+      - id
+      - lastName
+      - userName
+    OrganizationMembersResponse:
+      type: object
+      properties:
+        members:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrganizationMember"
+      required:
+      - members
     PlanRequest:
       type: object
       properties:
-        accountId:
-          type: integer
-          format: int64
         organizationId:
-          type: integer
-          format: int64
-      required:
-      - accountId
-      - organizationId
+          type: string
     ProblemDetail:
       type: object
       properties:
@@ -775,20 +1089,26 @@ components:
         startAt:
           type: string
           format: date-time
+      required:
+      - dynamicTaskId
+      - endAt
+      - id
+      - startAt
     StaticTaskCreateRequest:
       allOf:
       - $ref: "#/components/schemas/TaskCreateRequest"
       - type: object
         properties:
-          accountId:
-            type: integer
-            format: int64
           description:
             type: string
           difficulty:
-            type: integer
-            format: int32
-            maximum: 5
+            type: string
+            enum:
+            - TRIVIAL
+            - EASY
+            - MEDIUM
+            - HARD
+            - EXTREME
           endAt:
             type: string
             format: date-time
@@ -802,8 +1122,7 @@ components:
             type: string
             minLength: 1
           organizationId:
-            type: integer
-            format: int64
+            type: string
             description: Organization ID. Required unless this static task is a blocker.
           rrule:
             type: string
@@ -812,7 +1131,6 @@ components:
             format: date-time
       description: Create request for a static (fixed-time) task
       required:
-      - accountId
       - description
       - difficulty
       - endAt
@@ -826,14 +1144,16 @@ components:
       - $ref: "#/components/schemas/TaskResponse"
       - type: object
         properties:
-          accountId:
-            type: integer
-            format: int64
           description:
             type: string
           difficulty:
-            type: integer
-            format: int32
+            type: string
+            enum:
+            - TRIVIAL
+            - EASY
+            - MEDIUM
+            - HARD
+            - EXTREME
           endAt:
             type: string
             format: date-time
@@ -850,31 +1170,40 @@ components:
             type: string
           organizationId:
             type:
-            - integer
+            - string
             - "null"
-            format: int64
             description: Organization ID. Null for blocker tasks that are not assigned
-              to an organization.
+              to an organizationId.
           rrule:
             type: string
           startAt:
             type: string
             format: date-time
       description: Response for a static (fixed-time) task
+      required:
+      - difficulty
+      - endAt
+      - id
+      - isBlocker
+      - labels
+      - name
+      - rrule
+      - startAt
     StaticTaskUpdateRequest:
       allOf:
       - $ref: "#/components/schemas/TaskUpdateRequest"
       - type: object
         properties:
-          accountId:
-            type: integer
-            format: int64
           description:
             type: string
           difficulty:
-            type: integer
-            format: int32
-            maximum: 5
+            type: string
+            enum:
+            - TRIVIAL
+            - EASY
+            - MEDIUM
+            - HARD
+            - EXTREME
           endAt:
             type: string
             format: date-time
@@ -889,8 +1218,7 @@ components:
             maxLength: 2147483647
             minLength: 1
           organizationId:
-            type: integer
-            format: int64
+            type: string
           rrule:
             type: string
           startAt:
@@ -924,29 +1252,21 @@ components:
     WorkSlotCreateRequest:
       type: object
       properties:
-        accountId:
-          type: integer
-          format: int64
         endAt:
           type: string
           format: date-time
         organizationId:
-          type: integer
-          format: int64
+          type: string
         startAt:
           type: string
           format: date-time
       required:
-      - accountId
       - endAt
       - organizationId
       - startAt
     WorkSlotResponse:
       type: object
       properties:
-        accountId:
-          type: integer
-          format: int64
         endAt:
           type: string
           format: date-time
@@ -954,11 +1274,15 @@ components:
           type: integer
           format: int64
         organizationId:
-          type: integer
-          format: int64
+          type: string
         startAt:
           type: string
           format: date-time
+      required:
+      - endAt
+      - id
+      - organizationId
+      - startAt
     WorkSlotUpdateRequest:
       type: object
       properties:

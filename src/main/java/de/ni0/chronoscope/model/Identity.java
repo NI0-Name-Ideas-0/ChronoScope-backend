@@ -1,5 +1,6 @@
 package de.ni0.chronoscope.model;
 
+import java.util.HashSet;
 import java.util.Set;
 
 import jakarta.persistence.Entity;
@@ -33,5 +34,5 @@ public class Identity {
 
     @OneToMany(mappedBy = "identity")
     @ToString.Exclude // bidirectional: Account.identity -> this Identity, would recurse infinitely in toString
-    private Set<Account> accounts;
+    private Set<Account> accounts = new HashSet<>();
 }

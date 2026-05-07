@@ -12,18 +12,18 @@ import org.mapstruct.MappingConstants;
 /**
  * MapStruct mapper for work-slot requests and responses.
  */
-@Mapper(componentModel = MappingConstants.ComponentModel.SPRING, uses = {AccountProxyProvider.class, OrganizationProxyProvider.class})
+@Mapper(componentModel = MappingConstants.ComponentModel.SPRING)
 public interface WorkSlotMapper {
 
     /**
-     * Converts a create request to a work slot with account and organization references.
+     * Converts a create request to a work slot with account and organizationId references.
      *
      * @param request create payload
      * @return new work slot entity
      */
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "account", source = "accountId", qualifiedByName = "accountProxy")
-    @Mapping(target = "organization", source = "organizationId", qualifiedByName = "organizationProxy")
+    @Mapping(target = "identity", ignore = true)
+    @Mapping(target = "organizationId", source = "organizationId")
     WorkSlot fromCreateRequest(WorkSlotCreateRequest request);
 
     /**
@@ -33,8 +33,8 @@ public interface WorkSlotMapper {
      * @param workSlot target work slot
      */
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "account", ignore = true)
-    @Mapping(target = "organization", ignore = true)
+    @Mapping(target = "identity", ignore = true)
+    @Mapping(target = "organizationId", ignore = true)
     void fromUpdateRequest(WorkSlotUpdateRequest request, @MappingTarget WorkSlot workSlot);
 
     /**
@@ -43,7 +43,6 @@ public interface WorkSlotMapper {
      * @param workSlot work slot entity
      * @return response DTO
      */
-    @Mapping(target = "accountId", source = "account.id")
-    @Mapping(target = "organizationId", source = "organization.id")
+    @Mapping(target = "organizationId", source = "organizationId")
     WorkSlotResponse toResponse(WorkSlot workSlot);
 }

@@ -11,7 +11,7 @@ import java.time.Instant;
 /**
  * Availability window in which the planner may place dynamic task scopes.
  *
- * <p>Slots belong to an account and can be associated with an organization for later
+ * <p>Slots belong to an account and can be associated with an organizationId for later
  * planning and filtering decisions.</p>
  */
 @Getter
@@ -26,13 +26,12 @@ public class WorkSlot {
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "account_id")
+    @JoinColumn(name = "identity_id")
     @ToString.Exclude // association excluded to keep toString safe and lightweight
-    private Account account;
+    private Identity identity;
 
-    @ManyToOne
-    @JoinColumn(name = "organization_id")
-    private Organization organization;
+    @Column(name = "organization_id", nullable = false)
+    private String organizationId;
 
     @Column(name = "start_at", nullable = false)
     private Instant startAt;

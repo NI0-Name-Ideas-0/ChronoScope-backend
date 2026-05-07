@@ -1,5 +1,8 @@
 package de.ni0.chronoscope.controller;
 
+import de.ni0.chronoscope.model.Identity;
+import de.ni0.chronoscope.service.KeycloakService;
+import org.keycloak.representations.idm.OrganizationRepresentation;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,7 +18,6 @@ import de.ni0.chronoscope.controller.dto.request.AccountLinkRequest;
 import de.ni0.chronoscope.controller.dto.response.AccountLinkConfirmResponse;
 import de.ni0.chronoscope.controller.dto.response.IdentityResponse;
 import de.ni0.chronoscope.mapper.IdentityMapper;
-import de.ni0.chronoscope.service.AccountService;
 import de.ni0.chronoscope.service.IdentityService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -25,6 +27,10 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * REST controller for identity operations.
@@ -40,23 +46,29 @@ public class IdentityController {
     private final IdentityService identityService;
     private final RequestContext requestContext;
     private final IdentityMapper identityMapper;
+    private final KeycloakService keycloakService;
 
     /**
      * Retrieves the authenticated identity.
      *
      * @return the identity response including linked accounts
      */
-    @Operation(summary = "Get current identity", description = "Retrieve information about the identity contained in the access token, including all linked accounts and organization names for which the authenticated account has admin privileges through /org-admin token groups.")
-    @ApiResponses({
+    @Operation(summary = "Get current identity", description = "Retrieve information about the authenticated identity, including all linked accounts and the organizations for which the identity has admin privileges, as resolved server-side.")    @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Identity retrieved successfully"),
         @ApiResponse(responseCode = "401", description = "Missing or invalid token", content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     })
     @GetMapping
     public IdentityResponse getIdentity() {
-        long identityId = this.requestContext.getIdentityId();
+        Identity identity = this.identityService.getIdentity(this.requestContext.getAccount().getIdentity().getId());
+        Set<String> adminOrganizations = this.keycloakService.getAdminOrganizations(identity);
+        Set<OrganizationRepresentation> organizations = this.keycloakService.getIdentityOrganizations(identity);
+        List<IdentityResponse.Organization> orgs = new java.util.ArrayList<>(organizations.stream().map(o ->
+                new IdentityResponse.Organization(o.getName(), o.getId())).toList());
+        orgs.add(new IdentityResponse.Organization("Privat", "private"));
         return this.identityMapper.toResponse(
-            this.identityService.getIdentity(identityId),
-            this.requestContext.getAdminOrganizations()
+            identity,
+            adminOrganizations,
+            new HashSet<>(orgs)
         );
     }
 
@@ -74,7 +86,7 @@ public class IdentityController {
     @PostMapping("/accounts")
     @ResponseStatus(HttpStatus.ACCEPTED)
     public void requestAccountLink(@Valid @RequestBody AccountLinkRequest request) {
-        long accountId = this.requestContext.getAccountId();
+        long accountId = this.requestContext.getAccount().getId();
         String targetEmail = request.targetEmail();
         this.identityService.sendLink(accountId, targetEmail);
     }
@@ -93,6 +105,7 @@ public class IdentityController {
     })
     @PostMapping("/accounts/confirm")
     public AccountLinkConfirmResponse confirmAccountLink(@Valid @RequestBody AccountLinkConfirmRequest request) {
-        return this.identityService.mergeAccounts(request.token());
+        long identityId = this.requestContext.getAccount().getIdentity().getId();
+        return this.identityService.mergeAccounts(identityId, request.token());
     }
 }

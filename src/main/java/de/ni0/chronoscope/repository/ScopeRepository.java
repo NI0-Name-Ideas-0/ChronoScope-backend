@@ -1,6 +1,7 @@
 package de.ni0.chronoscope.repository;
 
 import java.util.Collection;
+import java.util.Set;
 
 import de.ni0.chronoscope.model.Scope;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -17,4 +18,6 @@ public interface ScopeRepository extends JpaRepository<Scope, Long> {
      * @return number of deleted scopes
      */
     long deleteByDynamicTaskIdIn(Collection<Long> taskIds);
+
+    Set<Scope> getScopesByDynamicTaskIdentityId(Long identityId);
 }

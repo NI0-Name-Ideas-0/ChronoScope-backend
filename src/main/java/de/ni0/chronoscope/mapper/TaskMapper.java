@@ -32,16 +32,15 @@ public interface TaskMapper {
 
     // --- Static task: create ---
     /**
-     * Converts a static task create request to an entity without account or organization wiring.
+     * Converts a static task create request to an entity without account or organizationId wiring.
      *
      * @param request create payload
      * @return new static task entity
      */
     @Mapping(target = "id", ignore = true)
-    // Account is validated and assigned by controller logic after request parsing.
-    @Mapping(target = "account", ignore = true)
     // Organization is validated and assigned by controller logic after request parsing.
-    @Mapping(target = "organization", ignore = true)
+    @Mapping(target = "identity", ignore = true)
+    @Mapping(target = "organizationId", ignore = true)
     @Mapping(target = "name", source = "name")
     @Mapping(target = "description", source = "description")
     @Mapping(target = "difficulty", source = "difficulty")
@@ -60,10 +59,9 @@ public interface TaskMapper {
      * @return new dynamic task entity
      */
     @Mapping(target = "id", ignore = true)
-    // Account is validated and assigned by controller logic after request parsing.
-    @Mapping(target = "account", ignore = true)
     // Organization is validated and assigned by controller logic after request parsing.
-    @Mapping(target = "organization", ignore = true)
+    @Mapping(target = "identity", ignore = true)
+    @Mapping(target = "organizationId", ignore = true)
     @Mapping(target = "name", source = "name")
     @Mapping(target = "description", source = "description")
     @Mapping(target = "difficulty", source = "difficulty")
@@ -88,9 +86,9 @@ public interface TaskMapper {
      */
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "account", ignore = true)
     // Organization updates are validated and assigned by service logic.
-    @Mapping(target = "organization", ignore = true)
+    @Mapping(target = "identity", ignore = true)
+    @Mapping(target = "organizationId", ignore = true)
     @Mapping(target = "labels", source = "labels")
     @Mapping(target = "name", source = "name")
     @Mapping(target = "description", source = "description")
@@ -104,16 +102,16 @@ public interface TaskMapper {
     /**
      * Applies non-null dynamic task patch fields to a managed entity.
      *
-     * <p>Dependency and organization changes are handled by the service after validation.</p>
+     * <p>Dependency and organizationId changes are handled by the service after validation.</p>
      *
      * @param request update payload
      * @param task target task entity
      */
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "account", ignore = true)
     // Organization updates are validated and assigned by service logic.
-    @Mapping(target = "organization", ignore = true)
+    @Mapping(target = "identity", ignore = true)
+    @Mapping(target = "organizationId", ignore = true)
     @Mapping(target = "labels", source = "labels")
     @Mapping(target = "scopes", ignore = true)
     @Mapping(target = "dependencies", ignore = true)
@@ -136,8 +134,7 @@ public interface TaskMapper {
      * @param task static task entity
      * @return response DTO
      */
-    @Mapping(target = "accountId", source = "account.id")
-    @Mapping(target = "organizationId", source = "organization.id")
+    @Mapping(target = "organizationId", source = "organizationId")
     @Mapping(target = "id", source = "id")
     @Mapping(target = "name", source = "name")
     @Mapping(target = "description", source = "description")
@@ -155,8 +152,7 @@ public interface TaskMapper {
      * @param task dynamic task entity
      * @return response DTO
      */
-    @Mapping(target = "accountId", source = "account.id")
-    @Mapping(target = "organizationId", source = "organization.id")
+    @Mapping(target = "organizationId", source = "organizationId")
     @Mapping(target = "id", source = "id")
     @Mapping(target = "name", source = "name")
     @Mapping(target = "description", source = "description")

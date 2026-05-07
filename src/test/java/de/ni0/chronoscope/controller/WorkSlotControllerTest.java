@@ -1,15 +1,16 @@
 package de.ni0.chronoscope.controller;
 
+import de.ni0.chronoscope.TestData;
 import de.ni0.chronoscope.config.RequestContext;
 import de.ni0.chronoscope.controller.dto.request.WorkSlotCreateRequest;
 import de.ni0.chronoscope.controller.dto.request.WorkSlotUpdateRequest;
 import de.ni0.chronoscope.controller.dto.response.WorkSlotResponse;
-import de.ni0.chronoscope.exception.AccountAccessDeniedException;
-import de.ni0.chronoscope.exception.AccountNotFoundException;
 import de.ni0.chronoscope.exception.ResourceNotFoundException;
 import de.ni0.chronoscope.mapper.WorkSlotMapper;
+import de.ni0.chronoscope.model.Account;
 import de.ni0.chronoscope.model.WorkSlot;
 import de.ni0.chronoscope.service.AccountService;
+import de.ni0.chronoscope.service.KeycloakService;
 import de.ni0.chronoscope.service.WorkSlotService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,6 +21,7 @@ import org.springframework.http.ResponseEntity;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -33,6 +35,9 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class WorkSlotControllerTest {
 
+    private static final long IDENTITY_ID = 99L;
+    private static final long ACCOUNT_ID = 100L;
+
     @Mock
     private WorkSlotService workSlotService;
 
@@ -42,44 +47,49 @@ class WorkSlotControllerTest {
     @Mock
     private AccountService accountService;
 
+    @Mock
+    private KeycloakService keycloakService;
+
     @Test
     void getWorkSlots_UsesCurrentIdentityAndMapsResponse() {
+        Account account = TestData.account(IDENTITY_ID, ACCOUNT_ID);
         RequestContext requestContext = new RequestContext();
-        requestContext.setIdentityId(99L);
-        WorkSlotController controller = new WorkSlotController(workSlotService, workSlotMapper, accountService, requestContext);
+        requestContext.setAccount(account);
+        WorkSlotController controller = new WorkSlotController(workSlotService, workSlotMapper, requestContext, keycloakService);
 
         WorkSlot slot = new WorkSlot();
         slot.setId(1L);
 
-        WorkSlotResponse response = new WorkSlotResponse(1L, 10L, 20L,
+        WorkSlotResponse response = new WorkSlotResponse(1L, UUID.randomUUID().toString(),
                 Instant.parse("2026-04-20T08:00:00Z"), Instant.parse("2026-04-20T17:00:00Z"));
 
-        when(workSlotService.getWorkSlotsForIdentity(99L)).thenReturn(List.of(slot));
+        when(workSlotService.getWorkSlotsForIdentity(account.getIdentity().getId())).thenReturn(List.of(slot));
         when(workSlotMapper.toResponse(slot)).thenReturn(response);
 
         List<WorkSlotResponse> result = controller.getWorkSlots();
 
         assertEquals(List.of(response), result);
-        verify(workSlotService).getWorkSlotsForIdentity(99L);
+        verify(workSlotService).getWorkSlotsForIdentity(account.getIdentity().getId());
         verify(workSlotMapper).toResponse(slot);
         verifyNoMoreInteractions(workSlotService, workSlotMapper, accountService);
     }
 
     @Test
     void createWorkSlot_ReturnsCreatedWhenAuthorized() {
+        Account account = TestData.account(IDENTITY_ID, ACCOUNT_ID);
         RequestContext requestContext = new RequestContext();
-        requestContext.setIdentityId(99L);
-        WorkSlotController controller = new WorkSlotController(workSlotService, workSlotMapper, accountService, requestContext);
+        requestContext.setAccount(account);
+        WorkSlotController controller = new WorkSlotController(workSlotService, workSlotMapper, requestContext, keycloakService);
 
         WorkSlotCreateRequest request = new WorkSlotCreateRequest(
-                10L, 20L,
+                UUID.randomUUID().toString(),
                 Instant.parse("2026-04-20T08:00:00Z"), Instant.parse("2026-04-20T17:00:00Z"));
 
         WorkSlot mappedSlot = new WorkSlot();
         WorkSlot savedSlot = new WorkSlot();
         savedSlot.setId(7L);
 
-        WorkSlotResponse expectedResponse = new WorkSlotResponse(7L, 10L, 20L,
+        WorkSlotResponse expectedResponse = new WorkSlotResponse(7L, request.organizationId(),
                 Instant.parse("2026-04-20T08:00:00Z"), Instant.parse("2026-04-20T17:00:00Z"));
 
         when(workSlotMapper.fromCreateRequest(request)).thenReturn(mappedSlot);
@@ -90,7 +100,7 @@ class WorkSlotControllerTest {
 
         assertEquals(HttpStatus.CREATED, result.getStatusCode());
         assertEquals(expectedResponse, result.getBody());
-        verify(accountService).validateAccountOwnership(99L, 10L);
+        verify(keycloakService).validateIdentityOrgAccess(account.getIdentity(), request.organizationId());
         verify(workSlotMapper).fromCreateRequest(request);
         verify(workSlotService).createWorkSlot(any(WorkSlot.class));
         verify(workSlotMapper).toResponse(savedSlot);
@@ -98,45 +108,11 @@ class WorkSlotControllerTest {
     }
 
     @Test
-    void createWorkSlot_ThrowsWhenAccountNotFound() {
-        RequestContext requestContext = new RequestContext();
-        requestContext.setIdentityId(99L);
-        WorkSlotController controller = new WorkSlotController(workSlotService, workSlotMapper, accountService, requestContext);
-
-        WorkSlotCreateRequest request = new WorkSlotCreateRequest(
-                99L, 20L,
-                Instant.parse("2026-04-20T08:00:00Z"), Instant.parse("2026-04-20T17:00:00Z"));
-
-        doThrow(new AccountNotFoundException()).when(accountService).validateAccountOwnership(99L, 99L);
-
-        assertThrows(AccountNotFoundException.class, () -> controller.createWorkSlot(request));
-        verify(accountService).validateAccountOwnership(99L, 99L);
-        verifyNoMoreInteractions(workSlotService, workSlotMapper, accountService);
-    }
-
-    @Test
-    void createWorkSlot_ThrowsWhenAccountBelongsToDifferentIdentity() {
-        RequestContext requestContext = new RequestContext();
-        requestContext.setIdentityId(99L);
-        WorkSlotController controller = new WorkSlotController(workSlotService, workSlotMapper, accountService, requestContext);
-
-        WorkSlotCreateRequest request = new WorkSlotCreateRequest(
-                55L, 20L,
-                Instant.parse("2026-04-20T08:00:00Z"), Instant.parse("2026-04-20T17:00:00Z"));
-
-        doThrow(new AccountAccessDeniedException("accountId is not linked to authenticated identity"))
-                .when(accountService).validateAccountOwnership(99L, 55L);
-
-        assertThrows(AccountAccessDeniedException.class, () -> controller.createWorkSlot(request));
-        verify(accountService).validateAccountOwnership(99L, 55L);
-        verifyNoMoreInteractions(workSlotService, workSlotMapper, accountService);
-    }
-
-    @Test
     void updateWorkSlot_DelegatesToServiceAndMapsResponse() {
+        Account account = TestData.account(IDENTITY_ID, ACCOUNT_ID);
         RequestContext requestContext = new RequestContext();
-        requestContext.setIdentityId(99L);
-        WorkSlotController controller = new WorkSlotController(workSlotService, workSlotMapper, accountService, requestContext);
+        requestContext.setAccount(account);
+        WorkSlotController controller = new WorkSlotController(workSlotService, workSlotMapper, requestContext, keycloakService);
 
         WorkSlotUpdateRequest request = new WorkSlotUpdateRequest(
                 Instant.parse("2026-04-21T09:00:00Z"), Instant.parse("2026-04-21T18:00:00Z"));
@@ -144,59 +120,63 @@ class WorkSlotControllerTest {
         WorkSlot updatedSlot = new WorkSlot();
         updatedSlot.setId(7L);
 
-        WorkSlotResponse expectedResponse = new WorkSlotResponse(7L, 10L, 20L,
+        WorkSlotResponse expectedResponse = new WorkSlotResponse(7L, UUID.randomUUID().toString(),
                 Instant.parse("2026-04-21T09:00:00Z"), Instant.parse("2026-04-21T18:00:00Z"));
 
-        when(workSlotService.updateWorkSlot(99L, 7L, request)).thenReturn(updatedSlot);
+        when(workSlotService.updateWorkSlot(account.getIdentity().getId(), 7L, request)).thenReturn(updatedSlot);
         when(workSlotMapper.toResponse(updatedSlot)).thenReturn(expectedResponse);
 
         WorkSlotResponse result = controller.updateWorkSlot(7L, request);
 
         assertEquals(expectedResponse, result);
-        verify(workSlotService).updateWorkSlot(99L, 7L, request);
+        verify(workSlotService).updateWorkSlot(account.getIdentity().getId(), 7L, request);
         verify(workSlotMapper).toResponse(updatedSlot);
         verifyNoMoreInteractions(workSlotService, workSlotMapper, accountService);
     }
 
     @Test
     void updateWorkSlot_ThrowsWhenNotFound() {
+        Account account = TestData.account(IDENTITY_ID, ACCOUNT_ID);
         RequestContext requestContext = new RequestContext();
-        requestContext.setIdentityId(99L);
-        WorkSlotController controller = new WorkSlotController(workSlotService, workSlotMapper, accountService, requestContext);
+        requestContext.setAccount(account);
+        WorkSlotController controller = new WorkSlotController(workSlotService, workSlotMapper, requestContext, keycloakService);
 
         WorkSlotUpdateRequest request = new WorkSlotUpdateRequest(null, null);
 
-        when(workSlotService.updateWorkSlot(99L, 999L, request)).thenThrow(new ResourceNotFoundException("Work slot not found: 999"));
+        when(workSlotService.updateWorkSlot(account.getIdentity().getId(), 999L, request)).thenThrow(new ResourceNotFoundException("Work slot not found: 999"));
 
         assertThrows(ResourceNotFoundException.class, () -> controller.updateWorkSlot(999L, request));
-        verify(workSlotService).updateWorkSlot(99L, 999L, request);
+        verify(workSlotService).updateWorkSlot(account.getIdentity().getId(), 999L, request);
         verifyNoMoreInteractions(workSlotService, workSlotMapper, accountService);
     }
 
     @Test
     void deleteWorkSlot_DelegatesToService() {
+        Account account = TestData.account(IDENTITY_ID, ACCOUNT_ID);
         RequestContext requestContext = new RequestContext();
-        requestContext.setIdentityId(99L);
-        WorkSlotController controller = new WorkSlotController(workSlotService, workSlotMapper, accountService, requestContext);
+        requestContext.setAccount(account);
+        WorkSlotController controller = new WorkSlotController(workSlotService, workSlotMapper, requestContext, keycloakService);
 
-        doNothing().when(workSlotService).deleteWorkSlot(99L, 5L);
+        doNothing().when(workSlotService).deleteWorkSlot(account.getIdentity().getId(), 5L);
 
         controller.deleteWorkSlot(5L);
 
-        verify(workSlotService).deleteWorkSlot(99L, 5L);
+        verify(workSlotService).deleteWorkSlot(account.getIdentity().getId(), 5L);
         verifyNoMoreInteractions(workSlotService, workSlotMapper, accountService);
     }
 
     @Test
     void deleteWorkSlot_ThrowsWhenNotFound() {
+        Account account = TestData.account(IDENTITY_ID, ACCOUNT_ID);
         RequestContext requestContext = new RequestContext();
-        requestContext.setIdentityId(99L);
-        WorkSlotController controller = new WorkSlotController(workSlotService, workSlotMapper, accountService, requestContext);
+        requestContext.setAccount(account);
+        WorkSlotController controller = new WorkSlotController(workSlotService, workSlotMapper, requestContext, keycloakService);
 
-        doThrow(new ResourceNotFoundException("Work slot not found: 999")).when(workSlotService).deleteWorkSlot(99L, 999L);
+        doThrow(new ResourceNotFoundException("Work slot not found: 999"))
+                .when(workSlotService).deleteWorkSlot(account.getIdentity().getId(), 999L);
 
         assertThrows(ResourceNotFoundException.class, () -> controller.deleteWorkSlot(999L));
-        verify(workSlotService).deleteWorkSlot(99L, 999L);
+        verify(workSlotService).deleteWorkSlot(account.getIdentity().getId(), 999L);
         verifyNoMoreInteractions(workSlotService, workSlotMapper, accountService);
     }
 }

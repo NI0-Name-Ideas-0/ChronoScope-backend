@@ -43,7 +43,8 @@ public class Algorithm {
                             Map<TaskGraphNode, Duration> remainingTaskDurations,
                             WorkSlotProvider slots,
                             WorkSlot slot,
-                            Instant currentTime) {
+                            Instant currentTime,
+                            List<Scope> plannedScopes) {
         log.debug("Planning tasks {} in slot", tasks);
         Duration remainingSlotDuration = currentTime.until(slot.getEndAt());
         log.debug("{} time left in slot", remainingSlotDuration);
@@ -56,7 +57,7 @@ public class Algorithm {
         }
 
         for (WeightDataProvider provider : this.providers) {
-            provider.calculate(new DataProviderContext(currentTime), tasks);
+            provider.calculate(new DataProviderContext(currentTime, plannedScopes), tasks);
         }
         tasks.sort((t1, t2) -> -1*Double.compare(getWeight(t1), getWeight(t2)));
 
@@ -102,7 +103,7 @@ public class Algorithm {
 
             if (!tasks.isEmpty()) {
                 List<Scope> nextResult = plan(tasks, dependencyCount, remainingTaskDurations,
-                        slots, newWorkSlot, newCurrentTime);
+                        slots, newWorkSlot, newCurrentTime, scopes);
                 if (nextResult != null) {
                     scopes.addAll(nextResult);
                     return scopes;

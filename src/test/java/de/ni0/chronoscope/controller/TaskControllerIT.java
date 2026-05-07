@@ -6,11 +6,18 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.UUID;
 
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
+
+import de.ni0.chronoscope.exception.AccountAccessDeniedException;
+import de.ni0.chronoscope.model.*;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -26,19 +33,14 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
 
-import de.ni0.chronoscope.model.Account;
-import de.ni0.chronoscope.model.DynamicTask;
-import de.ni0.chronoscope.model.Identity;
-import de.ni0.chronoscope.model.Organization;
-import de.ni0.chronoscope.model.Scope;
-import de.ni0.chronoscope.model.StaticTask;
 import de.ni0.chronoscope.repository.AccountRepository;
 import de.ni0.chronoscope.repository.IdentityRepository;
-import de.ni0.chronoscope.repository.OrganizationRepository;
 import de.ni0.chronoscope.repository.ScopeRepository;
 import de.ni0.chronoscope.repository.TaskRepository;
+import de.ni0.chronoscope.service.KeycloakService;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 
@@ -46,6 +48,8 @@ import jakarta.persistence.PersistenceContext;
 @AutoConfigureMockMvc
 @Transactional
 class TaskControllerIT {
+
+    private static final String DEFAULT_ORGANIZATION_ID = "test-organization";
 
     @Autowired
     private MockMvc mockMvc;
@@ -62,58 +66,42 @@ class TaskControllerIT {
     @Autowired
     private ScopeRepository scopeRepository;
 
-    @Autowired
-    private OrganizationRepository organizationRepository;
+    @MockitoBean
+    private KeycloakService keycloakService;
 
     @PersistenceContext
     private EntityManager entityManager;
 
-    private long createAccount(String subject, String email) {
-        Identity identity = identityRepository.saveAndFlush(new Identity());
-        return createAccount(identity.getId(), subject, email);
+    private Account createAccount() {
+        return createAccount(new Identity(), UUID.randomUUID().toString());
     }
 
-    private long createAccount(long identityId, String subject, String email) {
+    private Account createAccount(Identity identity) {
+        return createAccount(identity, UUID.randomUUID().toString());
+    }
+
+    private Account createAccount(Identity identity, String subject) {
+        Identity managedIdentity = identityRepository.saveAndFlush(identity);
         Account account = new Account();
-        account.setIdentity(identityRepository.getReferenceById(identityId));
-        account.setMail(email);
         account.setSubject(subject);
-        return accountRepository.saveAndFlush(account).getId();
+        account.setIdentity(managedIdentity);
+        Account savedAccount = accountRepository.saveAndFlush(account);
+        managedIdentity.getAccounts().add(savedAccount);
+        return savedAccount;
     }
 
-    private String createAccountSubject() {
-        return "it-subject-" + System.nanoTime();
-    }
-
-    private long createOrganization() {
-        Organization org = new Organization();
-        org.setName("it-org-" + System.nanoTime());
-        return organizationRepository.saveAndFlush(org).getId();
-    }
-
-    private RequestPostProcessor jwtWithOrganization(String subject, long organizationId) {
-        String organizationName = organizationRepository.findById(organizationId)
-            .orElseThrow()
-            .getName();
+    private RequestPostProcessor createJwt(String subject) {
         return jwt().jwt(jwt -> jwt
-            .subject(subject)
-            .claim("email", "")
-            .claim("organization", List.of(organizationName)));
+            .subject(subject));
     }
 
-    private <T extends de.ni0.chronoscope.model.Task> T saveTask(T task) {
-        if (task.getOrganization() == null) {
-            task.setOrganization(organizationRepository.getReferenceById(createOrganization()));
-        }
-        return taskRepository.saveAndFlush(task);
-    }
-
-    private long createDynamicPredecessorTask(long accountId) {
+    private long createDynamicPredecessorTask(Identity identity) {
         DynamicTask predecessor = new DynamicTask();
-        predecessor.setAccount(accountRepository.getReferenceById(accountId));
+        predecessor.setIdentity(identity);
+        predecessor.setOrganizationId(DEFAULT_ORGANIZATION_ID);
         predecessor.setName("Predecessor task");
         predecessor.setDescription("Predecessor task for dependency test");
-        predecessor.setDifficulty(2);
+        predecessor.setDifficulty(Task.Difficulty.TRIVIAL);
         predecessor.setStartAt(Instant.parse("2026-04-20T08:00:00Z"));
         predecessor.setEndAt(Instant.parse("2026-04-22T18:00:00Z"));
         predecessor.setDuration(Duration.of(120, ChronoUnit.MINUTES));
@@ -124,29 +112,28 @@ class TaskControllerIT {
         predecessor.setScopes(new ArrayList<>());
         predecessor.setDependencies(new HashSet<>());
         predecessor.setDependents(new HashSet<>());
-        return saveTask(predecessor).getId();
+        return this.taskRepository.saveAndFlush(predecessor).getId();
     }
 
     @Test
     void getTasks_ReturnsTasksFromCurrentIdentityAndLinkedAccountsOnly() throws Exception {
-        Identity identity = identityRepository.saveAndFlush(new Identity());
         String subject = "it-get-tasks-subject-" + System.nanoTime();
-
-        long primaryAccountId = createAccount(identity.getId(), subject, "awd");
-        long linkedAccountId = createAccount(identity.getId(), "it-linked-subject-" + System.nanoTime(), "awdawd");
+        Identity identity = identityRepository.saveAndFlush(new Identity());
+        createAccount(identity, subject);
 
         Identity otherIdentity = identityRepository.saveAndFlush(new Identity());
-        long otherAccountId = createAccount(otherIdentity.getId(), "it-other-subject-" + System.nanoTime(), "awdawdawd");
+        createAccount(otherIdentity);
 
         String dynamicTaskName = "it-dynamic-task-" + System.nanoTime();
         String linkedStaticTaskName = "it-linked-static-task-" + System.nanoTime();
         String foreignTaskName = "it-foreign-task-" + System.nanoTime();
 
         DynamicTask ownTask = new DynamicTask();
-        ownTask.setAccount(accountRepository.getReferenceById(primaryAccountId));
+        ownTask.setIdentity(identity);
+        ownTask.setOrganizationId(DEFAULT_ORGANIZATION_ID);
         ownTask.setName(dynamicTaskName);
         ownTask.setDescription("Dynamic task in current identity");
-        ownTask.setDifficulty(2);
+        ownTask.setDifficulty(Task.Difficulty.TRIVIAL);
         ownTask.setStartAt(Instant.parse("2026-04-20T08:00:00Z"));
         ownTask.setEndAt(Instant.parse("2026-04-22T18:00:00Z"));
         ownTask.setDuration(Duration.of(120, ChronoUnit.MINUTES));
@@ -157,90 +144,86 @@ class TaskControllerIT {
         ownTask.setScopes(new ArrayList<>());
         ownTask.setDependencies(new HashSet<>());
         ownTask.setDependents(new HashSet<>());
-        saveTask(ownTask);
+        this.taskRepository.saveAndFlush(ownTask);
 
         StaticTask linkedTask = new StaticTask();
-        linkedTask.setAccount(accountRepository.getReferenceById(linkedAccountId));
+        linkedTask.setIdentity(identity);
+        linkedTask.setOrganizationId(DEFAULT_ORGANIZATION_ID);
         linkedTask.setName(linkedStaticTaskName);
         linkedTask.setDescription("Static task in linked account");
-        linkedTask.setDifficulty(1);
+        linkedTask.setDifficulty(Task.Difficulty.EASY);
         linkedTask.setStartAt(Instant.parse("2026-04-20T09:00:00Z"));
         linkedTask.setEndAt(Instant.parse("2026-04-20T10:00:00Z"));
         linkedTask.setRrule("FREQ=DAILY");
         linkedTask.setLabels(new ArrayList<>());
         linkedTask.setIsBlocker(false);
-        saveTask(linkedTask);
+        this.taskRepository.saveAndFlush(linkedTask);
 
         StaticTask foreignTask = new StaticTask();
-        foreignTask.setAccount(accountRepository.getReferenceById(otherAccountId));
+        foreignTask.setIdentity(otherIdentity);
+        foreignTask.setOrganizationId(DEFAULT_ORGANIZATION_ID);
         foreignTask.setName(foreignTaskName);
         foreignTask.setDescription("Task from another identity");
-        foreignTask.setDifficulty(1);
+        foreignTask.setDifficulty(Task.Difficulty.EASY);
         foreignTask.setStartAt(Instant.parse("2026-04-20T11:00:00Z"));
         foreignTask.setEndAt(Instant.parse("2026-04-20T12:00:00Z"));
         foreignTask.setRrule("FREQ=DAILY");
         foreignTask.setLabels(new ArrayList<>());
         foreignTask.setIsBlocker(false);
-        saveTask(foreignTask);
+        this.taskRepository.saveAndFlush(foreignTask);
 
         mockMvc.perform(get("/v1/tasks")
                 .with(jwt().jwt(jwt -> jwt
                     .subject(subject)
-                    .claim("organization", List.of("private")))))
+                    .claim("organizationId", List.of("private")))))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$[*].name", hasItem(dynamicTaskName)))
             .andExpect(jsonPath("$[*].name", hasItem(linkedStaticTaskName)))
             .andExpect(jsonPath("$[*].name", not(hasItem(foreignTaskName))))
-            .andExpect(jsonPath("$[*].accountId", hasItem((int) primaryAccountId)))
-            .andExpect(jsonPath("$[*].accountId", hasItem((int) linkedAccountId)))
             .andExpect(jsonPath("$[*].type", hasItem("dynamic")))
             .andExpect(jsonPath("$[*].type", hasItem("static")));
     }
 
     @Test
     void createTask_Static_ReturnsCreated() throws Exception {
-        String subject = createAccountSubject();
-        long accountId = createAccount(subject, "");
-        long organizationId = createOrganization();
+        Account account = createAccount();
+        String organizationId = UUID.randomUUID().toString();
 
         String payload = """
             {
               "type": "static",
-              "accountId": %d,
-              "organizationId": %d,
+              "organizationId": "%s",
               "name": "Write report",
               "description": "Prepare weekly summary",
               "rrule": "FREQ=WEEKLY;BYDAY=MO",
-              "difficulty": 3,
+              "difficulty": "HARD",
               "startAt": "2026-04-20T09:00:00Z",
               "endAt": "2026-04-20T10:00:00Z",
               "labels": [],
               "isBlocker": false
             }
-            """.formatted(accountId, organizationId);
+            """.formatted(organizationId);
 
         mockMvc.perform(post("/v1/tasks")
-                .with(jwtWithOrganization(subject, organizationId))
+                .with(createJwt(account.getSubject()))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(payload))
             .andExpect(status().isCreated())
-            .andExpect(jsonPath("$.accountId").value(accountId))
+            .andExpect(jsonPath("$.organizationId").value(organizationId))
             .andExpect(jsonPath("$.name").value("Write report"))
             .andExpect(jsonPath("$.description").value("Prepare weekly summary"))
-            .andExpect(jsonPath("$.difficulty").value(3))
+            .andExpect(jsonPath("$.difficulty").value("HARD"))
             .andExpect(jsonPath("$.rrule").value("FREQ=WEEKLY;BYDAY=MO"))
             .andExpect(jsonPath("$.isBlocker").value(false));
     }
 
     @Test
     void createTask_Static_BlockerWithoutOrganization_ReturnsCreated() throws Exception {
-        String subject = createAccountSubject();
-        long accountId = createAccount(subject, "");
+        Account account = createAccount();
 
         String payload = """
             {
               "type": "static",
-              "accountId": %d,
               "name": "Maintenance window",
               "description": "Block planning for this time",
               "rrule": "FREQ=DAILY;COUNT=1",
@@ -250,14 +233,13 @@ class TaskControllerIT {
               "labels": [],
               "isBlocker": true
             }
-            """.formatted(accountId);
+            """;
 
         mockMvc.perform(post("/v1/tasks")
-                .with(jwt().jwt(jwt -> jwt.subject(subject)))
+                .with(jwt().jwt(jwt -> jwt.subject(account.getSubject())))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(payload))
             .andExpect(status().isCreated())
-            .andExpect(jsonPath("$.accountId").value(accountId))
             .andExpect(jsonPath("$.organizationId").value(nullValue()))
             .andExpect(jsonPath("$.name").value("Maintenance window"))
             .andExpect(jsonPath("$.isBlocker").value(true));
@@ -265,13 +247,11 @@ class TaskControllerIT {
 
     @Test
     void createTask_Static_NonBlockerWithoutOrganization_ReturnsValidationError() throws Exception {
-        String subject = createAccountSubject();
-        long accountId = createAccount(subject, "");
+        Account account = createAccount();
 
         String payload = """
             {
               "type": "static",
-              "accountId": %d,
               "name": "Write report",
               "description": "Prepare weekly summary",
               "rrule": "FREQ=WEEKLY;BYDAY=MO",
@@ -281,10 +261,10 @@ class TaskControllerIT {
               "labels": [],
               "isBlocker": false
             }
-            """.formatted(accountId);
+            """;
 
         mockMvc.perform(post("/v1/tasks")
-                .with(jwt().jwt(jwt -> jwt.subject(subject)))
+                .with(jwt().jwt(jwt -> jwt.subject(account.getSubject())))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(payload))
             .andExpect(status().isBadRequest())
@@ -294,51 +274,17 @@ class TaskControllerIT {
     }
 
     @Test
-    void createTask_Static_DifficultyAboveFive_ReturnsValidationError() throws Exception {
-        String subject = createAccountSubject();
-        long accountId = createAccount(subject, "");
-                long organizationId = createOrganization();
-
-        String payload = """
-            {
-              "type": "static",
-              "accountId": %d,
-                            "organizationId": %d,
-              "name": "Write report",
-              "description": "Prepare weekly summary",
-              "rrule": "FREQ=WEEKLY;BYDAY=MO",
-              "difficulty": 6,
-              "startAt": "2026-04-20T09:00:00Z",
-              "endAt": "2026-04-20T10:00:00Z",
-              "labels": [],
-              "isBlocker": false
-            }
-                        """.formatted(accountId, organizationId);
-
-        mockMvc.perform(post("/v1/tasks")
-            .with(jwtWithOrganization(subject, organizationId))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(payload))
-            .andExpect(status().isBadRequest())
-            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
-            .andExpect(jsonPath("$.type").value("urn:chronoscope:error:validation-error"))
-            .andExpect(jsonPath("$.fieldErrors[*].field", hasItem("difficulty")));
-    }
-
-    @Test
     void createTask_Dynamic_ReturnsCreatedWithDefaults() throws Exception {
-        String subject = createAccountSubject();
-        long accountId = createAccount(subject, "");
-        long organizationId = createOrganization();
+        Account account = createAccount();
+        String organizationId = UUID.randomUUID().toString();
 
         String payload = """
             {
               "type": "dynamic",
-              "accountId": %d,
-              "organizationId": %d,
+              "organizationId": "%s",
               "name": "Implement API endpoint",
               "description": "Create and test endpoint",
-              "difficulty": 4,
+              "difficulty": "EXTREME",
               "startAt": "2026-04-20T08:00:00Z",
               "endAt": "2026-04-25T18:00:00Z",
               "labels": [],
@@ -347,16 +293,16 @@ class TaskControllerIT {
                             "maxScopeDuration": "PT90M",
               "dependencies": []
             }
-            """.formatted(accountId, organizationId);
+            """.formatted(organizationId);
 
         mockMvc.perform(post("/v1/tasks")
-                .with(jwtWithOrganization(subject, organizationId))
+                .with(createJwt(account.getSubject()))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(payload))
             .andExpect(status().isCreated())
-            .andExpect(jsonPath("$.accountId").value(accountId))
+            .andExpect(jsonPath("$.organizationId").value(organizationId))
             .andExpect(jsonPath("$.name").value("Implement API endpoint"))
-            .andExpect(jsonPath("$.difficulty").value(4))
+            .andExpect(jsonPath("$.difficulty").value("EXTREME"))
             .andExpect(jsonPath("$.duration").value("PT4H"))
             .andExpect(jsonPath("$.elapsed").value("PT0S"))
             .andExpect(jsonPath("$.minScopeDuration").value("PT30M"))
@@ -370,17 +316,16 @@ class TaskControllerIT {
     }
 
     @Test
-    void createTask_Static_WithUnknownOrganization_ReturnsValidationError() throws Exception {
-        String subject = createAccountSubject();
-        long accountId = createAccount(subject, "");
-        long organizationId = createOrganization();
-        long unknownOrganizationId = 999_999L;
+    void createTask_Static_WhenKeycloakDeniesOrganization_ReturnsForbidden() throws Exception {
+        Account account = createAccount();
+        String organizationId = UUID.randomUUID().toString();
+        doThrow(new AccountAccessDeniedException("Account does not have access to the specified organizationId"))
+            .when(keycloakService).validateIdentityOrgAccess(any(Identity.class), eq(organizationId));
 
         String payload = """
             {
               "type": "static",
-              "accountId": %d,
-              "organizationId": %d,
+              "organizationId": "%s",
               "name": "Write report",
               "description": "Prepare weekly summary",
               "rrule": "FREQ=WEEKLY;BYDAY=MO",
@@ -390,31 +335,30 @@ class TaskControllerIT {
               "labels": [],
               "isBlocker": false
             }
-            """.formatted(accountId, unknownOrganizationId);
+            """.formatted(organizationId);
 
         mockMvc.perform(post("/v1/tasks")
-                .with(jwtWithOrganization(subject, organizationId))
+                .with(createJwt(account.getSubject()))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(payload))
-            .andExpect(status().isBadRequest())
+            .andExpect(status().isForbidden())
             .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
-            .andExpect(jsonPath("$.type").value("urn:chronoscope:error:validation-error"))
-            .andExpect(jsonPath("$.errorCode").value("VALIDATION_ERROR"))
-            .andExpect(jsonPath("$.detail").value("Organization not found: " + unknownOrganizationId));
+            .andExpect(jsonPath("$.type").value("urn:chronoscope:error:access-denied"))
+            .andExpect(jsonPath("$.errorCode").value("ACCESS_DENIED"))
+            .andExpect(jsonPath("$.detail").value("Account does not have access to the specified organizationId"));
     }
 
     @Test
     void createTask_Static_WithOrganizationOutsideAccount_ReturnsForbidden() throws Exception {
-        String subject = createAccountSubject();
-        long accountId = createAccount(subject, "");
-        long accessibleOrganizationId = createOrganization();
-        long inaccessibleOrganizationId = createOrganization();
+        Account account = createAccount();
+        String inaccessibleOrganizationId = UUID.randomUUID().toString();
+        doThrow(new AccountAccessDeniedException("Account does not have access to the specified organizationId"))
+            .when(keycloakService).validateIdentityOrgAccess(any(Identity.class), eq(inaccessibleOrganizationId));
 
         String payload = """
             {
               "type": "static",
-              "accountId": %d,
-              "organizationId": %d,
+              "organizationId": "%s",
               "name": "Write report",
               "description": "Prepare weekly summary",
               "rrule": "FREQ=WEEKLY;BYDAY=MO",
@@ -424,10 +368,10 @@ class TaskControllerIT {
               "labels": [],
               "isBlocker": false
             }
-            """.formatted(accountId, inaccessibleOrganizationId);
+            """.formatted(inaccessibleOrganizationId);
 
         mockMvc.perform(post("/v1/tasks")
-                .with(jwtWithOrganization(subject, accessibleOrganizationId))
+                .with(createJwt(account.getSubject()))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(payload))
             .andExpect(status().isForbidden())
@@ -439,18 +383,16 @@ class TaskControllerIT {
 
     @Test
     void createTask_Dynamic_WithStartAtAfterEndAt_ReturnsValidationError() throws Exception {
-        String subject = createAccountSubject();
-        long accountId = createAccount(subject, "");
-                long organizationId = createOrganization();
+        Account account = createAccount();
+        String organizationId = UUID.randomUUID().toString();
 
         String payload = """
             {
               "type": "dynamic",
-              "accountId": %d,
-                            "organizationId": %d,
+              "organizationId": "%s",
               "name": "Implement API endpoint",
               "description": "Create and test endpoint",
-              "difficulty": 4,
+              "difficulty": "EXTREME",
               "startAt": "2026-04-25T18:00:00Z",
               "endAt": "2026-04-20T08:00:00Z",
               "labels": [],
@@ -459,10 +401,10 @@ class TaskControllerIT {
                             "maxScopeDuration": "PT90M",
               "dependencies": []
             }
-            """.formatted(accountId, organizationId);
+            """.formatted(organizationId);
 
         mockMvc.perform(post("/v1/tasks")
-            .with(jwtWithOrganization(subject, organizationId))
+            .with(createJwt(account.getSubject()))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(payload))
             .andExpect(status().isBadRequest())
@@ -473,18 +415,16 @@ class TaskControllerIT {
 
     @Test
     void createTask_Dynamic_InvalidDurationFormat_ReturnsInvalidRequest() throws Exception {
-        String subject = createAccountSubject();
-        long accountId = createAccount(subject, "");
-                long organizationId = createOrganization();
-
+        Account account = createAccount();
+        String organizationId = UUID.randomUUID().toString();
+        
         String payload = """
             {
               "type": "dynamic",
-              "accountId": %d,
-                            "organizationId": %d,
+              "organizationId": "%s",
               "name": "Implement API endpoint",
               "description": "Create and test endpoint",
-              "difficulty": 4,
+              "difficulty": "EXTREME",
               "startAt": "2026-04-20T08:00:00Z",
               "endAt": "2026-04-25T18:00:00Z",
               "labels": [],
@@ -493,10 +433,10 @@ class TaskControllerIT {
               "maxScopeDuration": "PT90M",
               "dependencies": []
             }
-                        """.formatted(accountId, organizationId);
+            """.formatted(organizationId);
 
         mockMvc.perform(post("/v1/tasks")
-            .with(jwtWithOrganization(subject, organizationId))
+            .with(createJwt(account.getSubject()))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(payload))
             .andExpect(status().isBadRequest())
@@ -508,7 +448,7 @@ class TaskControllerIT {
 
     @Test
     void createTask_WithMalformedJson_ReturnsInvalidRequest() throws Exception {
-        String subject = createAccountSubject();
+        Account account = createAccount();
 
         String payload = """
             {
@@ -517,7 +457,7 @@ class TaskControllerIT {
             """;
 
         mockMvc.perform(post("/v1/tasks")
-                .with(jwt().jwt(jwt -> jwt.subject(subject).claim("email", "")))
+                .with(jwt().jwt(jwt -> jwt.subject(account.getSubject()).claim("email", "")))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(payload))
             .andExpect(status().isBadRequest())
@@ -529,19 +469,17 @@ class TaskControllerIT {
 
     @Test
     void createTask_Dynamic_WithDependencies_ReturnsCreatedWithDependencyLinks() throws Exception {
-        String subject = createAccountSubject();
-        long accountId = createAccount(subject, "");
-        long predecessorId = createDynamicPredecessorTask(accountId);
-        long organizationId = createOrganization();
+        Account account = createAccount();
+        String organizationId = UUID.randomUUID().toString();
+        long predecessorId = createDynamicPredecessorTask(account.getIdentity());
 
         String payload = """
             {
               "type": "dynamic",
-              "accountId": %d,
-              "organizationId": %d,
+              "organizationId": "%s",
               "name": "Task with dependencies",
               "description": "Should link predecessor",
-              "difficulty": 4,
+              "difficulty": "EXTREME",
               "startAt": "2026-04-20T08:00:00Z",
               "endAt": "2026-04-25T18:00:00Z",
               "labels": [],
@@ -552,10 +490,10 @@ class TaskControllerIT {
                   %d
               ]
             }
-            """.formatted(accountId, organizationId, predecessorId);
+            """.formatted(organizationId, predecessorId);
 
         mockMvc.perform(post("/v1/tasks")
-                .with(jwtWithOrganization(subject, organizationId))
+                .with(createJwt(account.getSubject()))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(payload))
             .andExpect(status().isCreated())
@@ -567,98 +505,92 @@ class TaskControllerIT {
     }
 
         @Test
-        void createTask_Dynamic_WithDependencyFromDifferentAccountSameIdentity_ReturnsCreated() throws Exception {
-                Identity identity = identityRepository.saveAndFlush(new Identity());
-                String requesterSubject = createAccountSubject();
-                long requesterAccountId = createAccount(identity.getId(), requesterSubject, "awd");
-                long linkedAccountId = createAccount(identity.getId(), createAccountSubject(), "awdawd");
-                long predecessorId = createDynamicPredecessorTask(linkedAccountId);
-                long organizationId = createOrganization();
+        void createTask_Dynamic_WithDependencyFromSameIdentity_ReturnsCreated() throws Exception {
+            Account account = createAccount();
+            String organizationId = UUID.randomUUID().toString();
+            long predecessorId = createDynamicPredecessorTask(account.getIdentity());
 
-                String payload = """
-                        {
-                            "type": "dynamic",
-                            "accountId": %d,
-                            "organizationId": %d,
-                            "name": "Cross-account dependency",
-                            "description": "Dependency should be allowed within same identity",
-                            "difficulty": 4,
-                            "startAt": "2026-04-20T08:00:00Z",
-                            "endAt": "2026-04-25T18:00:00Z",
-                            "labels": [],
-                            "duration": "PT240M",
-                            "minScopeDuration": "PT30M",
-                            "maxScopeDuration": "PT90M",
-                            "dependencies": [
-                                %d
-                            ]
-                        }
-                        """.formatted(requesterAccountId, organizationId, predecessorId);
+            String payload = """
+                    {
+                        "type": "dynamic",
+                        "organizationId": "%s",
+                        "name": "Cross-account dependency",
+                        "description": "Dependency should be allowed within same identity",
+                        "difficulty": "EXTREME",
+                        "startAt": "2026-04-20T08:00:00Z",
+                        "endAt": "2026-04-25T18:00:00Z",
+                        "labels": [],
+                        "duration": "PT240M",
+                        "minScopeDuration": "PT30M",
+                        "maxScopeDuration": "PT90M",
+                        "dependencies": [
+                            %d
+                        ]
+                    }
+                    """.formatted(organizationId, predecessorId);
 
-                mockMvc.perform(post("/v1/tasks")
-                                .with(jwtWithOrganization(requesterSubject, organizationId))
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(payload))
-                        .andExpect(status().isCreated())
-                        .andExpect(jsonPath("$.accountId").value(requesterAccountId))
-                        .andExpect(jsonPath("$.dependencies").isArray())
-                        .andExpect(jsonPath("$.dependencies.length()").value(1))
-                        .andExpect(jsonPath("$.dependencies[0]").value(predecessorId));
+            mockMvc.perform(post("/v1/tasks")
+                            .with(createJwt(account.getSubject()))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(payload))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.organizationId").value(organizationId))
+                    .andExpect(jsonPath("$.dependencies").isArray())
+                    .andExpect(jsonPath("$.dependencies.length()").value(1))
+                    .andExpect(jsonPath("$.dependencies[0]").value(predecessorId));
         }
 
         @Test
         void createTask_Dynamic_WithDependencyFromDifferentIdentity_ReturnsValidationError() throws Exception {
-                Identity sourceIdentity = identityRepository.saveAndFlush(new Identity());
-                String requesterSubject = createAccountSubject();
-                long requesterAccountId = createAccount(sourceIdentity.getId(), requesterSubject, "awd");
+            String organizationId = UUID.randomUUID().toString();
+            Identity identity = new Identity();
+            Identity otherIdentity = new Identity();
+            Account account = this.createAccount(identity);
+            Account otherAccount = this.createAccount(otherIdentity);
 
-                Identity otherIdentity = identityRepository.saveAndFlush(new Identity());
-                long foreignAccountId = createAccount(otherIdentity.getId(), createAccountSubject(), "awdawd");
-                long predecessorId = createDynamicPredecessorTask(foreignAccountId);
-                long organizationId = createOrganization();
+            long predecessorId = createDynamicPredecessorTask(otherAccount.getIdentity());
 
-                String payload = """
-                        {
-                            "type": "dynamic",
-                            "accountId": %d,
-                            "organizationId": %d,
-                            "name": "Cross-identity dependency",
-                            "description": "Dependency should be rejected",
-                            "difficulty": 4,
-                            "startAt": "2026-04-20T08:00:00Z",
-                            "endAt": "2026-04-25T18:00:00Z",
-                            "labels": [],
-                            "duration": "PT240M",
-                            "minScopeDuration": "PT30M",
-                            "maxScopeDuration": "PT90M",
-                            "dependencies": [
-                                %d
-                            ]
-                        }
-                        """.formatted(requesterAccountId, organizationId, predecessorId);
+            String payload = """
+                    {
+                        "type": "dynamic",
+                        "organizationId": "%s",
+                        "name": "Cross-identity dependency",
+                        "description": "Dependency should be rejected",
+                        "difficulty": "EXTREME",
+                        "startAt": "2026-04-20T08:00:00Z",
+                        "endAt": "2026-04-25T18:00:00Z",
+                        "labels": [],
+                        "duration": "PT240M",
+                        "minScopeDuration": "PT30M",
+                        "maxScopeDuration": "PT90M",
+                        "dependencies": [
+                            %d
+                        ]
+                    }
+                    """.formatted(organizationId, predecessorId);
 
-                mockMvc.perform(post("/v1/tasks")
-                                .with(jwtWithOrganization(requesterSubject, organizationId))
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(payload))
-                        .andExpect(status().isBadRequest())
-                        .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
-                        .andExpect(jsonPath("$.type").value("urn:chronoscope:error:validation-error"))
-                        .andExpect(jsonPath("$.errorCode").value("VALIDATION_ERROR"))
-                        .andExpect(jsonPath("$.detail").value("Dependency task " + predecessorId + " must belong to the same identity"));
+            mockMvc.perform(post("/v1/tasks")
+                            .with(createJwt(account.getSubject()))
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(payload))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
+                    .andExpect(jsonPath("$.type").value("urn:chronoscope:error:validation-error"))
+                    .andExpect(jsonPath("$.errorCode").value("VALIDATION_ERROR"))
+                    .andExpect(jsonPath("$.detail").value("Dependency task " + predecessorId + " must belong to the same identity"));
         }
 
         @Test
         void getTask_Dynamic_ReturnsDependenciesAndDependentsFields() throws Exception {
-            String subject = createAccountSubject();
-            long accountId = createAccount(subject, "");
-            long predecessorId = createDynamicPredecessorTask(accountId);
+            Account account = createAccount();
+            long predecessorId = createDynamicPredecessorTask(account.getIdentity());
 
             DynamicTask dependent = new DynamicTask();
-            dependent.setAccount(accountRepository.getReferenceById(accountId));
+            dependent.setIdentity(account.getIdentity());
+            dependent.setOrganizationId(DEFAULT_ORGANIZATION_ID);
             dependent.setName("Dependent dynamic task");
             dependent.setDescription("Depends on predecessor");
-            dependent.setDifficulty(3);
+            dependent.setDifficulty(Task.Difficulty.HARD);
             dependent.setStartAt(Instant.parse("2026-04-21T08:00:00Z"));
             dependent.setEndAt(Instant.parse("2026-04-24T18:00:00Z"));
             dependent.setDuration(Duration.of(180, ChronoUnit.MINUTES));
@@ -669,10 +601,10 @@ class TaskControllerIT {
             dependent.setScopes(new ArrayList<>());
             dependent.setDependencies(new HashSet<>(List.of((DynamicTask) taskRepository.getReferenceById(predecessorId))));
             dependent.setDependents(new HashSet<>());
-            dependent = saveTask(dependent);
+            dependent = this.taskRepository.saveAndFlush(dependent);
 
             mockMvc.perform(get("/v1/tasks/{id}", dependent.getId())
-                .with(jwt().jwt(jwt -> jwt.subject(subject))))
+                .with(jwt().jwt(jwt -> jwt.subject(account.getSubject()))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(dependent.getId()))
                 .andExpect(jsonPath("$.type").value("dynamic"))
@@ -685,20 +617,20 @@ class TaskControllerIT {
 
     @Test
     void updateTask_Static_PartiallyUpdatesOnlyProvidedFields() throws Exception {
-        String subject = createAccountSubject();
-        long accountId = createAccount(subject, "");
+        Account account = createAccount();
 
         StaticTask task = new StaticTask();
-        task.setAccount(accountRepository.getReferenceById(accountId));
+        task.setIdentity(account.getIdentity());
+        task.setOrganizationId(DEFAULT_ORGANIZATION_ID);
         task.setName("Original static task");
         task.setDescription("Original description");
-        task.setDifficulty(2);
+        task.setDifficulty(Task.Difficulty.TRIVIAL);
         task.setStartAt(Instant.parse("2026-04-20T09:00:00Z"));
         task.setEndAt(Instant.parse("2026-04-20T10:00:00Z"));
         task.setRrule("FREQ=DAILY");
         task.setLabels(new ArrayList<>());
         task.setIsBlocker(false);
-        long taskId = saveTask(task).getId();
+        long taskId = this.taskRepository.saveAndFlush(task).getId();
 
         String payload = """
             {
@@ -708,7 +640,7 @@ class TaskControllerIT {
             """;
 
         mockMvc.perform(patch("/v1/tasks/{id}", taskId)
-                .with(jwt().jwt(jwt -> jwt.subject(subject)))
+                .with(jwt().jwt(jwt -> jwt.subject(account.getSubject())))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(payload))
             .andExpect(status().isOk())
@@ -716,40 +648,41 @@ class TaskControllerIT {
             .andExpect(jsonPath("$.type").value("static"))
             .andExpect(jsonPath("$.name").value("Updated static task"))
             .andExpect(jsonPath("$.description").value("Original description"))
-            .andExpect(jsonPath("$.difficulty").value(2))
+            .andExpect(jsonPath("$.difficulty").value("TRIVIAL"))
             .andExpect(jsonPath("$.rrule").value("FREQ=DAILY"))
             .andExpect(jsonPath("$.isBlocker").value(false));
     }
 
     @Test
     void updateTask_Static_WithOrganizationOutsideAccount_ReturnsForbidden() throws Exception {
-        String subject = createAccountSubject();
-        long accountId = createAccount(subject, "");
-        long accessibleOrganizationId = createOrganization();
-        long inaccessibleOrganizationId = createOrganization();
+        Account account = createAccount();
+        String organizationId = UUID.randomUUID().toString();
+        String inaccessibleOrganizationId = UUID.randomUUID().toString();
+        doThrow(new AccountAccessDeniedException("Account does not have access to the specified organizationId"))
+            .when(keycloakService).validateIdentityOrgAccess(any(Identity.class), eq(inaccessibleOrganizationId));
 
         StaticTask task = new StaticTask();
-        task.setAccount(accountRepository.getReferenceById(accountId));
-        task.setOrganization(organizationRepository.getReferenceById(accessibleOrganizationId));
+        task.setIdentity(account.getIdentity());
+        task.setOrganizationId(organizationId);
         task.setName("Original static task");
         task.setDescription("Original description");
-        task.setDifficulty(2);
+        task.setDifficulty(Task.Difficulty.TRIVIAL);
         task.setStartAt(Instant.parse("2026-04-20T09:00:00Z"));
         task.setEndAt(Instant.parse("2026-04-20T10:00:00Z"));
         task.setRrule("FREQ=DAILY");
         task.setLabels(new ArrayList<>());
         task.setIsBlocker(false);
-        long taskId = saveTask(task).getId();
+        long taskId = this.taskRepository.saveAndFlush(task).getId();
 
         String payload = """
             {
               "type": "static",
-              "organizationId": %d
+              "organizationId": "%s"
             }
             """.formatted(inaccessibleOrganizationId);
 
         mockMvc.perform(patch("/v1/tasks/{id}", taskId)
-                .with(jwtWithOrganization(subject, accessibleOrganizationId))
+                .with(createJwt(account.getSubject()))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(payload))
             .andExpect(status().isForbidden())
@@ -761,16 +694,16 @@ class TaskControllerIT {
 
     @Test
     void updateTask_Dynamic_PreservesExistingDependenciesWhenOmitted() throws Exception {
-        String subject = createAccountSubject();
-        long accountId = createAccount(subject, "");
+        Account account = createAccount();
 
-        long predecessorId = createDynamicPredecessorTask(accountId);
+        long predecessorId = createDynamicPredecessorTask(account.getIdentity());
 
         DynamicTask task = new DynamicTask();
-        task.setAccount(accountRepository.getReferenceById(accountId));
+        task.setIdentity(account.getIdentity());
+        task.setOrganizationId(DEFAULT_ORGANIZATION_ID);
         task.setName("Original dynamic task");
         task.setDescription("Original dynamic description");
-        task.setDifficulty(3);
+        task.setDifficulty(Task.Difficulty.HARD);
         task.setStartAt(Instant.parse("2026-04-21T08:00:00Z"));
         task.setEndAt(Instant.parse("2026-04-24T18:00:00Z"));
         task.setDuration(Duration.of(180, ChronoUnit.MINUTES));
@@ -781,7 +714,7 @@ class TaskControllerIT {
         task.setScopes(new ArrayList<>());
         task.setDependencies(new HashSet<>(List.of((DynamicTask) taskRepository.getReferenceById(predecessorId))));
         task.setDependents(new HashSet<>());
-        long taskId = saveTask(task).getId();
+        long taskId = this.taskRepository.saveAndFlush(task).getId();
 
         String payload = """
             {
@@ -791,7 +724,7 @@ class TaskControllerIT {
             """;
 
         mockMvc.perform(patch("/v1/tasks/{id}", taskId)
-                .with(jwt().jwt(jwt -> jwt.subject(subject)))
+                .with(jwt().jwt(jwt -> jwt.subject(account.getSubject())))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(payload))
             .andExpect(status().isOk())
@@ -803,53 +736,17 @@ class TaskControllerIT {
     }
 
     @Test
-    void updateTask_Static_DifficultyAboveFive_ReturnsValidationError() throws Exception {
-        String subject = createAccountSubject();
-        long accountId = createAccount(subject, "");
-        long organizationId = createOrganization();
-
-        StaticTask task = new StaticTask();
-        task.setAccount(accountRepository.getReferenceById(accountId));
-        task.setOrganization(organizationRepository.getReferenceById(organizationId));
-        task.setName("Original static task");
-        task.setDescription("Original description");
-        task.setDifficulty(2);
-        task.setStartAt(Instant.parse("2026-04-20T09:00:00Z"));
-        task.setEndAt(Instant.parse("2026-04-20T10:00:00Z"));
-        task.setRrule("FREQ=DAILY");
-        task.setLabels(new ArrayList<>());
-        task.setIsBlocker(false);
-        long taskId = taskRepository.saveAndFlush(task).getId();
-
-        String payload = """
-            {
-              "type": "static",
-              "difficulty": 6
-            }
-            """;
-
-        mockMvc.perform(patch("/v1/tasks/{id}", taskId)
-                .with(jwt().jwt(jwt -> jwt.subject(subject)))
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(payload))
-            .andExpect(status().isBadRequest())
-            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
-            .andExpect(jsonPath("$.type").value("urn:chronoscope:error:validation-error"))
-            .andExpect(jsonPath("$.fieldErrors[*].field", hasItem("difficulty")));
-    }
-
-    @Test
     void updateTask_Dynamic_ReducesDuration_CapsMinAndMaxScopeDurations() throws Exception {
-        String subject = createAccountSubject();
-        long accountId = createAccount(subject, "");
-        long organizationId = createOrganization();
+        Account account = createAccount();
+        String organizationId = UUID.randomUUID().toString();
+        
 
         DynamicTask task = new DynamicTask();
-        task.setAccount(accountRepository.getReferenceById(accountId));
-        task.setOrganization(organizationRepository.getReferenceById(organizationId));
+        task.setIdentity(account.getIdentity());
+        task.setOrganizationId(organizationId);
         task.setName("Dynamic task");
         task.setDescription("Should cap scope durations when duration is lowered");
-        task.setDifficulty(3);
+        task.setDifficulty(Task.Difficulty.HARD);
         task.setStartAt(Instant.parse("2026-04-21T08:00:00Z"));
         task.setEndAt(Instant.parse("2026-04-24T18:00:00Z"));
         task.setDuration(Duration.of(180, ChronoUnit.MINUTES));
@@ -870,7 +767,7 @@ class TaskControllerIT {
             """;
 
         mockMvc.perform(patch("/v1/tasks/{id}", taskId)
-                .with(jwt().jwt(jwt -> jwt.subject(subject)))
+                .with(jwt().jwt(jwt -> jwt.subject(account.getSubject())))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(payload))
             .andExpect(status().isOk())
@@ -881,14 +778,14 @@ class TaskControllerIT {
 
     @Test
     void updateTask_Dynamic_AllowsElapsedZero() throws Exception {
-        String subject = createAccountSubject();
-        long accountId = createAccount(subject, "");
+        Account account = createAccount();
 
         DynamicTask task = new DynamicTask();
-        task.setAccount(accountRepository.getReferenceById(accountId));
+        task.setIdentity(account.getIdentity());
+        task.setOrganizationId(DEFAULT_ORGANIZATION_ID);
         task.setName("Dynamic task");
         task.setDescription("Can reset elapsed to zero");
-        task.setDifficulty(3);
+        task.setDifficulty(Task.Difficulty.HARD);
         task.setStartAt(Instant.parse("2026-04-21T08:00:00Z"));
         task.setEndAt(Instant.parse("2026-04-24T18:00:00Z"));
         task.setDuration(Duration.of(180, ChronoUnit.MINUTES));
@@ -899,7 +796,7 @@ class TaskControllerIT {
         task.setScopes(new ArrayList<>());
         task.setDependencies(new HashSet<>());
         task.setDependents(new HashSet<>());
-        long taskId = saveTask(task).getId();
+        long taskId = this.taskRepository.saveAndFlush(task).getId();
 
         String payload = """
             {
@@ -909,7 +806,7 @@ class TaskControllerIT {
             """;
 
         mockMvc.perform(patch("/v1/tasks/{id}", taskId)
-                .with(jwt().jwt(jwt -> jwt.subject(subject)))
+                .with(jwt().jwt(jwt -> jwt.subject(account.getSubject())))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(payload))
             .andExpect(status().isOk())
@@ -923,14 +820,14 @@ class TaskControllerIT {
 
     @Test
     void updateTask_Dynamic_NegativeElapsed_ReturnsValidationError() throws Exception {
-        String subject = createAccountSubject();
-        long accountId = createAccount(subject, "");
+        Account account = createAccount();
 
         DynamicTask task = new DynamicTask();
-        task.setAccount(accountRepository.getReferenceById(accountId));
+        task.setIdentity(account.getIdentity());
+        task.setOrganizationId(DEFAULT_ORGANIZATION_ID);
         task.setName("Dynamic task");
         task.setDescription("Should reject negative elapsed");
-        task.setDifficulty(3);
+        task.setDifficulty(Task.Difficulty.HARD);
         task.setStartAt(Instant.parse("2026-04-21T08:00:00Z"));
         task.setEndAt(Instant.parse("2026-04-24T18:00:00Z"));
         task.setDuration(Duration.of(180, ChronoUnit.MINUTES));
@@ -941,7 +838,7 @@ class TaskControllerIT {
         task.setScopes(new ArrayList<>());
         task.setDependencies(new HashSet<>());
         task.setDependents(new HashSet<>());
-        long taskId = saveTask(task).getId();
+        long taskId = this.taskRepository.saveAndFlush(task).getId();
 
         String payload = """
             {
@@ -951,7 +848,7 @@ class TaskControllerIT {
             """;
 
         mockMvc.perform(patch("/v1/tasks/{id}", taskId)
-                .with(jwt().jwt(jwt -> jwt.subject(subject)))
+                .with(jwt().jwt(jwt -> jwt.subject(account.getSubject())))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(payload))
             .andExpect(status().isBadRequest())
@@ -962,14 +859,14 @@ class TaskControllerIT {
 
     @Test
     void updateTask_Dynamic_WithStaticTypePayload_ReturnsValidationError() throws Exception {
-        String subject = createAccountSubject();
-        long accountId = createAccount(subject, "");
+        Account account = createAccount();
 
         DynamicTask task = new DynamicTask();
-        task.setAccount(accountRepository.getReferenceById(accountId));
+        task.setIdentity(account.getIdentity());
+        task.setOrganizationId(DEFAULT_ORGANIZATION_ID);
         task.setName("Dynamic task");
         task.setDescription("Type mismatch case");
-        task.setDifficulty(3);
+        task.setDifficulty(Task.Difficulty.HARD);
         task.setStartAt(Instant.parse("2026-04-21T08:00:00Z"));
         task.setEndAt(Instant.parse("2026-04-24T18:00:00Z"));
         task.setDuration(Duration.of(180, ChronoUnit.MINUTES));
@@ -980,7 +877,7 @@ class TaskControllerIT {
         task.setScopes(new ArrayList<>());
         task.setDependencies(new HashSet<>());
         task.setDependents(new HashSet<>());
-        long taskId = saveTask(task).getId();
+        long taskId = this.taskRepository.saveAndFlush(task).getId();
 
         String payload = """
             {
@@ -990,7 +887,7 @@ class TaskControllerIT {
             """;
 
         mockMvc.perform(patch("/v1/tasks/{id}", taskId)
-                .with(jwt().jwt(jwt -> jwt.subject(subject)))
+                .with(jwt().jwt(jwt -> jwt.subject(account.getSubject())))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(payload))
             .andExpect(status().isBadRequest())
@@ -1001,16 +898,16 @@ class TaskControllerIT {
 
     @Test
     void updateTask_Dynamic_RemovesDependencyAndCleansInverseRelation() throws Exception {
-        String subject = createAccountSubject();
-        long accountId = createAccount(subject, "");
+        Account account = createAccount();
 
-        long predecessorId = createDynamicPredecessorTask(accountId);
+        long predecessorId = createDynamicPredecessorTask(account.getIdentity());
 
         DynamicTask dependent = new DynamicTask();
-        dependent.setAccount(accountRepository.getReferenceById(accountId));
+        dependent.setIdentity(account.getIdentity());
+        dependent.setOrganizationId(DEFAULT_ORGANIZATION_ID);
         dependent.setName("Dependent task");
         dependent.setDescription("Initially depends on predecessor");
-        dependent.setDifficulty(3);
+        dependent.setDifficulty(Task.Difficulty.HARD);
         dependent.setStartAt(Instant.parse("2026-04-21T08:00:00Z"));
         dependent.setEndAt(Instant.parse("2026-04-24T18:00:00Z"));
         dependent.setDuration(Duration.of(180, ChronoUnit.MINUTES));
@@ -1021,7 +918,7 @@ class TaskControllerIT {
         dependent.setScopes(new ArrayList<>());
         dependent.setDependencies(new HashSet<>(List.of((DynamicTask) taskRepository.getReferenceById(predecessorId))));
         dependent.setDependents(new HashSet<>());
-        long dependentId = saveTask(dependent).getId();
+        long dependentId = this.taskRepository.saveAndFlush(dependent).getId();
 
         String payload = """
             {
@@ -1031,7 +928,7 @@ class TaskControllerIT {
             """;
 
         mockMvc.perform(patch("/v1/tasks/{id}", dependentId)
-                .with(jwt().jwt(jwt -> jwt.subject(subject)))
+                .with(jwt().jwt(jwt -> jwt.subject(account.getSubject())))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(payload))
             .andExpect(status().isOk())
@@ -1052,16 +949,16 @@ class TaskControllerIT {
 
     @Test
     void updateTask_Dynamic_AddsDependencyAndCleansInverseRelation() throws Exception {
-        String subject = createAccountSubject();
-        long accountId = createAccount(subject, "");
+        Account account = createAccount();
 
-        long dependencyId = createDynamicPredecessorTask(accountId);
+        long dependencyId = createDynamicPredecessorTask(account.getIdentity());
 
         DynamicTask dependent = new DynamicTask();
-        dependent.setAccount(accountRepository.getReferenceById(accountId));
+        dependent.setIdentity(account.getIdentity());
+        dependent.setOrganizationId(DEFAULT_ORGANIZATION_ID);
         dependent.setName("Independent task");
         dependent.setDescription("Will gain a dependency");
-        dependent.setDifficulty(3);
+        dependent.setDifficulty(Task.Difficulty.HARD);
         dependent.setStartAt(Instant.parse("2026-04-21T08:00:00Z"));
         dependent.setEndAt(Instant.parse("2026-04-24T18:00:00Z"));
         dependent.setDuration(Duration.of(180, ChronoUnit.MINUTES));
@@ -1072,7 +969,7 @@ class TaskControllerIT {
         dependent.setScopes(new ArrayList<>());
         dependent.setDependencies(new HashSet<>());
         dependent.setDependents(new HashSet<>());
-        long dependentId = saveTask(dependent).getId();
+        long dependentId = this.taskRepository.saveAndFlush(dependent).getId();
 
         String payload = """
             {
@@ -1082,7 +979,7 @@ class TaskControllerIT {
             """.formatted(dependencyId);
 
         mockMvc.perform(patch("/v1/tasks/{id}", dependentId)
-                .with(jwt().jwt(jwt -> jwt.subject(subject)))
+                .with(jwt().jwt(jwt -> jwt.subject(account.getSubject())))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(payload))
             .andExpect(status().isOk())
@@ -1103,19 +1000,18 @@ class TaskControllerIT {
 
     @Test
     void updateTask_Dynamic_WithDependencyFromDifferentIdentity_ReturnsValidationError() throws Exception {
-        Identity sourceIdentity = identityRepository.saveAndFlush(new Identity());
-        String requesterSubject = createAccountSubject();
-        long requesterAccountId = createAccount(sourceIdentity.getId(), requesterSubject, "awd");
-
-        Identity otherIdentity = identityRepository.saveAndFlush(new Identity());
-        long foreignAccountId = createAccount(otherIdentity.getId(), createAccountSubject(), "awdawd");
-        long foreignDependencyId = createDynamicPredecessorTask(foreignAccountId);
+        Identity identity = new Identity();
+        Identity otherIdentity = new Identity();
+        Account account = this.createAccount(identity);
+        Account otherAccount = this.createAccount(otherIdentity);
+        long foreignDependencyId = createDynamicPredecessorTask(otherAccount.getIdentity());
 
         DynamicTask task = new DynamicTask();
-        task.setAccount(accountRepository.getReferenceById(requesterAccountId));
+        task.setIdentity(account.getIdentity());
+        task.setOrganizationId(DEFAULT_ORGANIZATION_ID);
         task.setName("Task to patch");
         task.setDescription("Should reject foreign dependency");
-        task.setDifficulty(3);
+        task.setDifficulty(Task.Difficulty.HARD);
         task.setStartAt(Instant.parse("2026-04-21T08:00:00Z"));
         task.setEndAt(Instant.parse("2026-04-24T18:00:00Z"));
         task.setDuration(Duration.of(180, ChronoUnit.MINUTES));
@@ -1126,7 +1022,7 @@ class TaskControllerIT {
         task.setScopes(new ArrayList<>());
         task.setDependencies(new HashSet<>());
         task.setDependents(new HashSet<>());
-        long taskId = saveTask(task).getId();
+        long taskId = this.taskRepository.saveAndFlush(task).getId();
 
         String payload = """
             {
@@ -1136,7 +1032,7 @@ class TaskControllerIT {
             """.formatted(foreignDependencyId);
 
         mockMvc.perform(patch("/v1/tasks/{id}", taskId)
-                .with(jwt().jwt(jwt -> jwt.subject(requesterSubject)))
+                .with(jwt().jwt(jwt -> jwt.subject(account.getSubject())))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(payload))
             .andExpect(status().isBadRequest())
@@ -1148,23 +1044,22 @@ class TaskControllerIT {
 
     @Test
     void updateTask_FromDifferentIdentity_Returns404() throws Exception {
-        String ownerSubject = createAccountSubject();
-        long ownerAccountId = createAccount(ownerSubject, "awd");
+        Account ownerAccount = createAccount();
 
         StaticTask task = new StaticTask();
-        task.setAccount(accountRepository.getReferenceById(ownerAccountId));
+        task.setIdentity(ownerAccount.getIdentity());
+        task.setOrganizationId(DEFAULT_ORGANIZATION_ID);
         task.setName("Foreign task");
         task.setDescription("Should not be patchable by someone else");
-        task.setDifficulty(1);
+        task.setDifficulty(Task.Difficulty.EASY);
         task.setStartAt(Instant.parse("2026-04-20T09:00:00Z"));
         task.setEndAt(Instant.parse("2026-04-20T10:00:00Z"));
         task.setRrule("FREQ=DAILY");
         task.setLabels(new ArrayList<>());
         task.setIsBlocker(false);
-        long taskId = saveTask(task).getId();
+        long taskId = this.taskRepository.saveAndFlush(task).getId();
 
-        String attackerSubject = createAccountSubject();
-        createAccount(attackerSubject, "aw");
+        String attackerSubject = UUID.randomUUID().toString();
 
         String payload = """
             {
@@ -1182,8 +1077,7 @@ class TaskControllerIT {
 
     @Test
     void updateTask_NotFound_Returns404() throws Exception {
-        String subject = createAccountSubject();
-        createAccount(subject, "");
+        Account account = createAccount();
 
         String payload = """
             {
@@ -1193,7 +1087,7 @@ class TaskControllerIT {
             """;
 
         mockMvc.perform(patch("/v1/tasks/{id}", 999_999L)
-                .with(jwt().jwt(jwt -> jwt.subject(subject)))
+                .with(jwt().jwt(jwt -> jwt.subject(account.getSubject())))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(payload))
             .andExpect(status().isNotFound());
@@ -1201,18 +1095,17 @@ class TaskControllerIT {
 
     @Test
     void createTask_Dynamic_MissingDependencies_ReturnsValidationError() throws Exception {
-        String subject = createAccountSubject();
-        long accountId = createAccount(subject, "");
-        long organizationId = createOrganization();
+        Account account = createAccount();
+        String organizationId = UUID.randomUUID().toString();
+        
 
         String payload = """
             {
               "type": "dynamic",
-              "accountId": %d,
-              "organizationId": %d,
+              "organizationId": "%s",
               "name": "Implement API endpoint",
               "description": "Create and test endpoint",
-              "difficulty": 4,
+              "difficulty": "EXTREME",
               "startAt": "2026-04-20T08:00:00Z",
               "endAt": "2026-04-25T18:00:00Z",
               "labels": [],
@@ -1220,10 +1113,10 @@ class TaskControllerIT {
               "minScopeDuration": "PT30M",
               "maxScopeDuration": "PT90M"
             }
-            """.formatted(accountId, organizationId);
+            """.formatted(organizationId);
 
         mockMvc.perform(post("/v1/tasks")
-                .with(jwt().jwt(jwt -> jwt.subject(subject)))
+                .with(jwt().jwt(jwt -> jwt.subject(account.getSubject())))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(payload))
             .andExpect(status().isBadRequest())
@@ -1234,15 +1127,14 @@ class TaskControllerIT {
 
     @Test
     void createTask_Static_MissingStartAndEndAt_ReturnsValidationError() throws Exception {
-        String subject = createAccountSubject();
-        long accountId = createAccount(subject, "");
-        long organizationId = createOrganization();
+        Account account = createAccount();
+        String organizationId = UUID.randomUUID().toString();
+        
 
         String payload = """
             {
               "type": "static",
-              "accountId": %d,
-              "organizationId": %d,
+              "organizationId": "%s",
               "name": "Write report",
               "description": "Prepare weekly summary",
               "rrule": "FREQ=WEEKLY;BYDAY=MO",
@@ -1250,10 +1142,10 @@ class TaskControllerIT {
               "labels": [],
               "isBlocker": false
             }
-            """.formatted(accountId, organizationId);
+            """.formatted(organizationId);
 
         mockMvc.perform(post("/v1/tasks")
-                .with(jwt().jwt(jwt -> jwt.subject(subject)))
+                .with(jwt().jwt(jwt -> jwt.subject(account.getSubject())))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(payload))
             .andExpect(status().isBadRequest())
@@ -1270,25 +1162,23 @@ class TaskControllerIT {
 
     @Test
     void createTask_Static_MissingDescriptionRruleAndLabels_ReturnsValidationError() throws Exception {
-        String subject = createAccountSubject();
-        long accountId = createAccount(subject, "");
-        long organizationId = createOrganization();
+        Account account = createAccount();
+        String organizationId = UUID.randomUUID().toString();
 
         String payload = """
             {
               "type": "static",
-              "accountId": %d,
-              "organizationId": %d,
+              "organizationId": "%s",
               "name": "Write report",
               "difficulty": 3,
               "startAt": "2026-04-20T09:00:00Z",
               "endAt": "2026-04-20T10:00:00Z",
               "isBlocker": false
             }
-            """.formatted(accountId, organizationId);
+            """.formatted(organizationId);
 
         mockMvc.perform(post("/v1/tasks")
-                .with(jwt().jwt(jwt -> jwt.subject(subject)))
+                .with(jwt().jwt(jwt -> jwt.subject(account.getSubject())))
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(payload))
             .andExpect(status().isBadRequest())
@@ -1301,23 +1191,23 @@ class TaskControllerIT {
 
     @Test
     void deleteTask_Static_ReturnsNoContentAndRemovesTask() throws Exception {
-        String subject = createAccountSubject();
-        long accountId = createAccount(subject, "");
+        Account account = createAccount();
 
         StaticTask task = new StaticTask();
-        task.setAccount(accountRepository.getReferenceById(accountId));
+        task.setIdentity(account.getIdentity());
+        task.setOrganizationId(DEFAULT_ORGANIZATION_ID);
         task.setName("Static to delete");
         task.setDescription("Delete me");
-        task.setDifficulty(1);
+        task.setDifficulty(Task.Difficulty.EASY);
         task.setStartAt(Instant.parse("2026-04-20T09:00:00Z"));
         task.setEndAt(Instant.parse("2026-04-20T10:00:00Z"));
         task.setRrule("FREQ=DAILY");
         task.setLabels(new ArrayList<>());
         task.setIsBlocker(false);
-        long taskId = saveTask(task).getId();
+        long taskId = this.taskRepository.saveAndFlush(task).getId();
 
         mockMvc.perform(delete("/v1/tasks/{id}", taskId)
-                .with(jwt().jwt(jwt -> jwt.subject(subject))))
+                .with(jwt().jwt(jwt -> jwt.subject(account.getSubject()))))
             .andExpect(status().isNoContent());
 
         assertTrue(taskRepository.findById(taskId).isEmpty());
@@ -1325,14 +1215,14 @@ class TaskControllerIT {
 
     @Test
     void deleteTask_Dynamic_RemovesScopesAndInboundLinks() throws Exception {
-        String subject = createAccountSubject();
-        long accountId = createAccount(subject, "");
+        Account account = createAccount();
 
         DynamicTask predecessor = new DynamicTask();
-        predecessor.setAccount(accountRepository.getReferenceById(accountId));
+        predecessor.setIdentity(account.getIdentity());
+        predecessor.setOrganizationId(DEFAULT_ORGANIZATION_ID);
         predecessor.setName("Predecessor");
         predecessor.setDescription("Will be deleted");
-        predecessor.setDifficulty(2);
+        predecessor.setDifficulty(Task.Difficulty.TRIVIAL);
         predecessor.setStartAt(Instant.parse("2026-04-20T08:00:00Z"));
         predecessor.setEndAt(Instant.parse("2026-04-22T18:00:00Z"));
         predecessor.setDuration(Duration.of(120, ChronoUnit.MINUTES));
@@ -1349,15 +1239,16 @@ class TaskControllerIT {
         scope.setEndAt(Instant.parse("2026-04-20T09:00:00Z"));
         predecessor.setScopes(new ArrayList<>(List.of(scope)));
 
-        predecessor = saveTask(predecessor);
+        predecessor = this.taskRepository.saveAndFlush(predecessor);
         long predecessorId = predecessor.getId();
         long predecessorScopeId = predecessor.getScopes().getFirst().getId();
 
         DynamicTask dependent = new DynamicTask();
-        dependent.setAccount(accountRepository.getReferenceById(accountId));
+        dependent.setIdentity(account.getIdentity());
+        dependent.setOrganizationId(DEFAULT_ORGANIZATION_ID);
         dependent.setName("Dependent");
         dependent.setDescription("Depends on predecessor");
-        dependent.setDifficulty(3);
+        dependent.setDifficulty(Task.Difficulty.HARD);
         dependent.setStartAt(Instant.parse("2026-04-20T08:00:00Z"));
         dependent.setEndAt(Instant.parse("2026-04-24T18:00:00Z"));
         dependent.setDuration(Duration.of(240, ChronoUnit.MINUTES));
@@ -1369,10 +1260,10 @@ class TaskControllerIT {
         dependent.setDependencies(new HashSet<>(List.of(predecessor)));
         dependent.setDependents(new HashSet<>());
 
-        saveTask(dependent);
+        this.taskRepository.saveAndFlush(dependent);
 
         mockMvc.perform(delete("/v1/tasks/{id}", predecessorId)
-                .with(jwt().jwt(jwt -> jwt.subject(subject))))
+                .with(jwt().jwt(jwt -> jwt.subject(account.getSubject()))))
             .andExpect(status().isNoContent());
 
         assertTrue(taskRepository.findById(predecessorId).isEmpty());
@@ -1384,33 +1275,31 @@ class TaskControllerIT {
 
     @Test
     void deleteTask_NotFound_Returns404() throws Exception {
-        String subject = createAccountSubject();
-        createAccount(subject, "");
+        Account account = createAccount();
 
         mockMvc.perform(delete("/v1/tasks/{id}", 999_999L)
-                .with(jwt().jwt(jwt -> jwt.subject(subject))))
+                .with(jwt().jwt(jwt -> jwt.subject(account.getSubject()))))
             .andExpect(status().isNotFound());
     }
 
     @Test
     void deleteTask_FromDifferentIdentity_Returns404() throws Exception {
-        String ownerSubject = createAccountSubject();
-        long ownerAccountId = createAccount(ownerSubject, "awd");
+        Account account = createAccount();
 
         StaticTask task = new StaticTask();
-        task.setAccount(accountRepository.getReferenceById(ownerAccountId));
+        task.setIdentity(account.getIdentity());
+        task.setOrganizationId(DEFAULT_ORGANIZATION_ID);
         task.setName("Foreign task");
         task.setDescription("Should not be deletable");
-        task.setDifficulty(1);
+        task.setDifficulty(Task.Difficulty.EASY);
         task.setStartAt(Instant.parse("2026-04-20T09:00:00Z"));
         task.setEndAt(Instant.parse("2026-04-20T10:00:00Z"));
         task.setRrule("FREQ=DAILY");
         task.setLabels(new ArrayList<>());
         task.setIsBlocker(false);
-        long taskId = saveTask(task).getId();
+        long taskId = this.taskRepository.saveAndFlush(task).getId();
 
-        String attackerSubject = createAccountSubject();
-        createAccount(attackerSubject, "awdd");
+        String attackerSubject = UUID.randomUUID().toString();
 
         mockMvc.perform(delete("/v1/tasks/{id}", taskId)
                 .with(jwt().jwt(jwt -> jwt.subject(attackerSubject))))
