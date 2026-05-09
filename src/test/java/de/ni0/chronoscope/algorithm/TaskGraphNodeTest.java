@@ -44,6 +44,21 @@ class TaskGraphNodeTest {
         assertSame(node.task(), node.task());
     }
 
+    @Test
+    void delegatesScopeDurationConstraintsToTask() {
+        DynamicTask task = new DynamicTask();
+        task.setId(1L);
+        task.setStartAt(START);
+        task.setEndAt(START.plus(Duration.ofHours(2)));
+        task.setDuration(Duration.ofHours(1));
+        task.setMinScopeDuration(Duration.ofMinutes(15));
+        task.setMaxScopeDuration(Duration.ofMinutes(45));
+        TaskGraphNode node = new TaskGraphNode(task, new ArrayList<>(), new ArrayList<>());
+
+        assertEquals(Duration.ofMinutes(15), node.getMinScopeDuration());
+        assertEquals(Duration.ofMinutes(45), node.getMaxScopeDuration());
+    }
+
     private static TaskGraphNode node(Long id) {
         DynamicTask task = new DynamicTask();
         task.setId(id);

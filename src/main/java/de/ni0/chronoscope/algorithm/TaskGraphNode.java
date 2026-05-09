@@ -43,4 +43,12 @@ public record TaskGraphNode(DynamicTask task, List<TaskGraphNode> dependencies, 
     public Duration getDuration() {
         return this.task.getDuration();
     }
+
+    public Duration getMinScopeDuration() {
+        return this.task.getMinScopeDuration();
+    }
+
+    public Duration getMaxScopeDuration() {
+        return this.task.getMaxScopeDuration();
+    }
 }
