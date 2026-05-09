@@ -56,6 +56,14 @@ public class Algorithm {
             }
         }
 
+        // Advance to the next slot if no pending task's minimum scope fits in the remaining time
+        boolean anyTaskCanStart = tasks.stream()
+                .anyMatch(t -> remainingSlotDuration.compareTo(t.getMinScopeDuration()) >= 0);
+        if (!anyTaskCanStart) {
+            log.debug("Remaining slot time {} is below all minScopeDurations; advancing to next slot", remainingSlotDuration);
+            return advanceToNextSlot(tasks, dependencyCount, remainingTaskDurations, slots, slot, currentTime, plannedScopes);
+        }
+
         for (WeightDataProvider provider : this.providers) {
             provider.calculate(new DataProviderContext(currentTime, plannedScopes), tasks);
         }
@@ -67,11 +75,33 @@ public class Algorithm {
             List<Scope> scopes = new ArrayList<>();
 
             Duration remainingTaskDuration = remainingTaskDurations.get(task);
-            System.out.println("Remaining Task Duration: " + remainingTaskDuration);
+
+            // Skip tasks whose minimum scope duration exceeds the remaining slot time
+            if (remainingSlotDuration.compareTo(task.getMinScopeDuration()) < 0) {
+                continue;
+            }
+
+            // Cap at maxScopeDuration after taking the smaller of remaining task and remaining slot
             Duration scopeDuration = remainingTaskDuration.compareTo(remainingSlotDuration) <= 0
                     ? remainingTaskDuration
                     : remainingSlotDuration;
-            System.out.println("Scope Duration: " + scopeDuration);
+            if (scopeDuration.compareTo(task.getMaxScopeDuration()) > 0) {
+                scopeDuration = task.getMaxScopeDuration();
+            }
+
+            // Tail guard: if the leftover after this scope is non-zero but below minScopeDuration,
+            // shrink the current scope so the tail is exactly minScopeDuration
+            Duration tentativeRemaining = remainingTaskDuration.minus(scopeDuration);
+            if (!tentativeRemaining.isZero() && tentativeRemaining.compareTo(task.getMinScopeDuration()) < 0) {
+                Duration shortfall = task.getMinScopeDuration().minus(tentativeRemaining);
+                Duration adjustedScope = scopeDuration.minus(shortfall);
+                if (adjustedScope.compareTo(task.getMinScopeDuration()) < 0) {
+                    // No valid split exists here; try the next candidate task
+                    continue;
+                }
+                scopeDuration = adjustedScope;
+            }
+
             Duration newRemainingTaskDuration = remainingTaskDurations.get(task).minus(scopeDuration);
 
             remainingTaskDurations.put(task, newRemainingTaskDuration);
@@ -88,20 +118,26 @@ public class Algorithm {
                 System.out.println("Updated Tasks: " + tasks);
             }
 
+            scopes.add(new Scope(null, task.task(), currentTime, currentTime.plus(scopeDuration)));
+
+            if (tasks.isEmpty()) {
+                return scopes;
+            }
+
             Instant newCurrentTime = currentTime.plus(scopeDuration);
             WorkSlot newWorkSlot = slot;
+            boolean branchCanContinue = true;
             if (newCurrentTime.equals(slot.getEndAt())) {
                 System.out.println("Using next slot");
                 newWorkSlot = slots.getNextSlot(slot);
                 if (newWorkSlot == null) {
-                    return null;
+                    branchCanContinue = false;
+                } else {
+                    newCurrentTime = newWorkSlot.getStartAt();
                 }
-                newCurrentTime = newWorkSlot.getStartAt();
             }
 
-            scopes.add(new Scope(null, task.task(), currentTime, currentTime.plus(scopeDuration)));
-
-            if (!tasks.isEmpty()) {
+            if (branchCanContinue) {
                 List<Scope> nextResult = plan(tasks, dependencyCount, remainingTaskDurations,
                         slots, newWorkSlot, newCurrentTime, scopes);
                 if (nextResult != null) {
@@ -109,8 +145,6 @@ public class Algorithm {
                     return scopes;
                 }
                 System.out.println("Path did not return result");
-            } else {
-                return scopes;
             }
 
             // Reset for backtracking
@@ -128,7 +162,21 @@ public class Algorithm {
             }
         }
         log.debug("Path did not found result");
-        return null;
+        return advanceToNextSlot(tasks, dependencyCount, remainingTaskDurations, slots, slot, currentTime, plannedScopes);
+    }
+
+    private List<Scope> advanceToNextSlot(List<TaskGraphNode> tasks,
+                                          Map<TaskGraphNode, Integer> dependencyCount,
+                                          Map<TaskGraphNode, Duration> remainingTaskDurations,
+                                          WorkSlotProvider slots,
+                                          WorkSlot slot,
+                                          Instant currentTime,
+                                          List<Scope> plannedScopes) {
+        WorkSlot nextSlot = slots.getNextSlot(slot);
+        if (nextSlot == null || !nextSlot.getStartAt().isAfter(currentTime)) {
+            return null;
+        }
+        return plan(tasks, dependencyCount, remainingTaskDurations, slots, nextSlot, nextSlot.getStartAt(), plannedScopes);
     }
 
     private double getWeight(TaskGraphNode task) {
