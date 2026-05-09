@@ -1,5 +1,6 @@
 package de.ni0.chronoscope.service;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -24,9 +25,13 @@ import de.ni0.chronoscope.exception.AccountAccessDeniedException;
 import de.ni0.chronoscope.exception.AccountNotFoundException;
 import de.ni0.chronoscope.exception.ResourceNotFoundException;
 import de.ni0.chronoscope.model.Account;
+import de.ni0.chronoscope.model.DynamicTask;
 import de.ni0.chronoscope.model.Identity;
+import de.ni0.chronoscope.model.WorkSlot;
 import de.ni0.chronoscope.repository.AccountRepository;
 import de.ni0.chronoscope.repository.IdentityRepository;
+import de.ni0.chronoscope.repository.TaskRepository;
+import de.ni0.chronoscope.repository.WorkSlotRepository;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 
@@ -45,9 +50,15 @@ class IdentityServiceTest {
     @Mock
     private JavaMailSender mailSender;
 
+    @Mock
+    private TaskRepository taskRepository;
+
+    @Mock
+    private WorkSlotRepository workSlotRepository;
+
     @Test
     void syncIdentity_ReusesExistingIdentityForSameAccount() {
-        IdentityService identityService = new IdentityService(accountRepository, identityRepository, keycloakService, mailSender);
+        IdentityService identityService = new IdentityService(accountRepository, identityRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
 
         Account account = new Account();
         account.setSubject("subject-123");
@@ -72,7 +83,7 @@ class IdentityServiceTest {
 
     @Test
     void syncIdentity_ThrowsWhenAccountIsMissing() {
-        IdentityService identityService = new IdentityService(accountRepository, identityRepository, keycloakService, mailSender);
+        IdentityService identityService = new IdentityService(accountRepository, identityRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
 
         when(accountRepository.findBySubject("unknown-subject")).thenReturn(Optional.empty());
 
@@ -88,7 +99,7 @@ class IdentityServiceTest {
 
     @Test
     void getIdentity_ReturnsIdentityForExistingId() {
-        IdentityService identityService = new IdentityService(accountRepository, identityRepository, keycloakService, mailSender);
+        IdentityService identityService = new IdentityService(accountRepository, identityRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
 
         Identity identity = new Identity();
         identity.setId(99L);
@@ -103,7 +114,7 @@ class IdentityServiceTest {
 
     @Test
     void getIdentity_ThrowsWhenIdentityIsMissing() {
-        IdentityService identityService = new IdentityService(accountRepository, identityRepository, keycloakService, mailSender);
+        IdentityService identityService = new IdentityService(accountRepository, identityRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
 
         when(identityRepository.findByIdWithAccountsAndOrganizations(99L)).thenReturn(Optional.empty());
 
@@ -117,7 +128,7 @@ class IdentityServiceTest {
 
     @Test
     void sendLink_LooksUpTargetInKeycloakAndSendsTokenForLocalAccount() {
-        IdentityService identityService = new IdentityService(accountRepository, identityRepository, keycloakService, mailSender);
+        IdentityService identityService = new IdentityService(accountRepository, identityRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
 
         UserRepresentation targetUser = new UserRepresentation();
         targetUser.setId("keycloak-target-subject");
@@ -145,7 +156,7 @@ class IdentityServiceTest {
 
     @Test
     void sendLink_ThrowsWhenKeycloakUserHasNoLocalAccount() {
-        IdentityService identityService = new IdentityService(accountRepository, identityRepository, keycloakService, mailSender);
+        IdentityService identityService = new IdentityService(accountRepository, identityRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
 
         UserRepresentation targetUser = new UserRepresentation();
         targetUser.setId("keycloak-missing-subject");
@@ -166,7 +177,7 @@ class IdentityServiceTest {
 
     @Test
     void mergeAccounts_MovesTargetIdentityAccountsToSourceIdentityAndDeletesOldIdentity() {
-        IdentityService identityService = new IdentityService(accountRepository, identityRepository, keycloakService, mailSender);
+        IdentityService identityService = new IdentityService(accountRepository, identityRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
 
         Identity sourceIdentity = new Identity();
         sourceIdentity.setId(101L);
@@ -177,15 +188,28 @@ class IdentityServiceTest {
         Account targetAccount = account(22L, "target-subject", targetIdentity);
         Account linkedTargetAccount = account(33L, "linked-target-subject", targetIdentity);
 
+        DynamicTask task = new DynamicTask();
+        task.setIdentity(targetIdentity);
+        WorkSlot workSlot = new WorkSlot();
+        workSlot.setIdentity(targetIdentity);
+
         String token = requestLinkAndExtractToken(identityService, sourceAccount.getId(), targetAccount);
         when(accountRepository.getReferenceById(sourceAccount.getId())).thenReturn(sourceAccount);
         when(accountRepository.getReferenceById(targetAccount.getId())).thenReturn(targetAccount);
+        when(taskRepository.findByIdentityId(targetIdentity.getId())).thenReturn(List.of(task));
+        when(workSlotRepository.findByIdentityId(targetIdentity.getId())).thenReturn(List.of(workSlot));
 
         AccountLinkConfirmResponse response = identityService.mergeAccounts(targetIdentity.getId(), token);
 
         assertEquals(new AccountLinkConfirmResponse(sourceAccount.getId(), targetAccount.getId(), "merged"), response);
+        assertSame(sourceIdentity, task.getIdentity());
+        assertSame(sourceIdentity, workSlot.getIdentity());
         assertSame(sourceIdentity, targetAccount.getIdentity());
         assertSame(sourceIdentity, linkedTargetAccount.getIdentity());
+        verify(taskRepository).findByIdentityId(targetIdentity.getId());
+        verify(taskRepository).saveAll(List.of(task));
+        verify(workSlotRepository).findByIdentityId(targetIdentity.getId());
+        verify(workSlotRepository).saveAll(List.of(workSlot));
         verify(accountRepository).save(targetAccount);
         verify(accountRepository).save(linkedTargetAccount);
         verify(identityRepository).delete(targetIdentity);
@@ -193,7 +217,7 @@ class IdentityServiceTest {
 
     @Test
     void mergeAccounts_ThrowsWhenAuthenticatedIdentityIsNotTargetIdentity() {
-        IdentityService identityService = new IdentityService(accountRepository, identityRepository, keycloakService, mailSender);
+        IdentityService identityService = new IdentityService(accountRepository, identityRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
 
         Identity sourceIdentity = new Identity();
         sourceIdentity.setId(101L);
