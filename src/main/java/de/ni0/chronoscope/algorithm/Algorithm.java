@@ -67,11 +67,9 @@ public class Algorithm {
             List<Scope> scopes = new ArrayList<>();
 
             Duration remainingTaskDuration = remainingTaskDurations.get(task);
-            System.out.println("Remaining Task Duration: " + remainingTaskDuration);
             Duration scopeDuration = remainingTaskDuration.compareTo(remainingSlotDuration) <= 0
                     ? remainingTaskDuration
                     : remainingSlotDuration;
-            System.out.println("Scope Duration: " + scopeDuration);
             Duration newRemainingTaskDuration = remainingTaskDurations.get(task).minus(scopeDuration);
 
             remainingTaskDurations.put(task, newRemainingTaskDuration);
@@ -88,20 +86,26 @@ public class Algorithm {
                 System.out.println("Updated Tasks: " + tasks);
             }
 
+            scopes.add(new Scope(null, task.task(), currentTime, currentTime.plus(scopeDuration)));
+
+            if (tasks.isEmpty()) {
+                return scopes;
+            }
+
             Instant newCurrentTime = currentTime.plus(scopeDuration);
             WorkSlot newWorkSlot = slot;
+            boolean branchCanContinue = true;
             if (newCurrentTime.equals(slot.getEndAt())) {
                 System.out.println("Using next slot");
                 newWorkSlot = slots.getNextSlot(slot);
                 if (newWorkSlot == null) {
-                    return null;
+                    branchCanContinue = false;
+                } else {
+                    newCurrentTime = newWorkSlot.getStartAt();
                 }
-                newCurrentTime = newWorkSlot.getStartAt();
             }
 
-            scopes.add(new Scope(null, task.task(), currentTime, currentTime.plus(scopeDuration)));
-
-            if (!tasks.isEmpty()) {
+            if (branchCanContinue) {
                 List<Scope> nextResult = plan(tasks, dependencyCount, remainingTaskDurations,
                         slots, newWorkSlot, newCurrentTime, scopes);
                 if (nextResult != null) {
@@ -109,8 +113,6 @@ public class Algorithm {
                     return scopes;
                 }
                 System.out.println("Path did not return result");
-            } else {
-                return scopes;
             }
 
             // Reset for backtracking
@@ -128,7 +130,21 @@ public class Algorithm {
             }
         }
         log.debug("Path did not found result");
-        return null;
+        return advanceToNextSlot(tasks, dependencyCount, remainingTaskDurations, slots, slot, currentTime, plannedScopes);
+    }
+
+    private List<Scope> advanceToNextSlot(List<TaskGraphNode> tasks,
+                                          Map<TaskGraphNode, Integer> dependencyCount,
+                                          Map<TaskGraphNode, Duration> remainingTaskDurations,
+                                          WorkSlotProvider slots,
+                                          WorkSlot slot,
+                                          Instant currentTime,
+                                          List<Scope> plannedScopes) {
+        WorkSlot nextSlot = slots.getNextSlot(slot);
+        if (nextSlot == null || !nextSlot.getStartAt().isAfter(currentTime)) {
+            return null;
+        }
+        return plan(tasks, dependencyCount, remainingTaskDurations, slots, nextSlot, nextSlot.getStartAt(), plannedScopes);
     }
 
     private double getWeight(TaskGraphNode task) {
