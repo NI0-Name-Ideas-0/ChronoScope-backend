@@ -109,8 +109,9 @@ paths:
       - Identity
   /v1/identity/settings:
     patch:
-      description: Update language and/or theme preferences for the authenticated identity. Both fields are optional; only specified fields will be updated.
-      operationId: updateIdentitySettings
+      description: Update language and/or theme preferences for the authenticated
+        identity. Both fields are optional; only specified fields will be updated.
+      operationId: updateSettings
       requestBody:
         content:
           application/json:
@@ -969,48 +970,25 @@ components:
         id:
           type: integer
           format: int64
+        language:
+          type: string
+          description: Language preference (de_DE or en_US)
         organizations:
           type: array
           description: Organizations to which the identity belongs.
           items:
             $ref: "#/components/schemas/Organization"
           uniqueItems: true
-        language:
-          type: string
-          description: Language preference (de_DE or en_US)
-          enum:
-          - de_DE
-          - en_US
         theme:
           type: string
-          description: Theme preference (light, dark, or system)
-          enum:
-          - light
-          - dark
-          - system
+          description: "Theme preference (light, dark, or system)"
       required:
       - accounts
       - adminOrganizations
       - id
-      - organizations
       - language
+      - organizations
       - theme
-    SettingsUpdateRequest:
-      type: object
-      properties:
-        language:
-          type: string
-          description: Language preference (de_DE or en_US)
-          enum:
-          - de_DE
-          - en_US
-        theme:
-          type: string
-          description: Theme preference (light, dark, or system)
-          enum:
-          - light
-          - dark
-          - system
     Invitation:
       type: object
       properties:
@@ -1157,6 +1135,15 @@ components:
       - endAt
       - id
       - startAt
+    SettingsUpdateRequest:
+      type: object
+      properties:
+        language:
+          type: string
+          pattern: ^(de_DE|en_US)$
+        theme:
+          type: string
+          pattern: ^(light|dark|system)$
     StaticTaskCreateRequest:
       allOf:
       - $ref: "#/components/schemas/TaskCreateRequest"
