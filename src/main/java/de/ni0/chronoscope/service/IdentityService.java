@@ -1,20 +1,23 @@
 package de.ni0.chronoscope.service;
 
-import de.ni0.chronoscope.controller.dto.response.AccountLinkConfirmResponse;
-import de.ni0.chronoscope.exception.AccountAccessDeniedException;
-import de.ni0.chronoscope.exception.AccountNotFoundException;
-import de.ni0.chronoscope.model.Account;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.security.Keys;
+import java.util.Date;
+import java.util.List;
+import java.util.UUID;
+
+import javax.crypto.SecretKey;
+
 import org.keycloak.representations.idm.UserRepresentation;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import de.ni0.chronoscope.controller.dto.request.SettingsUpdateRequest;
+import de.ni0.chronoscope.controller.dto.response.AccountLinkConfirmResponse;
+import de.ni0.chronoscope.exception.AccountAccessDeniedException;
+import de.ni0.chronoscope.exception.AccountNotFoundException;
 import de.ni0.chronoscope.exception.ResourceNotFoundException;
+import de.ni0.chronoscope.model.Account;
 import de.ni0.chronoscope.model.Identity;
 import de.ni0.chronoscope.model.Task;
 import de.ni0.chronoscope.model.WorkSlot;
@@ -22,12 +25,11 @@ import de.ni0.chronoscope.repository.AccountRepository;
 import de.ni0.chronoscope.repository.IdentityRepository;
 import de.ni0.chronoscope.repository.TaskRepository;
 import de.ni0.chronoscope.repository.WorkSlotRepository;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
 import lombok.RequiredArgsConstructor;
-
-import javax.crypto.SecretKey;
-import java.util.Date;
-import java.util.List;
-import java.util.UUID;
 
 /**
  * Service layer for identity lookup, creation, and account-link workflows.
@@ -82,6 +84,25 @@ public class IdentityService {
     }
 
     /**
+     * Updates the language and/or theme settings for an identity.
+     *
+     * @param identityId the identity ID
+     * @param request the settings update request containing optional language and theme
+     * @return the updated identity
+     * @throws ResourceNotFoundException if no identity exists for the given ID
+     */
+    @Transactional
+    public Identity updateSettings(long identityId, SettingsUpdateRequest request) {
+        Identity identity = this.identityRepository.findById(identityId)
+            .orElseThrow(() -> new ResourceNotFoundException("Identity not found: " + identityId));
+
+        request.language().ifPresent(identity::setLanguage);
+        request.theme().ifPresent(identity::setTheme);
+
+        return this.identityRepository.save(identity);
+    }
+
+    /**
      * Confirms an account-link token and moves all target identity accounts, tasks, and work slots
      * to the source identity, then deletes the old identity.
      *
@@ -118,6 +139,15 @@ public class IdentityService {
             account.setIdentity(newIdentity);
             this.accountRepository.save(account);
         }
+
+        // Merge settings: target's settings override source's settings (if target has them)
+        if (oldIdentity.getLanguage() != null && !oldIdentity.getLanguage().isEmpty()) {
+            newIdentity.setLanguage(oldIdentity.getLanguage());
+        }
+        if (oldIdentity.getTheme() != null && !oldIdentity.getTheme().isEmpty()) {
+            newIdentity.setTheme(oldIdentity.getTheme());
+        }
+        this.identityRepository.save(newIdentity);
 
         this.identityRepository.delete(oldIdentity);
 

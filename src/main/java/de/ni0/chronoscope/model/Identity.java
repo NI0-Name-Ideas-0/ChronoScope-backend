@@ -3,10 +3,12 @@ package de.ni0.chronoscope.model;
 import java.util.HashSet;
 import java.util.Set;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
+import jakarta.validation.constraints.Pattern;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
@@ -35,4 +37,12 @@ public class Identity {
     @OneToMany(mappedBy = "identity")
     @ToString.Exclude // bidirectional: Account.identity -> this Identity, would recurse infinitely in toString
     private Set<Account> accounts = new HashSet<>();
+
+    @Column(nullable = false, length = 10)
+    @Pattern(regexp = "^(de_DE|en_US)$", message = "language must be one of: de_DE, en_US")
+    private String language = "en_US";
+
+    @Column(nullable = false, length = 10)
+    @Pattern(regexp = "^(light|dark|system)$", message = "theme must be one of: light, dark, system")
+    private String theme = "light";
 }

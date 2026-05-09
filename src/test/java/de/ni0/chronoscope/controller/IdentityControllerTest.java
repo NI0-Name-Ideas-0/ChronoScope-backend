@@ -1,13 +1,10 @@
 package de.ni0.chronoscope.controller;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-
-import de.ni0.chronoscope.TestData;
-import de.ni0.chronoscope.model.Account;
-import de.ni0.chronoscope.service.KeycloakService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -15,11 +12,15 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import de.ni0.chronoscope.TestData;
 import de.ni0.chronoscope.config.RequestContext;
+import de.ni0.chronoscope.controller.dto.request.SettingsUpdateRequest;
 import de.ni0.chronoscope.controller.dto.response.IdentityResponse;
 import de.ni0.chronoscope.mapper.IdentityMapper;
+import de.ni0.chronoscope.model.Account;
 import de.ni0.chronoscope.model.Identity;
 import de.ni0.chronoscope.service.IdentityService;
+import de.ni0.chronoscope.service.KeycloakService;
 
 @ExtendWith(MockitoExtension.class)
 class IdentityControllerTest {
@@ -43,7 +44,7 @@ class IdentityControllerTest {
         when(requestContext.getAccount()).thenReturn(account);
         when(identityService.getIdentity(identity.getId())).thenReturn(identity);
 
-        IdentityResponse expected = new IdentityResponse(identity.getId(), List.of(), Set.of("dhbw-stuttgart"), Set.of());
+        IdentityResponse expected = new IdentityResponse(identity.getId(), List.of(), Set.of("dhbw-stuttgart"), Set.of(), "en_US", "light");
         when(keycloakService.getAdminOrganizations(identity)).thenReturn(Set.of("dhbw-stuttgart"));
         when(identityMapper.toResponse(identity, Set.of("dhbw-stuttgart"), Set.of(new IdentityResponse.Organization("Privat", "private")))).thenReturn(expected);
 
@@ -55,6 +56,34 @@ class IdentityControllerTest {
         verify(requestContext).getAccount();
         verify(identityService).getIdentity(identity.getId());
         verify(keycloakService).getAdminOrganizations(identity);
+        verify(identityMapper).toResponse(identity, Set.of("dhbw-stuttgart"), Set.of(new IdentityResponse.Organization("Privat", "private")));
+    }
+
+    @Test
+    void updateSettings_UpdatesLanguageAndReturnsUpdatedIdentity() {
+        Account account = TestData.account(1L, 2L);
+        Identity identity = account.getIdentity();
+        identity.setLanguage("en_US");
+        identity.setTheme("light");
+
+        when(requestContext.getAccount()).thenReturn(account);
+        when(identityService.updateSettings(identity.getId(), new SettingsUpdateRequest(Optional.of("de_DE"), Optional.empty()))).thenReturn(identity);
+
+        IdentityResponse expected = new IdentityResponse(identity.getId(), List.of(), Set.of("dhbw-stuttgart"), Set.of(), "en_US", "light");
+        when(keycloakService.getAdminOrganizations(identity)).thenReturn(Set.of("dhbw-stuttgart"));
+        when(keycloakService.getIdentityOrganizations(identity)).thenReturn(Set.of());
+        when(identityMapper.toResponse(identity, Set.of("dhbw-stuttgart"), Set.of(new IdentityResponse.Organization("Privat", "private")))).thenReturn(expected);
+
+        IdentityController controller = new IdentityController(identityService, requestContext, identityMapper, keycloakService);
+        SettingsUpdateRequest request = new SettingsUpdateRequest(Optional.of("de_DE"), Optional.empty());
+
+        IdentityResponse actual = controller.updateSettings(request);
+
+        assertEquals(expected, actual);
+        verify(requestContext).getAccount();
+        verify(identityService).updateSettings(identity.getId(), request);
+        verify(keycloakService).getAdminOrganizations(identity);
+        verify(keycloakService).getIdentityOrganizations(identity);
         verify(identityMapper).toResponse(identity, Set.of("dhbw-stuttgart"), Set.of(new IdentityResponse.Organization("Privat", "private")));
     }
 }

@@ -107,6 +107,38 @@ paths:
       summary: Confirm account linking
       tags:
       - Identity
+  /v1/identity/settings:
+    patch:
+      description: Update language and/or theme preferences for the authenticated identity. Both fields are optional; only specified fields will be updated.
+      operationId: updateIdentitySettings
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SettingsUpdateRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/IdentityResponse"
+          description: Settings updated successfully
+        "400":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Validation error
+        "401":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Missing or invalid token
+      summary: Update identity settings
+      tags:
+      - Identity
   /v1/organizations/{organizationId}/invitations:
     get:
       description: Returns all pending invitations for the organization. The identity
@@ -943,11 +975,42 @@ components:
           items:
             $ref: "#/components/schemas/Organization"
           uniqueItems: true
+        language:
+          type: string
+          description: Language preference (de_DE or en_US)
+          enum:
+          - de_DE
+          - en_US
+        theme:
+          type: string
+          description: Theme preference (light, dark, or system)
+          enum:
+          - light
+          - dark
+          - system
       required:
       - accounts
       - adminOrganizations
       - id
       - organizations
+      - language
+      - theme
+    SettingsUpdateRequest:
+      type: object
+      properties:
+        language:
+          type: string
+          description: Language preference (de_DE or en_US)
+          enum:
+          - de_DE
+          - en_US
+        theme:
+          type: string
+          description: Theme preference (light, dark, or system)
+          enum:
+          - light
+          - dark
+          - system
     Invitation:
       type: object
       properties:

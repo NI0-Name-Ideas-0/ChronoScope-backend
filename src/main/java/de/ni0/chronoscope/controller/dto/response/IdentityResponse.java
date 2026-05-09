@@ -15,7 +15,11 @@ public record IdentityResponse(
     @Schema(description = "Organization IDs for which the authenticated identity has admin privileges, resolved server-side via Keycloak Admin Client lookups.")
     @NotNull Set<String> adminOrganizations,
     @Schema(description = "Organizations to which the identity belongs.")
-    @NotNull Set<Organization> organizations
+    @NotNull Set<Organization> organizations,
+    @Schema(description = "Language preference (de_DE or en_US)")
+    @NotNull String language,
+    @Schema(description = "Theme preference (light, dark, or system)")
+    @NotNull String theme
 ) {
     public record Organization(
         String name,
