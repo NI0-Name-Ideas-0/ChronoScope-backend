@@ -56,6 +56,14 @@ public class Algorithm {
             }
         }
 
+        // Advance to the next slot if no pending task's minimum scope fits in the remaining time
+        boolean anyTaskCanStart = tasks.stream()
+                .anyMatch(t -> remainingSlotDuration.compareTo(t.getMinScopeDuration()) >= 0);
+        if (!anyTaskCanStart) {
+            log.debug("Remaining slot time {} is below all minScopeDurations; advancing to next slot", remainingSlotDuration);
+            return advanceToNextSlot(tasks, dependencyCount, remainingTaskDurations, slots, slot, currentTime, plannedScopes);
+        }
+
         for (WeightDataProvider provider : this.providers) {
             provider.calculate(new DataProviderContext(currentTime, plannedScopes), tasks);
         }
@@ -67,9 +75,33 @@ public class Algorithm {
             List<Scope> scopes = new ArrayList<>();
 
             Duration remainingTaskDuration = remainingTaskDurations.get(task);
+
+            // Skip tasks whose minimum scope duration exceeds the remaining slot time
+            if (remainingSlotDuration.compareTo(task.getMinScopeDuration()) < 0) {
+                continue;
+            }
+
+            // Cap at maxScopeDuration after taking the smaller of remaining task and remaining slot
             Duration scopeDuration = remainingTaskDuration.compareTo(remainingSlotDuration) <= 0
                     ? remainingTaskDuration
                     : remainingSlotDuration;
+            if (scopeDuration.compareTo(task.getMaxScopeDuration()) > 0) {
+                scopeDuration = task.getMaxScopeDuration();
+            }
+
+            // Tail guard: if the leftover after this scope is non-zero but below minScopeDuration,
+            // shrink the current scope so the tail is exactly minScopeDuration
+            Duration tentativeRemaining = remainingTaskDuration.minus(scopeDuration);
+            if (!tentativeRemaining.isZero() && tentativeRemaining.compareTo(task.getMinScopeDuration()) < 0) {
+                Duration shortfall = task.getMinScopeDuration().minus(tentativeRemaining);
+                Duration adjustedScope = scopeDuration.minus(shortfall);
+                if (adjustedScope.compareTo(task.getMinScopeDuration()) < 0) {
+                    // No valid split exists here; try the next candidate task
+                    continue;
+                }
+                scopeDuration = adjustedScope;
+            }
+
             Duration newRemainingTaskDuration = remainingTaskDurations.get(task).minus(scopeDuration);
 
             remainingTaskDurations.put(task, newRemainingTaskDuration);

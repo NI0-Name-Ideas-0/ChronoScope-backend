@@ -179,12 +179,121 @@ class AlgorithmTest {
         assertNull(result);
     }
 
+    @Test
+    void planCapsEachScopeAtMaxScopeDuration() {
+        // Task: 90 min total, max scope 30 min → expect 3 × 30-min scopes in a 2 h slot
+        TaskGraphNode task = node(1L, Duration.ofMinutes(90), Duration.ofMinutes(1), Duration.ofMinutes(30),
+                START.plus(Duration.ofHours(4)));
+        WorkSlot slot = slot(START, START.plus(Duration.ofHours(2)));
+        Algorithm algorithm = new Algorithm(List.of(new FixedWeightProvider(Map.of(task, 1.0))));
+
+        List<Scope> result = algorithm.plan(
+                new ArrayList<>(List.of(task)),
+                dependencyCounts(task),
+                remainingDurations(task),
+                new WorkSlotProvider(List.of(slot)),
+                slot,
+                START,
+                new ArrayList<>());
+
+        assertNotNull(result);
+        assertEquals(3, result.size());
+        assertScope(result.get(0), task, START, START.plus(Duration.ofMinutes(30)));
+        assertScope(result.get(1), task, START.plus(Duration.ofMinutes(30)), START.plus(Duration.ofMinutes(60)));
+        assertScope(result.get(2), task, START.plus(Duration.ofMinutes(60)), START.plus(Duration.ofMinutes(90)));
+    }
+
+    @Test
+    void planAdvancesToNextSlotWhenRemainingTimeIsBelowMinScopeDuration() {
+        // Slot 1 has only 20 min; task needs min 30 min → must skip slot 1 entirely and use slot 2
+        TaskGraphNode task = node(1L, Duration.ofMinutes(60), Duration.ofMinutes(30), Duration.ofMinutes(60),
+                START.plus(Duration.ofHours(4)));
+        WorkSlot shortSlot = slot(START, START.plus(Duration.ofMinutes(20)));
+        WorkSlot fullSlot = slot(START.plus(Duration.ofHours(1)), START.plus(Duration.ofHours(3)));
+        Algorithm algorithm = new Algorithm(List.of(new FixedWeightProvider(Map.of(task, 1.0))));
+
+        List<Scope> result = algorithm.plan(
+                new ArrayList<>(List.of(task)),
+                dependencyCounts(task),
+                remainingDurations(task),
+                new ExhaustingWorkSlotProvider(List.of(shortSlot, fullSlot)),
+                shortSlot,
+                START,
+                new ArrayList<>());
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertScope(result.get(0), task, START.plus(Duration.ofHours(1)), START.plus(Duration.ofHours(2)));
+    }
+
+    @Test
+    void planAdvancesToNextSlotWhenCurrentSlotWouldLeaveInvalidTail() {
+        // Slot 1 can start the task, but a 40-min scope would leave a 5-min tail below the 30-min min scope.
+        // The valid plan is to leave slot 1 unused and schedule the full task in slot 2.
+        TaskGraphNode task = node(1L, Duration.ofMinutes(45), Duration.ofMinutes(30), Duration.ofMinutes(45),
+                START.plus(Duration.ofHours(4)));
+        WorkSlot awkwardSlot = slot(START, START.plus(Duration.ofMinutes(40)));
+        WorkSlot fullSlot = slot(START.plus(Duration.ofHours(1)), START.plus(Duration.ofHours(2)));
+        Algorithm algorithm = new Algorithm(List.of(new FixedWeightProvider(Map.of(task, 1.0))));
+
+        List<Scope> result = algorithm.plan(
+                new ArrayList<>(List.of(task)),
+                dependencyCounts(task),
+                remainingDurations(task),
+                new ExhaustingWorkSlotProvider(List.of(awkwardSlot, fullSlot)),
+                awkwardSlot,
+                START,
+                new ArrayList<>());
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertScope(result.get(0), task, START.plus(Duration.ofHours(1)), START.plus(Duration.ofMinutes(105)));
+    }
+
+    @Test
+    void planShrinksScopeToEnsureTailMeetsMinScopeDuration() {
+        // Task: 45 min, min 20 min, max 30 min.
+        // Naive first scope = 30 min → tail = 15 min < 20 min (min).
+        // Algorithm must shrink first scope to 25 min so tail = 20 min.
+        TaskGraphNode task = node(1L, Duration.ofMinutes(45), Duration.ofMinutes(20), Duration.ofMinutes(30),
+                START.plus(Duration.ofHours(4)));
+        WorkSlot slot = slot(START, START.plus(Duration.ofHours(1)));
+        Algorithm algorithm = new Algorithm(List.of(new FixedWeightProvider(Map.of(task, 1.0))));
+
+        List<Scope> result = algorithm.plan(
+                new ArrayList<>(List.of(task)),
+                dependencyCounts(task),
+                remainingDurations(task),
+                new WorkSlotProvider(List.of(slot)),
+                slot,
+                START,
+                new ArrayList<>());
+
+        assertNotNull(result);
+        assertEquals(2, result.size());
+        assertScope(result.get(0), task, START, START.plus(Duration.ofMinutes(25)));
+        assertScope(result.get(1), task, START.plus(Duration.ofMinutes(25)), START.plus(Duration.ofMinutes(45)));
+    }
+
     private static TaskGraphNode node(Long id, Duration duration, Instant deadline) {
         DynamicTask task = new DynamicTask();
         task.setId(id);
         task.setDuration(duration);
         task.setEndAt(deadline);
         task.setStartAt(START);
+        task.setMinScopeDuration(Duration.ofMinutes(1));
+        task.setMaxScopeDuration(duration);
+        return new TaskGraphNode(task, new ArrayList<>(), new ArrayList<>());
+    }
+
+    private static TaskGraphNode node(Long id, Duration duration, Duration minScope, Duration maxScope, Instant deadline) {
+        DynamicTask task = new DynamicTask();
+        task.setId(id);
+        task.setDuration(duration);
+        task.setEndAt(deadline);
+        task.setStartAt(START);
+        task.setMinScopeDuration(minScope);
+        task.setMaxScopeDuration(maxScope);
         return new TaskGraphNode(task, new ArrayList<>(), new ArrayList<>());
     }
 
