@@ -1,6 +1,7 @@
 package de.ni0.chronoscope.service;
 
 import de.ni0.chronoscope.controller.dto.request.WorkSlotUpdateRequest;
+import de.ni0.chronoscope.exception.InvalidRequestException;
 import de.ni0.chronoscope.exception.ResourceNotFoundException;
 import de.ni0.chronoscope.model.WorkSlot;
 import de.ni0.chronoscope.repository.WorkSlotRepository;
@@ -158,6 +159,71 @@ class WorkSlotServiceTest {
         when(workSlotRepository.findByIdAndIdentityId(slotId, identityId)).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class, () -> service.deleteWorkSlot(identityId, slotId));
+        verify(workSlotRepository).findByIdAndIdentityId(slotId, identityId);
+        verifyNoMoreInteractions(workSlotRepository);
+    }
+
+    @Test
+    void createWorkSlot_ThrowsWhenStartAtEqualsEndAt() {
+        WorkSlotService service = new WorkSlotService(workSlotRepository);
+
+        WorkSlot workSlot = new WorkSlot();
+        Instant instant = Instant.parse("2026-04-20T08:00:00Z");
+        workSlot.setStartAt(instant);
+        workSlot.setEndAt(instant);
+
+        assertThrows(InvalidRequestException.class, () -> service.createWorkSlot(workSlot));
+        verifyNoMoreInteractions(workSlotRepository);
+    }
+
+    @Test
+    void createWorkSlot_ThrowsWhenStartAtIsAfterEndAt() {
+        WorkSlotService service = new WorkSlotService(workSlotRepository);
+
+        WorkSlot workSlot = new WorkSlot();
+        workSlot.setStartAt(Instant.parse("2026-04-20T17:00:00Z"));
+        workSlot.setEndAt(Instant.parse("2026-04-20T08:00:00Z"));
+
+        assertThrows(InvalidRequestException.class, () -> service.createWorkSlot(workSlot));
+        verifyNoMoreInteractions(workSlotRepository);
+    }
+
+    @Test
+    void updateWorkSlot_ThrowsWhenNewEndAtIsBeforeExistingStartAt() {
+        WorkSlotService service = new WorkSlotService(workSlotRepository);
+        long identityId = 42L;
+        Long slotId = 7L;
+
+        WorkSlot existing = new WorkSlot();
+        existing.setId(slotId);
+        existing.setStartAt(Instant.parse("2026-04-20T10:00:00Z"));
+        existing.setEndAt(Instant.parse("2026-04-20T17:00:00Z"));
+
+        WorkSlotUpdateRequest request = new WorkSlotUpdateRequest(null, Instant.parse("2026-04-20T09:00:00Z"));
+
+        when(workSlotRepository.findByIdAndIdentityId(slotId, identityId)).thenReturn(Optional.of(existing));
+
+        assertThrows(InvalidRequestException.class, () -> service.updateWorkSlot(identityId, slotId, request));
+        verify(workSlotRepository).findByIdAndIdentityId(slotId, identityId);
+        verifyNoMoreInteractions(workSlotRepository);
+    }
+
+    @Test
+    void updateWorkSlot_ThrowsWhenNewStartAtIsAfterExistingEndAt() {
+        WorkSlotService service = new WorkSlotService(workSlotRepository);
+        long identityId = 42L;
+        Long slotId = 7L;
+
+        WorkSlot existing = new WorkSlot();
+        existing.setId(slotId);
+        existing.setStartAt(Instant.parse("2026-04-20T08:00:00Z"));
+        existing.setEndAt(Instant.parse("2026-04-20T12:00:00Z"));
+
+        WorkSlotUpdateRequest request = new WorkSlotUpdateRequest(Instant.parse("2026-04-20T13:00:00Z"), null);
+
+        when(workSlotRepository.findByIdAndIdentityId(slotId, identityId)).thenReturn(Optional.of(existing));
+
+        assertThrows(InvalidRequestException.class, () -> service.updateWorkSlot(identityId, slotId, request));
         verify(workSlotRepository).findByIdAndIdentityId(slotId, identityId);
         verifyNoMoreInteractions(workSlotRepository);
     }
