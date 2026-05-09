@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import de.ni0.chronoscope.controller.dto.request.WorkSlotUpdateRequest;
+import de.ni0.chronoscope.exception.InvalidRequestException;
 import de.ni0.chronoscope.exception.ResourceNotFoundException;
 import de.ni0.chronoscope.model.WorkSlot;
 import de.ni0.chronoscope.repository.WorkSlotRepository;
@@ -49,6 +50,9 @@ public class WorkSlotService {
      * @return persisted work slot
      */
     public WorkSlot createWorkSlot(WorkSlot workSlot) {
+        if (!workSlot.getStartAt().isBefore(workSlot.getEndAt())) {
+            throw new InvalidRequestException("startAt must be before endAt");
+        }
         return workSlotRepository.save(workSlot);
     }
 
@@ -67,6 +71,10 @@ public class WorkSlotService {
 
         if (request.startAt() != null) workSlot.setStartAt(request.startAt());
         if (request.endAt() != null) workSlot.setEndAt(request.endAt());
+
+        if (!workSlot.getStartAt().isBefore(workSlot.getEndAt())) {
+            throw new InvalidRequestException("startAt must be before endAt");
+        }
 
         return workSlot;
     }
