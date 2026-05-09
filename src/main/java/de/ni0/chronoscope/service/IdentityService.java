@@ -16,12 +16,17 @@ import org.springframework.transaction.annotation.Transactional;
 
 import de.ni0.chronoscope.exception.ResourceNotFoundException;
 import de.ni0.chronoscope.model.Identity;
+import de.ni0.chronoscope.model.Task;
+import de.ni0.chronoscope.model.WorkSlot;
 import de.ni0.chronoscope.repository.AccountRepository;
 import de.ni0.chronoscope.repository.IdentityRepository;
+import de.ni0.chronoscope.repository.TaskRepository;
+import de.ni0.chronoscope.repository.WorkSlotRepository;
 import lombok.RequiredArgsConstructor;
 
 import javax.crypto.SecretKey;
 import java.util.Date;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -35,8 +40,9 @@ public class IdentityService {
     private final AccountRepository accountRepository;
     private final IdentityRepository identityRepository;
     private final KeycloakService keycloakService;
-
     private final JavaMailSender mailSender;
+    private final TaskRepository taskRepository;
+    private final WorkSlotRepository workSlotRepository;
 
     /**
      * Synchronizes the identity for the user identified by the given subject.
@@ -76,11 +82,13 @@ public class IdentityService {
     }
 
     /**
-     * Confirms an account-link token and moves all target identity accounts to the source identity.
+     * Confirms an account-link token and moves all target identity accounts, tasks, and work slots
+     * to the source identity, then deletes the old identity.
      *
      * @param token signed token produced by {@link #sendLink(long, String)}
      * @return merge result containing the source and target account IDs
      */
+    @Transactional
     public AccountLinkConfirmResponse mergeAccounts(long identityId, String token) {
         Claims claims = this.getTokenClaims(token);
         Long sourceId = Long.valueOf(claims.getSubject());
@@ -92,8 +100,22 @@ public class IdentityService {
         if (identityId != oldIdentity.getId()) {
             throw new AccountAccessDeniedException("Only the target account can accept the account merge");
         }
+        Identity newIdentity = sourceAccount.getIdentity();
+
+        List<Task> tasks = this.taskRepository.findByIdentityId(oldIdentity.getId());
+        for (Task task : tasks) {
+            task.setIdentity(newIdentity);
+        }
+        this.taskRepository.saveAll(tasks);
+
+        List<WorkSlot> workSlots = this.workSlotRepository.findByIdentityId(oldIdentity.getId());
+        for (WorkSlot workSlot : workSlots) {
+            workSlot.setIdentity(newIdentity);
+        }
+        this.workSlotRepository.saveAll(workSlots);
+
         for (Account account : oldIdentity.getAccounts()) {
-            account.setIdentity(sourceAccount.getIdentity());
+            account.setIdentity(newIdentity);
             this.accountRepository.save(account);
         }
 
