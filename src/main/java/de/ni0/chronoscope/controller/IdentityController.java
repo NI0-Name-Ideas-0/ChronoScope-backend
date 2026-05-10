@@ -1,5 +1,7 @@
 package de.ni0.chronoscope.controller;
 
+import de.ni0.chronoscope.controller.dto.response.AccountResponse;
+import de.ni0.chronoscope.model.Account;
 import de.ni0.chronoscope.model.Identity;
 import de.ni0.chronoscope.service.KeycloakService;
 import org.keycloak.representations.idm.OrganizationRepresentation;
@@ -28,9 +30,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 /**
  * REST controller for identity operations.
@@ -59,17 +59,30 @@ public class IdentityController {
     })
     @GetMapping
     public IdentityResponse getIdentity() {
-        Identity identity = this.identityService.getIdentity(this.requestContext.getAccount().getIdentity().getId());
+        Identity identity = requestContext.getAccount().getIdentity();
         Set<String> adminOrganizations = this.keycloakService.getAdminOrganizations(identity);
         Set<OrganizationRepresentation> organizations = this.keycloakService.getIdentityOrganizations(identity);
         List<IdentityResponse.Organization> orgs = new java.util.ArrayList<>(organizations.stream().map(o ->
                 new IdentityResponse.Organization(o.getName(), o.getId())).toList());
         orgs.add(new IdentityResponse.Organization("Privat", "private"));
-        return this.identityMapper.toResponse(
-            identity,
-            adminOrganizations,
-            new HashSet<>(orgs)
+
+        IdentityResponse response = this.identityMapper.toResponse(
+                identity,
+                adminOrganizations,
+                new HashSet<>(orgs)
         );
+
+        Map<Long, String> idMapping = new HashMap<>();
+        for (Account account : identity.getAccounts()) {
+            idMapping.put(account.getId(), account.getSubject());
+        }
+        List<AccountResponse> accountResponses = new ArrayList<>();
+        for (AccountResponse account : response.accounts()) {
+            String mail = this.keycloakService.getMail(idMapping.get(account.id()));
+            accountResponses.add(new AccountResponse(account.id(), account.identityId(), mail));
+        }
+
+        return new IdentityResponse(response.id(), accountResponses, response.adminOrganizations(), response.organizations());
     }
 
     /**

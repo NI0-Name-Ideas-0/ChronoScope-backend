@@ -31,6 +31,10 @@ public class KeycloakService {
         return membersRes.list(0, 10000);
     }
 
+    public String getMail(String userId) {
+        return this.client.realm(realm).users().get(userId).toRepresentation().getEmail();
+    }
+
     private Set<OrganizationRepresentation> getAccountOrganizations(Account account) {
         List<OrganizationRepresentation> organizations = this.client.realm(realm).organizations().members().getOrganizations(account.getSubject());
         return new HashSet<>(organizations);
