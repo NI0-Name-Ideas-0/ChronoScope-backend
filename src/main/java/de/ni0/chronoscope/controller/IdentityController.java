@@ -89,7 +89,14 @@ public class IdentityController {
             accountResponses.add(new AccountResponse(account.id(), account.identityId(), mail));
         }
 
-        return new IdentityResponse(response.id(), accountResponses, response.adminOrganizations(), response.organizations());
+        return new IdentityResponse(
+            response.id(),
+            accountResponses,
+            response.adminOrganizations(),
+            response.organizations(),
+            response.language(),
+            response.theme()
+        );
     }
 
     /**
