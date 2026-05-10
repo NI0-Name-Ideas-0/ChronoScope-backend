@@ -1,5 +1,7 @@
 package de.ni0.chronoscope.service;
 
+import de.ni0.chronoscope.algorithm.ConcreteWorkSlot;
+import de.ni0.chronoscope.algorithm.WorkSlotExpander;
 import de.ni0.chronoscope.TestData;
 import de.ni0.chronoscope.exception.InsufficientSlotsException;
 import de.ni0.chronoscope.exception.InvalidRequestException;
@@ -16,6 +18,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.DayOfWeek;
+import java.time.LocalTime;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -45,9 +49,12 @@ class PlanningServiceTest {
     @Mock
     private KeycloakService keycloakService;
 
+    @Mock
+    private WorkSlotExpander workSlotExpander;
+
     @Test
     void planTasksForAccount_ReturnsEmptyList_WhenNoTasksForOrganization() {
-        PlanningService service = new PlanningService(taskRepository, scopeRepository, workSlotService, accountService, keycloakService);
+        PlanningService service = new PlanningService(taskRepository, scopeRepository, workSlotService, accountService, keycloakService, workSlotExpander);
         String orgId = UUID.randomUUID().toString();
         Identity identity = TestData.identity(1);
 
@@ -66,7 +73,7 @@ class PlanningServiceTest {
 
     @Test
     void planTasksForAccount_ThrowsInsufficientSlotsException_WhenNoWorkSlotsAvailable() {
-        PlanningService service = new PlanningService(taskRepository, scopeRepository, workSlotService, accountService, keycloakService);
+        PlanningService service = new PlanningService(taskRepository, scopeRepository, workSlotService, accountService, keycloakService, workSlotExpander);
         Identity identity = TestData.identity(1);
         String orgId = UUID.randomUUID().toString();
 
@@ -82,7 +89,7 @@ class PlanningServiceTest {
 
     @Test
     void planTasksForAccount_ThrowsInvalidRequestException_WhenTasksFormACycle() {
-        PlanningService service = new PlanningService(taskRepository, scopeRepository, workSlotService, accountService, keycloakService);
+        PlanningService service = new PlanningService(taskRepository, scopeRepository, workSlotService, accountService, keycloakService, workSlotExpander);
         Identity identity = TestData.identity(1);
         String orgId = UUID.randomUUID().toString();
 
@@ -91,13 +98,13 @@ class PlanningServiceTest {
         taskA.setDependencies(new HashSet<>(Set.of(taskB)));
         taskB.setDependencies(new HashSet<>(Set.of(taskA)));
 
-        WorkSlot slot = buildWorkSlot(
-                Instant.parse("2026-04-26T08:00:00Z"),
-                Instant.parse("2026-04-26T18:00:00Z"));
+        WorkSlot slot = buildWorkSlot();
 
         when(taskRepository.findDynamicTasksByIdentityIdAndOrganizationId(identity.getId(), orgId))
                 .thenReturn(List.of(taskA, taskB));
         when(workSlotService.getWorkSlotsForIdentity(identity.getId(), orgId)).thenReturn(List.of(slot));
+        when(workSlotExpander.expand(eq(List.of(slot)), any(Instant.class), any(Instant.class)))
+            .thenReturn(List.of(concreteSlot(Instant.parse("2026-04-26T08:00:00Z"), Instant.parse("2026-04-26T18:00:00Z"))));
 
         assertThrows(InvalidRequestException.class, () -> service.planTasksForIdentity(identity, orgId));
 
@@ -107,7 +114,7 @@ class PlanningServiceTest {
 
     @Test
     void planTasksForAccount_ThrowsInsufficientSlotsException_WhenDeadlineCannotBeMet() {
-        PlanningService service = new PlanningService(taskRepository, scopeRepository, workSlotService, accountService, keycloakService);
+        PlanningService service = new PlanningService(taskRepository, scopeRepository, workSlotService, accountService, keycloakService, workSlotExpander);
         Identity identity = TestData.identity(1);
         String orgId = UUID.randomUUID().toString();
 
@@ -116,13 +123,13 @@ class PlanningServiceTest {
         task.setStartAt(Instant.parse("2026-04-26T06:00:00Z"));
         task.setEndAt(Instant.parse("2026-04-26T09:00:00Z")); // only 1h after slot start
 
-        WorkSlot slot = buildWorkSlot(
-                Instant.parse("2026-04-26T08:00:00Z"),
-                Instant.parse("2026-04-26T18:00:00Z"));
+        WorkSlot slot = buildWorkSlot();
 
         when(taskRepository.findDynamicTasksByIdentityIdAndOrganizationId(identity.getId(), orgId))
                 .thenReturn(List.of(task));
         when(workSlotService.getWorkSlotsForIdentity(identity.getId(), orgId)).thenReturn(List.of(slot));
+        when(workSlotExpander.expand(eq(List.of(slot)), any(Instant.class), any(Instant.class)))
+            .thenReturn(List.of(concreteSlot(Instant.parse("2026-04-26T08:00:00Z"), Instant.parse("2026-04-26T18:00:00Z"))));
 
         assertThrows(InsufficientSlotsException.class, () -> service.planTasksForIdentity(identity, orgId));
 
@@ -132,18 +139,18 @@ class PlanningServiceTest {
 
     @Test
     void planTasksForAccount_DeletesOldScopesAndReturnsNewScopes_WhenPlanSucceeds() {
-        PlanningService service = new PlanningService(taskRepository, scopeRepository, workSlotService, accountService, keycloakService);
+        PlanningService service = new PlanningService(taskRepository, scopeRepository, workSlotService, accountService, keycloakService, workSlotExpander);
         Identity identity = TestData.identity(1);
         String orgId = UUID.randomUUID().toString();
 
         DynamicTask task = buildTask(1L, Duration.ofHours(1));
-        WorkSlot slot = buildWorkSlot(
-                Instant.parse("2026-04-26T08:00:00Z"),
-                Instant.parse("2026-04-26T18:00:00Z"));
+        WorkSlot slot = buildWorkSlot();
 
         when(taskRepository.findDynamicTasksByIdentityIdAndOrganizationId(identity.getId(), orgId))
                 .thenReturn(List.of(task));
         when(workSlotService.getWorkSlotsForIdentity(identity.getId(), orgId)).thenReturn(List.of(slot));
+        when(workSlotExpander.expand(eq(List.of(slot)), any(Instant.class), any(Instant.class)))
+            .thenReturn(List.of(concreteSlot(Instant.parse("2026-04-26T08:00:00Z"), Instant.parse("2026-04-26T18:00:00Z"))));
         when(scopeRepository.deleteByDynamicTaskIdIn(List.of(1L))).thenReturn(0L);
         when(scopeRepository.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -171,10 +178,15 @@ class PlanningServiceTest {
         return task;
     }
 
-    private static WorkSlot buildWorkSlot(Instant startAt, Instant endAt) {
+    private static WorkSlot buildWorkSlot() {
         WorkSlot slot = new WorkSlot();
-        slot.setStartAt(startAt);
-        slot.setEndAt(endAt);
+        slot.setDayOfWeek(DayOfWeek.SUNDAY);
+        slot.setStartTime(LocalTime.of(8, 0));
+        slot.setEndTime(LocalTime.of(18, 0));
         return slot;
+    }
+
+    private static ConcreteWorkSlot concreteSlot(Instant startAt, Instant endAt) {
+        return new ConcreteWorkSlot(startAt, endAt, startAt.toString());
     }
 }

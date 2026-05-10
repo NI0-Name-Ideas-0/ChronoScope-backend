@@ -10,7 +10,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.Instant;
+import java.time.DayOfWeek;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -49,13 +50,15 @@ class WorkSlotServiceTest {
         WorkSlotService service = new WorkSlotService(workSlotRepository);
 
         WorkSlot workSlot = new WorkSlot();
-        workSlot.setStartAt(Instant.parse("2026-04-20T08:00:00Z"));
-        workSlot.setEndAt(Instant.parse("2026-04-20T17:00:00Z"));
+        workSlot.setDayOfWeek(DayOfWeek.MONDAY);
+        workSlot.setStartTime(LocalTime.of(8, 0));
+        workSlot.setEndTime(LocalTime.of(17, 0));
 
         WorkSlot savedWorkSlot = new WorkSlot();
         savedWorkSlot.setId(10L);
-        savedWorkSlot.setStartAt(workSlot.getStartAt());
-        savedWorkSlot.setEndAt(workSlot.getEndAt());
+        savedWorkSlot.setDayOfWeek(workSlot.getDayOfWeek());
+        savedWorkSlot.setStartTime(workSlot.getStartTime());
+        savedWorkSlot.setEndTime(workSlot.getEndTime());
 
         when(workSlotRepository.save(any(WorkSlot.class))).thenReturn(savedWorkSlot);
 
@@ -74,20 +77,23 @@ class WorkSlotServiceTest {
 
         WorkSlot existing = new WorkSlot();
         existing.setId(slotId);
-        existing.setStartAt(Instant.parse("2026-04-20T08:00:00Z"));
-        existing.setEndAt(Instant.parse("2026-04-20T17:00:00Z"));
+        existing.setDayOfWeek(DayOfWeek.MONDAY);
+        existing.setStartTime(LocalTime.of(8, 0));
+        existing.setEndTime(LocalTime.of(17, 0));
 
         WorkSlotUpdateRequest request = new WorkSlotUpdateRequest(
-                Instant.parse("2026-04-21T09:00:00Z"),
-                Instant.parse("2026-04-21T18:00:00Z")
+            DayOfWeek.TUESDAY,
+            LocalTime.of(9, 0),
+            LocalTime.of(18, 0)
         );
 
         when(workSlotRepository.findByIdAndIdentityId(slotId, identityId)).thenReturn(Optional.of(existing));
 
         WorkSlot result = service.updateWorkSlot(identityId, slotId, request);
 
-        assertEquals(Instant.parse("2026-04-21T09:00:00Z"), result.getStartAt());
-        assertEquals(Instant.parse("2026-04-21T18:00:00Z"), result.getEndAt());
+        assertEquals(DayOfWeek.TUESDAY, result.getDayOfWeek());
+        assertEquals(LocalTime.of(9, 0), result.getStartTime());
+        assertEquals(LocalTime.of(18, 0), result.getEndTime());
         verify(workSlotRepository).findByIdAndIdentityId(slotId, identityId);
         verifyNoMoreInteractions(workSlotRepository);
     }
@@ -98,22 +104,24 @@ class WorkSlotServiceTest {
         long identityId = 42L;
         Long slotId = 7L;
 
-        Instant originalStart = Instant.parse("2026-04-20T08:00:00Z");
-        Instant originalEnd = Instant.parse("2026-04-20T17:00:00Z");
+        LocalTime originalStart = LocalTime.of(8, 0);
+        LocalTime originalEnd = LocalTime.of(17, 0);
 
         WorkSlot existing = new WorkSlot();
         existing.setId(slotId);
-        existing.setStartAt(originalStart);
-        existing.setEndAt(originalEnd);
+        existing.setDayOfWeek(DayOfWeek.MONDAY);
+        existing.setStartTime(originalStart);
+        existing.setEndTime(originalEnd);
 
-        WorkSlotUpdateRequest request = new WorkSlotUpdateRequest(null, null);
+        WorkSlotUpdateRequest request = new WorkSlotUpdateRequest(null, null, null);
 
         when(workSlotRepository.findByIdAndIdentityId(slotId, identityId)).thenReturn(Optional.of(existing));
 
         WorkSlot result = service.updateWorkSlot(identityId, slotId, request);
 
-        assertEquals(originalStart, result.getStartAt());
-        assertEquals(originalEnd, result.getEndAt());
+        assertEquals(DayOfWeek.MONDAY, result.getDayOfWeek());
+        assertEquals(originalStart, result.getStartTime());
+        assertEquals(originalEnd, result.getEndTime());
         verify(workSlotRepository).findByIdAndIdentityId(slotId, identityId);
         verifyNoMoreInteractions(workSlotRepository);
     }
@@ -127,7 +135,7 @@ class WorkSlotServiceTest {
         when(workSlotRepository.findByIdAndIdentityId(slotId, identityId)).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class,
-                () -> service.updateWorkSlot(identityId, slotId, new WorkSlotUpdateRequest(null, null)));
+                () -> service.updateWorkSlot(identityId, slotId, new WorkSlotUpdateRequest(null, null, null)));
         verify(workSlotRepository).findByIdAndIdentityId(slotId, identityId);
         verifyNoMoreInteractions(workSlotRepository);
     }
@@ -164,42 +172,44 @@ class WorkSlotServiceTest {
     }
 
     @Test
-    void createWorkSlot_ThrowsWhenStartAtEqualsEndAt() {
+    void createWorkSlot_ThrowsWhenStartTimeEqualsEndTime() {
         WorkSlotService service = new WorkSlotService(workSlotRepository);
 
         WorkSlot workSlot = new WorkSlot();
-        Instant instant = Instant.parse("2026-04-20T08:00:00Z");
-        workSlot.setStartAt(instant);
-        workSlot.setEndAt(instant);
+        workSlot.setDayOfWeek(DayOfWeek.MONDAY);
+        workSlot.setStartTime(LocalTime.of(8, 0));
+        workSlot.setEndTime(LocalTime.of(8, 0));
 
         assertThrows(InvalidRequestException.class, () -> service.createWorkSlot(workSlot));
         verifyNoMoreInteractions(workSlotRepository);
     }
 
     @Test
-    void createWorkSlot_ThrowsWhenStartAtIsAfterEndAt() {
+    void createWorkSlot_ThrowsWhenStartTimeIsAfterEndTime() {
         WorkSlotService service = new WorkSlotService(workSlotRepository);
 
         WorkSlot workSlot = new WorkSlot();
-        workSlot.setStartAt(Instant.parse("2026-04-20T17:00:00Z"));
-        workSlot.setEndAt(Instant.parse("2026-04-20T08:00:00Z"));
+        workSlot.setDayOfWeek(DayOfWeek.MONDAY);
+        workSlot.setStartTime(LocalTime.of(17, 0));
+        workSlot.setEndTime(LocalTime.of(8, 0));
 
         assertThrows(InvalidRequestException.class, () -> service.createWorkSlot(workSlot));
         verifyNoMoreInteractions(workSlotRepository);
     }
 
     @Test
-    void updateWorkSlot_ThrowsWhenNewEndAtIsBeforeExistingStartAt() {
+    void updateWorkSlot_ThrowsWhenNewEndTimeIsBeforeExistingStartTime() {
         WorkSlotService service = new WorkSlotService(workSlotRepository);
         long identityId = 42L;
         Long slotId = 7L;
 
         WorkSlot existing = new WorkSlot();
         existing.setId(slotId);
-        existing.setStartAt(Instant.parse("2026-04-20T10:00:00Z"));
-        existing.setEndAt(Instant.parse("2026-04-20T17:00:00Z"));
+        existing.setDayOfWeek(DayOfWeek.MONDAY);
+        existing.setStartTime(LocalTime.of(10, 0));
+        existing.setEndTime(LocalTime.of(17, 0));
 
-        WorkSlotUpdateRequest request = new WorkSlotUpdateRequest(null, Instant.parse("2026-04-20T09:00:00Z"));
+        WorkSlotUpdateRequest request = new WorkSlotUpdateRequest(null, null, LocalTime.of(9, 0));
 
         when(workSlotRepository.findByIdAndIdentityId(slotId, identityId)).thenReturn(Optional.of(existing));
 
@@ -209,17 +219,18 @@ class WorkSlotServiceTest {
     }
 
     @Test
-    void updateWorkSlot_ThrowsWhenNewStartAtIsAfterExistingEndAt() {
+    void updateWorkSlot_ThrowsWhenNewStartTimeIsAfterExistingEndTime() {
         WorkSlotService service = new WorkSlotService(workSlotRepository);
         long identityId = 42L;
         Long slotId = 7L;
 
         WorkSlot existing = new WorkSlot();
         existing.setId(slotId);
-        existing.setStartAt(Instant.parse("2026-04-20T08:00:00Z"));
-        existing.setEndAt(Instant.parse("2026-04-20T12:00:00Z"));
+        existing.setDayOfWeek(DayOfWeek.MONDAY);
+        existing.setStartTime(LocalTime.of(8, 0));
+        existing.setEndTime(LocalTime.of(12, 0));
 
-        WorkSlotUpdateRequest request = new WorkSlotUpdateRequest(Instant.parse("2026-04-20T13:00:00Z"), null);
+        WorkSlotUpdateRequest request = new WorkSlotUpdateRequest(null, LocalTime.of(13, 0), null);
 
         when(workSlotRepository.findByIdAndIdentityId(slotId, identityId)).thenReturn(Optional.of(existing));
 

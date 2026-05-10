@@ -17,7 +17,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant;
+import java.time.DayOfWeek;
+import java.time.LocalTime;
 import java.util.UUID;
 
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
@@ -57,12 +58,13 @@ class WorkSlotControllerIT {
         return accountRepository.saveAndFlush(account);
     }
 
-    private long createWorkSlot(Identity identity, String organizationId, String startAt, String endAt) {
+    private long createWorkSlot(Identity identity, String organizationId, DayOfWeek dayOfWeek, LocalTime startTime, LocalTime endTime) {
         WorkSlot slot = new WorkSlot();
         slot.setIdentity(identity);
         slot.setOrganizationId(organizationId);
-        slot.setStartAt(Instant.parse(startAt));
-        slot.setEndAt(Instant.parse(endAt));
+        slot.setDayOfWeek(dayOfWeek);
+        slot.setStartTime(startTime);
+        slot.setEndTime(endTime);
         return workSlotRepository.saveAndFlush(slot).getId();
     }
 
@@ -71,11 +73,11 @@ class WorkSlotControllerIT {
         String subject = UUID.randomUUID().toString();
         Account account = createAccount(subject);
         String orgId = UUID.randomUUID().toString();
-        createWorkSlot(account.getIdentity(), orgId, "2026-04-20T08:00:00Z", "2026-04-20T17:00:00Z");
+        createWorkSlot(account.getIdentity(), orgId, DayOfWeek.MONDAY, LocalTime.of(8, 0), LocalTime.of(17, 0));
 
         // A slot belonging to a different identity should not appear
         Account otherAccount = createAccount(UUID.randomUUID().toString());
-        createWorkSlot(otherAccount.getIdentity(), orgId, "2026-04-21T08:00:00Z", "2026-04-21T17:00:00Z");
+        createWorkSlot(otherAccount.getIdentity(), orgId, DayOfWeek.TUESDAY, LocalTime.of(8, 0), LocalTime.of(17, 0));
 
         mockMvc.perform(get("/v1/workslots")
                         .with(jwt().jwt(jwt -> jwt.subject(subject))))
@@ -93,8 +95,9 @@ class WorkSlotControllerIT {
         String payload = """
                 {
                   "organizationId": "%s",
-                  "startAt": "2026-04-20T08:00:00Z",
-                  "endAt": "2026-04-20T17:00:00Z"
+                                    "dayOfWeek": "MONDAY",
+                                    "startTime": "08:00",
+                                    "endTime": "17:00"
                 }
                 """.formatted(orgId);
 
@@ -104,8 +107,9 @@ class WorkSlotControllerIT {
                 .content(payload))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.organizationId").value(orgId))
-                .andExpect(jsonPath("$.startAt").value("2026-04-20T08:00:00Z"))
-                .andExpect(jsonPath("$.endAt").value("2026-04-20T17:00:00Z"));
+                .andExpect(jsonPath("$.dayOfWeek").value("MONDAY"))
+                .andExpect(jsonPath("$.startTime").value("08:00"))
+                .andExpect(jsonPath("$.endTime").value("17:00"));
     }
 
     @Test
@@ -113,12 +117,13 @@ class WorkSlotControllerIT {
         String subject = UUID.randomUUID().toString();
         Account account = createAccount(subject);
         String orgId = UUID.randomUUID().toString();
-        long slotId = createWorkSlot(account.getIdentity(), orgId, "2026-04-20T08:00:00Z", "2026-04-20T17:00:00Z");
+        long slotId = createWorkSlot(account.getIdentity(), orgId, DayOfWeek.MONDAY, LocalTime.of(8, 0), LocalTime.of(17, 0));
 
         String payload = """
                 {
-                  "startAt": "2026-04-21T09:00:00Z",
-                  "endAt": "2026-04-21T18:00:00Z"
+                                    "dayOfWeek": "TUESDAY",
+                                    "startTime": "09:00",
+                                    "endTime": "18:00"
                 }
                 """;
 
@@ -128,8 +133,9 @@ class WorkSlotControllerIT {
                         .content(payload))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(slotId))
-                .andExpect(jsonPath("$.startAt").value("2026-04-21T09:00:00Z"))
-                .andExpect(jsonPath("$.endAt").value("2026-04-21T18:00:00Z"));
+                .andExpect(jsonPath("$.dayOfWeek").value("TUESDAY"))
+                .andExpect(jsonPath("$.startTime").value("09:00"))
+                .andExpect(jsonPath("$.endTime").value("18:00"));
     }
 
     @Test
@@ -137,13 +143,13 @@ class WorkSlotControllerIT {
         String ownerSubject = UUID.randomUUID().toString();
         Account ownerAccount = createAccount(ownerSubject);
         String orgId = UUID.randomUUID().toString();
-        long slotId = createWorkSlot(ownerAccount.getIdentity(), orgId, "2026-04-20T08:00:00Z", "2026-04-20T17:00:00Z");
+        long slotId = createWorkSlot(ownerAccount.getIdentity(), orgId, DayOfWeek.MONDAY, LocalTime.of(8, 0), LocalTime.of(17, 0));
 
         String attackerSubject = UUID.randomUUID().toString();
         createAccount(attackerSubject);
 
         String payload = """
-                { "startAt": "2026-04-21T09:00:00Z" }
+                { "startTime": "09:00" }
                 """;
 
         mockMvc.perform(patch("/v1/workslots/" + slotId)
@@ -158,7 +164,7 @@ class WorkSlotControllerIT {
         String subject = UUID.randomUUID().toString();
         Account account = createAccount(subject);
         String orgId = UUID.randomUUID().toString();
-        long slotId = createWorkSlot(account.getIdentity(), orgId, "2026-04-20T08:00:00Z", "2026-04-20T17:00:00Z");
+        long slotId = createWorkSlot(account.getIdentity(), orgId, DayOfWeek.MONDAY, LocalTime.of(8, 0), LocalTime.of(17, 0));
 
         mockMvc.perform(delete("/v1/workslots/" + slotId)
                         .with(jwt().jwt(jwt -> jwt.subject(subject).claim("organizationId", java.util.List.of("private")))))
@@ -170,7 +176,7 @@ class WorkSlotControllerIT {
         String ownerSubject = UUID.randomUUID().toString();
         Account ownerAccount = createAccount(ownerSubject);
         String orgId = UUID.randomUUID().toString();
-        long slotId = createWorkSlot(ownerAccount.getIdentity(), orgId, "2026-04-20T08:00:00Z", "2026-04-20T17:00:00Z");
+        long slotId = createWorkSlot(ownerAccount.getIdentity(), orgId, DayOfWeek.MONDAY, LocalTime.of(8, 0), LocalTime.of(17, 0));
 
         String attackerSubject = UUID.randomUUID().toString();
         createAccount(attackerSubject);
