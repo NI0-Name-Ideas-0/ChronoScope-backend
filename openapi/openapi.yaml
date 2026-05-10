@@ -109,7 +109,6 @@ paths:
       - Identity
   /v1/identity/settings:
     get:
-      description: Retrieve settings for the authenticated identity.
       operationId: getSettings
       responses:
         "200":
@@ -117,14 +116,7 @@ paths:
             '*/*':
               schema:
                 $ref: "#/components/schemas/SettingsResponse"
-          description: Settings retrieved successfully
-        "401":
-          content:
-            '*/*':
-              schema:
-                $ref: "#/components/schemas/ProblemDetail"
-          description: Missing or invalid token
-      summary: Get identity settings
+          description: OK
       tags:
       - Identity
     patch:
@@ -993,28 +985,17 @@ components:
         id:
           type: integer
           format: int64
-        language:
-          type: string
-          description: Language preference (de_DE or en_US)
         organizations:
           type: array
           description: Organizations to which the identity belongs.
           items:
             $ref: "#/components/schemas/Organization"
           uniqueItems: true
-        theme:
-          type: string
-          description: "Theme preference (light, dark, or system)"
-        workSettings:
-          $ref: "#/components/schemas/WorkSettings"
-          description: Opaque work schedule settings stored as JSON.
       required:
       - accounts
       - adminOrganizations
       - id
-      - language
       - organizations
-      - theme
     Invitation:
       type: object
       properties:
@@ -1164,16 +1145,19 @@ components:
       - endAt
       - id
       - startAt
-    SettingsUpdateRequest:
+    SettingsResponse:
       type: object
       properties:
         language:
           type: string
+          description: Language preference (de_DE or en_US)
         theme:
           type: string
+          description: "Theme preference (light, dark, or system)"
         workSettings:
           $ref: "#/components/schemas/WorkSettings"
-    SettingsResponse:
+          description: Opaque work schedule settings stored as JSON.
+    SettingsUpdateRequest:
       type: object
       properties:
         language:
