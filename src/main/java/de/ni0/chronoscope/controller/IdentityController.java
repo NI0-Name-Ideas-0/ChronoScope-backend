@@ -25,6 +25,7 @@ import de.ni0.chronoscope.controller.dto.request.SettingsUpdateRequest;
 import de.ni0.chronoscope.controller.dto.response.AccountLinkConfirmResponse;
 import de.ni0.chronoscope.controller.dto.response.AccountResponse;
 import de.ni0.chronoscope.controller.dto.response.IdentityResponse;
+import de.ni0.chronoscope.controller.dto.response.SettingsResponse;
 import de.ni0.chronoscope.mapper.IdentityMapper;
 import de.ni0.chronoscope.model.Account;
 import de.ni0.chronoscope.model.Identity;
@@ -147,7 +148,7 @@ public class IdentityController {
      * Updates the authenticated identity's language and/or theme settings.
      *
      * @param request the settings update request with optional language and theme
-     * @return the updated identity response
+     * @return the updated settings response
      */
     @Operation(summary = "Update identity settings", description = "Update language and/or theme preferences for the authenticated identity. Both fields are optional; only specified fields will be updated.")
     @ApiResponses({
@@ -156,9 +157,9 @@ public class IdentityController {
         @ApiResponse(responseCode = "401", description = "Missing or invalid token", content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
     })
     @PatchMapping("/settings")
-    public IdentityResponse updateSettings(@Valid @RequestBody SettingsUpdateRequest request) {
+    public SettingsResponse updateSettings(@Valid @RequestBody SettingsUpdateRequest request) {
         long identityId = this.requestContext.getAccount().getIdentity().getId();
         this.identityService.updateSettings(identityId, request);
-        return this.getIdentity();
+        return this.getSettings();
     }
 }
