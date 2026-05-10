@@ -151,16 +151,7 @@ public class IdentityController {
     @PatchMapping("/settings")
     public IdentityResponse updateSettings(@Valid @RequestBody SettingsUpdateRequest request) {
         long identityId = this.requestContext.getAccount().getIdentity().getId();
-        Identity updatedIdentity = this.identityService.updateSettings(identityId, request);
-        Set<String> adminOrganizations = this.keycloakService.getAdminOrganizations(updatedIdentity);
-        Set<OrganizationRepresentation> organizations = this.keycloakService.getIdentityOrganizations(updatedIdentity);
-        List<IdentityResponse.Organization> orgs = new java.util.ArrayList<>(organizations.stream().map(o ->
-                new IdentityResponse.Organization(o.getName(), o.getId())).toList());
-        orgs.add(new IdentityResponse.Organization("Privat", "private"));
-        return this.identityMapper.toResponse(
-            updatedIdentity,
-            adminOrganizations,
-            new HashSet<>(orgs)
-        );
+        this.identityService.updateSettings(identityId, request);
+        return this.getIdentity();
     }
 }

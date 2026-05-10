@@ -38,11 +38,11 @@ public class Identity {
     @ToString.Exclude // bidirectional: Account.identity -> this Identity, would recurse infinitely in toString
     private Set<Account> accounts = new HashSet<>();
 
-    @Column(nullable = false, length = 10)
+    @Column(nullable = false, length = 10, columnDefinition = "varchar(10) default 'en_US'")
     @Pattern(regexp = "^(de_DE|en_US)$", message = "language must be one of: de_DE, en_US")
     private String language = "en_US";
 
-    @Column(nullable = false, length = 10)
+    @Column(nullable = false, length = 10, columnDefinition = "varchar(10) default 'light'")
     @Pattern(regexp = "^(light|dark|system)$", message = "theme must be one of: light, dark, system")
     private String theme = "light";
 }

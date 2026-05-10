@@ -1,16 +1,17 @@
 package de.ni0.chronoscope.controller;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
+
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import de.ni0.chronoscope.TestData;
@@ -46,6 +47,7 @@ class IdentityControllerTest {
 
         IdentityResponse expected = new IdentityResponse(identity.getId(), List.of(), Set.of("dhbw-stuttgart"), Set.of(), "en_US", "light");
         when(keycloakService.getAdminOrganizations(identity)).thenReturn(Set.of("dhbw-stuttgart"));
+        when(keycloakService.getIdentityOrganizations(identity)).thenReturn(Set.of());
         when(identityMapper.toResponse(identity, Set.of("dhbw-stuttgart"), Set.of(new IdentityResponse.Organization("Privat", "private")))).thenReturn(expected);
 
         IdentityController controller = new IdentityController(identityService, requestContext, identityMapper, keycloakService);
@@ -63,13 +65,13 @@ class IdentityControllerTest {
     void updateSettings_UpdatesLanguageAndReturnsUpdatedIdentity() {
         Account account = TestData.account(1L, 2L);
         Identity identity = account.getIdentity();
-        identity.setLanguage("en_US");
+        identity.setLanguage("de_DE");
         identity.setTheme("light");
 
         when(requestContext.getAccount()).thenReturn(account);
         when(identityService.updateSettings(identity.getId(), new SettingsUpdateRequest(Optional.of("de_DE"), Optional.empty()))).thenReturn(identity);
 
-        IdentityResponse expected = new IdentityResponse(identity.getId(), List.of(), Set.of("dhbw-stuttgart"), Set.of(), "en_US", "light");
+        IdentityResponse expected = new IdentityResponse(identity.getId(), List.of(), Set.of("dhbw-stuttgart"), Set.of(), "de_DE", "light");
         when(keycloakService.getAdminOrganizations(identity)).thenReturn(Set.of("dhbw-stuttgart"));
         when(keycloakService.getIdentityOrganizations(identity)).thenReturn(Set.of());
         when(identityMapper.toResponse(identity, Set.of("dhbw-stuttgart"), Set.of(new IdentityResponse.Organization("Privat", "private")))).thenReturn(expected);
@@ -80,7 +82,7 @@ class IdentityControllerTest {
         IdentityResponse actual = controller.updateSettings(request);
 
         assertEquals(expected, actual);
-        verify(requestContext).getAccount();
+        verify(requestContext, org.mockito.Mockito.times(2)).getAccount();
         verify(identityService).updateSettings(identity.getId(), request);
         verify(keycloakService).getAdminOrganizations(identity);
         verify(keycloakService).getIdentityOrganizations(identity);
