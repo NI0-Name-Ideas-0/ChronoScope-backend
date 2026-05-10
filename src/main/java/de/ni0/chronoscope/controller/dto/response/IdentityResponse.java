@@ -18,7 +18,7 @@ public record IdentityResponse(
     @NotNull Set<Organization> organizations
 ) {
     public record Organization(
-        String name,
-        String id
+        @NotNull String name,
+        @NotNull String id
     ){}
 }

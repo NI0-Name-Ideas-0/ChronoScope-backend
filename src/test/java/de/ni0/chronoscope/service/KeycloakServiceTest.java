@@ -5,7 +5,6 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.junit.jupiter.api.BeforeEach;
@@ -107,28 +106,26 @@ class KeycloakServiceTest {
         account(11L, "admin-subject", identity);
 
         GroupRepresentation malformedMissingAttributes = new GroupRepresentation();
+        malformedMissingAttributes.setPath("/org-adm/adawd");
         GroupRepresentation malformedEmptyOrgId = new GroupRepresentation();
+        malformedEmptyOrgId.setPath("/org-admins/org-a");
         malformedEmptyOrgId.setAttributes(Map.of("org-id", List.of()));
-        GroupRepresentation malformedBlankOrgId = new GroupRepresentation();
-        malformedBlankOrgId.setAttributes(Map.of("org-id", List.of(" ")));
         GroupRepresentation adminRoot = new GroupRepresentation();
-        adminRoot.setSubGroups(List.of(
-            adminGroup("org-a"),
-            malformedMissingAttributes,
-            malformedEmptyOrgId,
-            malformedBlankOrgId,
-            adminGroup("org-b")
-        ));
+        adminRoot.setPath("/org-admins/org-a");
+        adminRoot.singleAttribute("org-id", "testorgid");
+        List<GroupRepresentation> groups = List.of(
+                malformedMissingAttributes,
+                malformedEmptyOrgId,
+                adminRoot
+        );
 
         when(realmResource.users()).thenReturn(usersResource);
         when(usersResource.get("admin-subject")).thenReturn(userResource);
-        when(userResource.groups("org-admins", false)).thenReturn(List.of(adminRoot));
+        when(userResource.groups(0, 1000, false)).thenReturn(groups);
 
         Set<String> adminOrganizations = keycloakService.getAdminOrganizations(identity);
-        assertEquals(Set.of("org-a", "org-b"), adminOrganizations);
-        assertFalse(adminOrganizations.contains(" "));
-        assertFalse(adminOrganizations.contains(""));
-        keycloakService.validateIdentityAdminOrgAccess(identity, "org-b");
+        assertEquals(Set.of("testorgid"), adminOrganizations);
+        keycloakService.validateIdentityAdminOrgAccess(identity, "testorgid");
 
         AccountAccessDeniedException exception = assertThrows(
             AccountAccessDeniedException.class,

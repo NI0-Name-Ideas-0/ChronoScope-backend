@@ -28,7 +28,7 @@ public class AccountService {
      * @return ID of the synchronized account
      */
     public Account syncAccount(String subject) {
-        return accountRepository.findBySubject(subject)
+        Account account = accountRepository.findBySubject(subject)
                 .orElseGet(() -> {
                     Identity identity = identityRepository.save(new Identity());
                     try {
@@ -49,5 +49,7 @@ public class AccountService {
                                 .orElseThrow(() -> new IllegalStateException("Account create raced but record was not found: " + subject, ex));
                     }
                 });
+        account.getIdentity().getAccounts();
+        return account;
     }
 }

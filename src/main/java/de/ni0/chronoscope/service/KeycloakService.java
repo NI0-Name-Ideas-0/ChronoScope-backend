@@ -31,6 +31,10 @@ public class KeycloakService {
         return membersRes.list(0, 10000);
     }
 
+    public String getMail(String userId) {
+        return this.client.realm(realm).users().get(userId).toRepresentation().getEmail();
+    }
+
     private Set<OrganizationRepresentation> getAccountOrganizations(Account account) {
         List<OrganizationRepresentation> organizations = this.client.realm(realm).organizations().members().getOrganizations(account.getSubject());
         return new HashSet<>(organizations);
@@ -80,13 +84,10 @@ public class KeycloakService {
         Set<String> organizations = new HashSet<>();
         for (Account account : identity.getAccounts()) {
             String subject = account.getSubject();
-            List<GroupRepresentation> group = this.client.realm(realm).users().get(subject).groups("org-admins", false);
-            if (group.isEmpty()) continue;
-            GroupRepresentation first = group.getFirst();
-            if (first.getSubGroups() == null) continue;
-            for (GroupRepresentation subGroup : first.getSubGroups()) {
-                if (subGroup == null || subGroup.getAttributes() == null) continue;
-                List<String> orgIds = subGroup.getAttributes().get("org-id");
+            List<GroupRepresentation> groups = this.client.realm(realm).users().get(subject).groups(0, 1000, false);
+            for (GroupRepresentation group : groups) {
+                if (!group.getPath().startsWith("/org-admins/")) continue;
+                List<String> orgIds = group.getAttributes().get("org-id");
                 if (orgIds == null || orgIds.isEmpty()) continue;
                 String orgId = orgIds.getFirst();
                 if (orgId == null || orgId.isBlank()) continue;

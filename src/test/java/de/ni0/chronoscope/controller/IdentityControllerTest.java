@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.*;
 
 import de.ni0.chronoscope.TestData;
 import de.ni0.chronoscope.model.Account;
@@ -11,8 +12,6 @@ import de.ni0.chronoscope.service.KeycloakService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import de.ni0.chronoscope.config.RequestContext;
@@ -41,7 +40,6 @@ class IdentityControllerTest {
         Account account = TestData.account(1L, 2L);
         Identity identity = account.getIdentity();
         when(requestContext.getAccount()).thenReturn(account);
-        when(identityService.getIdentity(identity.getId())).thenReturn(identity);
 
         IdentityResponse expected = new IdentityResponse(identity.getId(), List.of(), Set.of("dhbw-stuttgart"), Set.of());
         when(keycloakService.getAdminOrganizations(identity)).thenReturn(Set.of("dhbw-stuttgart"));
@@ -53,7 +51,7 @@ class IdentityControllerTest {
 
         assertEquals(expected, actual);
         verify(requestContext).getAccount();
-        verify(identityService).getIdentity(identity.getId());
+        verifyNoInteractions(identityService);
         verify(keycloakService).getAdminOrganizations(identity);
         verify(identityMapper).toResponse(identity, Set.of("dhbw-stuttgart"), Set.of(new IdentityResponse.Organization("Privat", "private")));
     }
