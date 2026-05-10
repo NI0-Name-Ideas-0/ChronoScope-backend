@@ -779,9 +779,12 @@ components:
         identityId:
           type: integer
           format: int64
+        mail:
+          type: string
       required:
       - id
       - identityId
+      - mail
     DynamicTaskCreateRequest:
       allOf:
       - $ref: "#/components/schemas/TaskCreateRequest"
@@ -906,6 +909,7 @@ components:
       - maxScopeDuration
       - minScopeDuration
       - name
+      - organizationId
       - scopes
       - startAt
     DynamicTaskUpdateRequest:
@@ -1054,6 +1058,9 @@ components:
           type: string
         name:
           type: string
+      required:
+      - id
+      - name
     OrganizationInvitationsResponse:
       type: object
       properties:

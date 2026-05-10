@@ -3,6 +3,7 @@ package de.ni0.chronoscope.repository;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import de.ni0.chronoscope.model.Account;
+import org.springframework.data.jpa.repository.Query;
 
 import java.util.Optional;
 
@@ -16,5 +17,12 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
      * @param subject authentication-provider subject
      * @return matching account, if present
      */
+    @Query("""
+        select o
+        from Account o
+        join fetch o.identity as i
+        join fetch i.accounts
+        where o.subject = :subject
+    """)
     Optional<Account> findBySubject(String subject);
 }

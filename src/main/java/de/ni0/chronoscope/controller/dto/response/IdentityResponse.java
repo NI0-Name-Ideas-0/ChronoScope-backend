@@ -22,7 +22,7 @@ public record IdentityResponse(
     @NotNull String theme
 ) {
     public record Organization(
-        String name,
-        String id
+        @NotNull String name,
+        @NotNull String id
     ){}
 }

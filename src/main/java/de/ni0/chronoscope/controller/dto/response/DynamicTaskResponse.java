@@ -14,7 +14,7 @@ import jakarta.validation.constraints.NotNull;
 @Schema(description = "Response for a dynamic (schedulable) task, including its scopes and dependencies")
 public record DynamicTaskResponse(
     @NotNull Long id,
-    String organizationId,
+    @NotNull String organizationId,
     @NotNull String name,
     String description,
     @NotNull Task.Difficulty difficulty,
