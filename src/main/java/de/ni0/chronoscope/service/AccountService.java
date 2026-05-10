@@ -17,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 public class AccountService {
     private final AccountRepository accountRepository;
     private final IdentityRepository identityRepository;
+    private final de.ni0.chronoscope.repository.IdentitySettingsRepository identitySettingsRepository;
 
     /**
      * Creates or updates the account represented by an authentication token.
@@ -31,6 +32,13 @@ public class AccountService {
         return accountRepository.findBySubject(subject)
                 .orElseGet(() -> {
                     Identity identity = identityRepository.save(new Identity());
+                    // create default settings for the new identity
+                    var settings = new de.ni0.chronoscope.model.IdentitySettings();
+                    settings.setIdentity(identity);
+                    settings.setLanguage("en_US");
+                    settings.setTheme("light");
+                    settings.setWorkSettings(new de.ni0.chronoscope.model.WorkSettings(480, java.util.Set.of("mo", "di", "mi", "do", "fr")));
+                    this.identitySettingsRepository.save(settings);
                     try {
                         Account newAccount = new Account();
                         newAccount.setSubject(subject);

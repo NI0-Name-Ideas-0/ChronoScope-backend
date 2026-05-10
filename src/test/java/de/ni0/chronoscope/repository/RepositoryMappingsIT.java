@@ -37,6 +37,12 @@ class RepositoryMappingsIT {
     private IdentityRepository identityRepository;
 
     @Autowired
+    private de.ni0.chronoscope.repository.IdentitySettingsRepository identitySettingsRepository;
+
+    @Autowired
+    private de.ni0.chronoscope.service.AccountService accountService;
+
+    @Autowired
     private LabelRepository labelRepository;
 
     @Autowired
@@ -73,26 +79,30 @@ class RepositoryMappingsIT {
 
     @Test
     void identityRepository_PersistsDefaultSettingsForNewIdentity() {
-        Identity saved = identityRepository.saveAndFlush(new Identity());
+        // create account via service so default settings row is created
+        de.ni0.chronoscope.model.Account account = accountService.syncAccount("subject-repo-it");
+        Identity identity = account.getIdentity();
 
-        Identity reloaded = identityRepository.findById(saved.getId()).orElseThrow();
-
-        assertEquals("en_US", reloaded.getLanguage());
-        assertEquals("light", reloaded.getTheme());
-        assertNotNull(reloaded.getWorkSettings());
-        assertEquals(480, reloaded.getWorkSettings().dailyWorkTimeMinutes());
-        assertEquals(Set.of("mo", "di", "mi", "do", "fr"), reloaded.getWorkSettings().workDays());
+        var settings = identitySettingsRepository.findByIdentityId(identity.getId()).orElseThrow();
+        assertEquals("en_US", settings.getLanguage());
+        assertEquals("light", settings.getTheme());
+        assertNotNull(settings.getWorkSettings());
+        assertEquals(480, settings.getWorkSettings().dailyWorkTimeMinutes());
+        assertEquals(Set.of("mo", "di", "mi", "do", "fr"), settings.getWorkSettings().workDays());
     }
 
     @Test
     void identityRepository_PersistsCustomizedWorkSettings() {
         Identity identity = new Identity();
         WorkSettings customSettings = new WorkSettings(360, Set.of("mo", "di", "mi"));
-        identity.setWorkSettings(customSettings);
+        identity = identityRepository.saveAndFlush(identity);
 
-        Identity saved = identityRepository.saveAndFlush(identity);
-        Identity reloaded = identityRepository.findById(saved.getId()).orElseThrow();
+        de.ni0.chronoscope.model.IdentitySettings settings = new de.ni0.chronoscope.model.IdentitySettings();
+        settings.setIdentity(identity);
+        settings.setWorkSettings(customSettings);
+        settings = identitySettingsRepository.saveAndFlush(settings);
 
+        var reloaded = identitySettingsRepository.findById(settings.getId()).orElseThrow();
         assertEquals(customSettings, reloaded.getWorkSettings());
     }
 

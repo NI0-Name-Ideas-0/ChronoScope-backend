@@ -2,6 +2,7 @@ package de.ni0.chronoscope.service;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import javax.crypto.SecretKey;
@@ -37,14 +38,16 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class IdentityService {
-    private final SecretKey key = Keys.secretKeyFor(SignatureAlgorithm.HS256);
 
     private final AccountRepository accountRepository;
     private final IdentityRepository identityRepository;
+    private final de.ni0.chronoscope.repository.IdentitySettingsRepository identitySettingsRepository;
     private final KeycloakService keycloakService;
     private final JavaMailSender mailSender;
     private final TaskRepository taskRepository;
     private final WorkSlotRepository workSlotRepository;
+
+    private final SecretKey key = Keys.secretKeyFor(SignatureAlgorithm.HS256);
 
     /**
      * Synchronizes the identity for the user identified by the given subject.
@@ -62,6 +65,15 @@ public class IdentityService {
                 }
 
                 Identity identity = this.identityRepository.save(new Identity());
+
+                // create default settings row for new identity
+                var settings = new de.ni0.chronoscope.model.IdentitySettings();
+                settings.setIdentity(identity);
+                settings.setLanguage("en_US");
+                settings.setTheme("light");
+                settings.setWorkSettings(new de.ni0.chronoscope.model.WorkSettings(480, Set.of("mo", "di", "mi", "do", "fr")));
+                this.identitySettingsRepository.save(settings);
+
                 account.setIdentity(identity);
                 this.accountRepository.save(account);
 
@@ -71,7 +83,7 @@ public class IdentityService {
     }
 
     /**
-     * Returns the identity with its accounts and organizationId graph.
+     * Returns the identity with its accounts and organization graph.
      *
      * @param identityId the identity ID
      * @return the loaded identity
@@ -84,10 +96,10 @@ public class IdentityService {
     }
 
     /**
-     * Updates the language and/or theme settings for an identity.
+     * Updates the language, theme, and/or work settings for an identity.
      *
      * @param identityId the identity ID
-     * @param request the settings update request containing optional language and theme
+     * @param request the settings update request containing optional values
      * @return the updated identity
      * @throws ResourceNotFoundException if no identity exists for the given ID
      */
@@ -95,11 +107,23 @@ public class IdentityService {
     public Identity updateSettings(long identityId, SettingsUpdateRequest request) {
         Identity identity = this.identityRepository.findById(identityId)
             .orElseThrow(() -> new ResourceNotFoundException("Identity not found: " + identityId));
+        boolean hasUpdate = request.language().isPresent() || request.theme().isPresent() || request.workSettings().isPresent();
+        if (!hasUpdate) {
+            return this.identityRepository.save(identity);
+        }
 
-        request.language().ifPresent(identity::setLanguage);
-        request.theme().ifPresent(identity::setTheme);
-        request.workSettings().ifPresent(identity::setWorkSettings);
+        var settings = this.identitySettingsRepository.findByIdentityId(identityId)
+            .orElseGet(() -> {
+                var s = new de.ni0.chronoscope.model.IdentitySettings();
+                s.setIdentity(identity);
+                return s;
+            });
 
+        request.language().ifPresent(settings::setLanguage);
+        request.theme().ifPresent(settings::setTheme);
+        request.workSettings().ifPresent(settings::setWorkSettings);
+
+        this.identitySettingsRepository.save(settings);
         return this.identityRepository.save(identity);
     }
 
@@ -107,6 +131,7 @@ public class IdentityService {
      * Confirms an account-link token and moves all target identity accounts, tasks, and work slots
      * to the source identity, then deletes the old identity.
      *
+     * @param identityId the identity ID of the account accepting the merge
      * @param token signed token produced by {@link #sendLink(long, String)}
      * @return merge result containing the source and target account IDs
      */
@@ -141,21 +166,58 @@ public class IdentityService {
             this.accountRepository.save(account);
         }
 
-        // Merge settings: target's settings override source's settings (if target has them)
-        if (oldIdentity.getLanguage() != null && !oldIdentity.getLanguage().isEmpty()) {
-            newIdentity.setLanguage(oldIdentity.getLanguage());
-        }
-        if (oldIdentity.getTheme() != null && !oldIdentity.getTheme().isEmpty()) {
-            newIdentity.setTheme(oldIdentity.getTheme());
-        }
-        if (oldIdentity.getWorkSettings() != null) {
-            newIdentity.setWorkSettings(oldIdentity.getWorkSettings());
+        // Merge settings: prefer existing IdentitySettings rows; if none exist, do nothing.
+        var oldSettingsOpt = this.identitySettingsRepository.findByIdentityId(oldIdentity.getId());
+        var newSettingsOpt = this.identitySettingsRepository.findByIdentityId(newIdentity.getId());
+
+        if (oldSettingsOpt.isPresent()) {
+            var oldSettings = oldSettingsOpt.get();
+            if (newSettingsOpt.isEmpty()) {
+                // move settings row to new identity
+                oldSettings.setIdentity(newIdentity);
+                this.identitySettingsRepository.save(oldSettings);
+            } else {
+                var newSettings = newSettingsOpt.get();
+                // target (oldSettings) overrides source (newSettings) when present
+                if (oldSettings.getLanguage() != null && !oldSettings.getLanguage().isEmpty()) {
+                    newSettings.setLanguage(oldSettings.getLanguage());
+                }
+                if (oldSettings.getTheme() != null && !oldSettings.getTheme().isEmpty()) {
+                    newSettings.setTheme(oldSettings.getTheme());
+                }
+                if (oldSettings.getWorkSettings() != null) {
+                    newSettings.setWorkSettings(oldSettings.getWorkSettings());
+                }
+                this.identitySettingsRepository.save(newSettings);
+                this.identitySettingsRepository.delete(oldSettings);
+            }
         }
         this.identityRepository.save(newIdentity);
-
         this.identityRepository.delete(oldIdentity);
 
         return new AccountLinkConfirmResponse(sourceId, targetId, "merged");
+    }
+
+    /**
+     * Returns the settings for the given identity, creating a default view if none exist yet.
+     *
+     * @param identityId the identity ID
+     * @return the loaded settings
+     * @throws ResourceNotFoundException if no identity exists for the given ID
+     */
+    @Transactional(readOnly = true)
+    public de.ni0.chronoscope.model.IdentitySettings getSettings(long identityId) {
+        return this.identitySettingsRepository.findByIdentityId(identityId)
+            .orElseGet(() -> {
+                Identity identity = this.identityRepository.findById(identityId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Identity not found: " + identityId));
+                var s = new de.ni0.chronoscope.model.IdentitySettings();
+                s.setIdentity(identity);
+                s.setLanguage("en_US");
+                s.setTheme("light");
+                s.setWorkSettings(new de.ni0.chronoscope.model.WorkSettings(480, Set.of("mo", "di", "mi", "do", "fr")));
+                return s;
+            });
     }
 
     /**
@@ -196,16 +258,12 @@ public class IdentityService {
                 .claim("target", targetId)
                 .setId(UUID.randomUUID().toString()) // jti
                 .setIssuedAt(new Date(now))
-                .setExpiration(new Date(now + 1000 * 60 * 15)) // 15 min
+                .setExpiration(new Date(now + 15 * 60 * 1000))
                 .signWith(key)
                 .compact();
     }
 
     private Claims getTokenClaims(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(key)
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
+        return Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody();
     }
 }

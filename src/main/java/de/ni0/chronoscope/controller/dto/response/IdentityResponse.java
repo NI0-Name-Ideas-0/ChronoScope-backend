@@ -3,7 +3,6 @@ package de.ni0.chronoscope.controller.dto.response;
 import java.util.List;
 import java.util.Set;
 
-import de.ni0.chronoscope.model.WorkSettings;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 
@@ -16,13 +15,7 @@ public record IdentityResponse(
     @Schema(description = "Organization IDs for which the authenticated identity has admin privileges, resolved server-side via Keycloak Admin Client lookups.")
     @NotNull Set<String> adminOrganizations,
     @Schema(description = "Organizations to which the identity belongs.")
-    @NotNull Set<Organization> organizations,
-    @Schema(description = "Language preference (de_DE or en_US)")
-    @NotNull String language,
-    @Schema(description = "Theme preference (light, dark, or system)")
-    @NotNull String theme,
-    @Schema(description = "Opaque work schedule settings stored as JSON.")
-    WorkSettings workSettings
+    @NotNull Set<Organization> organizations
 ) {
     public record Organization(
         @NotNull String name,

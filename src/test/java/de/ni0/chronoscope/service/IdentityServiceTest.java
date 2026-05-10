@@ -48,6 +48,9 @@ class IdentityServiceTest {
     private IdentityRepository identityRepository;
 
     @Mock
+    private de.ni0.chronoscope.repository.IdentitySettingsRepository identitySettingsRepository;
+
+    @Mock
     private KeycloakService keycloakService;
 
     @Mock
@@ -61,7 +64,7 @@ class IdentityServiceTest {
 
     @Test
     void syncIdentity_ReusesExistingIdentityForSameAccount() {
-        IdentityService identityService = new IdentityService(accountRepository, identityRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
+        IdentityService identityService = new IdentityService(accountRepository, identityRepository, identitySettingsRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
 
         Account account = new Account();
         account.setSubject("subject-123");
@@ -86,7 +89,7 @@ class IdentityServiceTest {
 
     @Test
     void syncIdentity_ThrowsWhenAccountIsMissing() {
-        IdentityService identityService = new IdentityService(accountRepository, identityRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
+        IdentityService identityService = new IdentityService(accountRepository, identityRepository, identitySettingsRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
 
         when(accountRepository.findBySubject("unknown-subject")).thenReturn(Optional.empty());
 
@@ -102,7 +105,7 @@ class IdentityServiceTest {
 
     @Test
     void getIdentity_ReturnsIdentityForExistingId() {
-        IdentityService identityService = new IdentityService(accountRepository, identityRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
+        IdentityService identityService = new IdentityService(accountRepository, identityRepository, identitySettingsRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
 
         Identity identity = new Identity();
         identity.setId(99L);
@@ -117,7 +120,7 @@ class IdentityServiceTest {
 
     @Test
     void getIdentity_ThrowsWhenIdentityIsMissing() {
-        IdentityService identityService = new IdentityService(accountRepository, identityRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
+        IdentityService identityService = new IdentityService(accountRepository, identityRepository, identitySettingsRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
 
         when(identityRepository.findByIdWithAccountsAndOrganizations(99L)).thenReturn(Optional.empty());
 
@@ -131,7 +134,7 @@ class IdentityServiceTest {
 
     @Test
     void sendLink_LooksUpTargetInKeycloakAndSendsTokenForLocalAccount() {
-        IdentityService identityService = new IdentityService(accountRepository, identityRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
+        IdentityService identityService = new IdentityService(accountRepository, identityRepository, identitySettingsRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
 
         UserRepresentation targetUser = new UserRepresentation();
         targetUser.setId("keycloak-target-subject");
@@ -159,7 +162,7 @@ class IdentityServiceTest {
 
     @Test
     void sendLink_ThrowsWhenKeycloakUserHasNoLocalAccount() {
-        IdentityService identityService = new IdentityService(accountRepository, identityRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
+        IdentityService identityService = new IdentityService(accountRepository, identityRepository, identitySettingsRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
 
         UserRepresentation targetUser = new UserRepresentation();
         targetUser.setId("keycloak-missing-subject");
@@ -180,7 +183,7 @@ class IdentityServiceTest {
 
     @Test
     void mergeAccounts_MovesTargetIdentityAccountsToSourceIdentityAndDeletesOldIdentity() {
-        IdentityService identityService = new IdentityService(accountRepository, identityRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
+        IdentityService identityService = new IdentityService(accountRepository, identityRepository, identitySettingsRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
 
         Identity sourceIdentity = new Identity();
         sourceIdentity.setId(101L);
@@ -220,7 +223,7 @@ class IdentityServiceTest {
 
     @Test
     void mergeAccounts_ThrowsWhenAuthenticatedIdentityIsNotTargetIdentity() {
-        IdentityService identityService = new IdentityService(accountRepository, identityRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
+        IdentityService identityService = new IdentityService(accountRepository, identityRepository, identitySettingsRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
 
         Identity sourceIdentity = new Identity();
         sourceIdentity.setId(101L);
@@ -271,115 +274,94 @@ class IdentityServiceTest {
 
     @Test
     void updateSettings_UpdatesLanguageOnly() {
-        IdentityService identityService = new IdentityService(accountRepository, identityRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
-
+        IdentityService identityService = new IdentityService(accountRepository, identityRepository, identitySettingsRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
         Identity identity = new Identity();
         identity.setId(99L);
-        identity.setLanguage("en_US");
-        identity.setTheme("light");
 
         when(identityRepository.findById(99L)).thenReturn(Optional.of(identity));
-        when(identityRepository.save(identity)).thenReturn(identity);
 
         SettingsUpdateRequest request = new SettingsUpdateRequest(Optional.of("de_DE"), Optional.empty(), Optional.empty());
-        Identity result = identityService.updateSettings(99L, request);
+        identityService.updateSettings(99L, request);
 
-        assertEquals("de_DE", result.getLanguage());
-        assertEquals("light", result.getTheme());
-        verify(identityRepository).findById(99L);
+        var captor = ArgumentCaptor.forClass(de.ni0.chronoscope.model.IdentitySettings.class);
+        verify(identitySettingsRepository).save(captor.capture());
+        assertEquals("de_DE", captor.getValue().getLanguage());
         verify(identityRepository).save(identity);
     }
 
     @Test
     void updateSettings_UpdatesThemeOnly() {
-        IdentityService identityService = new IdentityService(accountRepository, identityRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
-
+        IdentityService identityService = new IdentityService(accountRepository, identityRepository, identitySettingsRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
         Identity identity = new Identity();
         identity.setId(99L);
-        identity.setLanguage("de_DE");
-        identity.setTheme("light");
 
         when(identityRepository.findById(99L)).thenReturn(Optional.of(identity));
-        when(identityRepository.save(identity)).thenReturn(identity);
 
         SettingsUpdateRequest request = new SettingsUpdateRequest(Optional.empty(), Optional.of("dark"), Optional.empty());
-        Identity result = identityService.updateSettings(99L, request);
+        identityService.updateSettings(99L, request);
 
-        assertEquals("de_DE", result.getLanguage());
-        assertEquals("dark", result.getTheme());
-        verify(identityRepository).findById(99L);
+        var captor = ArgumentCaptor.forClass(de.ni0.chronoscope.model.IdentitySettings.class);
+        verify(identitySettingsRepository).save(captor.capture());
+        assertEquals("dark", captor.getValue().getTheme());
         verify(identityRepository).save(identity);
     }
 
     @Test
     void updateSettings_UpdatesBothLanguageAndTheme() {
-        IdentityService identityService = new IdentityService(accountRepository, identityRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
-
+        IdentityService identityService = new IdentityService(accountRepository, identityRepository, identitySettingsRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
         Identity identity = new Identity();
         identity.setId(99L);
-        identity.setLanguage("en_US");
-        identity.setTheme("light");
 
         when(identityRepository.findById(99L)).thenReturn(Optional.of(identity));
-        when(identityRepository.save(identity)).thenReturn(identity);
 
         SettingsUpdateRequest request = new SettingsUpdateRequest(Optional.of("de_DE"), Optional.of("dark"), Optional.empty());
-        Identity result = identityService.updateSettings(99L, request);
+        identityService.updateSettings(99L, request);
 
-        assertEquals("de_DE", result.getLanguage());
-        assertEquals("dark", result.getTheme());
-        verify(identityRepository).findById(99L);
+        var captor = ArgumentCaptor.forClass(de.ni0.chronoscope.model.IdentitySettings.class);
+        verify(identitySettingsRepository).save(captor.capture());
+        assertEquals("de_DE", captor.getValue().getLanguage());
+        assertEquals("dark", captor.getValue().getTheme());
         verify(identityRepository).save(identity);
     }
 
     @Test
     void updateSettings_UpdatesWorkSettings() {
-        IdentityService identityService = new IdentityService(accountRepository, identityRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
-
+        IdentityService identityService = new IdentityService(accountRepository, identityRepository, identitySettingsRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
         Identity identity = new Identity();
         identity.setId(99L);
-        identity.setLanguage("en_US");
-        identity.setTheme("light");
 
         when(identityRepository.findById(99L)).thenReturn(Optional.of(identity));
-        when(identityRepository.save(identity)).thenReturn(identity);
+        when(identitySettingsRepository.findByIdentityId(99L)).thenReturn(Optional.empty());
 
         WorkSettings workSettings = new WorkSettings(480, Set.of("mo", "di", "mi", "do", "fr"));
         SettingsUpdateRequest request = new SettingsUpdateRequest(Optional.empty(), Optional.empty(), Optional.of(workSettings));
-        Identity result = identityService.updateSettings(99L, request);
+        identityService.updateSettings(99L, request);
 
-        assertEquals(workSettings, result.getWorkSettings());
-        verify(identityRepository).findById(99L);
+        var captor = ArgumentCaptor.forClass(de.ni0.chronoscope.model.IdentitySettings.class);
+        verify(identitySettingsRepository).save(captor.capture());
+        assertEquals(workSettings, captor.getValue().getWorkSettings());
         verify(identityRepository).save(identity);
     }
 
     @Test
     void updateSettings_LeavesExistingValuesWhenRequestIsEmpty() {
-        IdentityService identityService = new IdentityService(accountRepository, identityRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
-
+        IdentityService identityService = new IdentityService(accountRepository, identityRepository, identitySettingsRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
         Identity identity = new Identity();
         identity.setId(99L);
-        identity.setLanguage("de_DE");
-        identity.setTheme("dark");
-        WorkSettings existing = new WorkSettings(360, Set.of("mo", "di", "mi"));
-        identity.setWorkSettings(existing);
 
         when(identityRepository.findById(99L)).thenReturn(Optional.of(identity));
-        when(identityRepository.save(identity)).thenReturn(identity);
 
         SettingsUpdateRequest request = new SettingsUpdateRequest(Optional.empty(), Optional.empty(), Optional.empty());
-        Identity result = identityService.updateSettings(99L, request);
+        identityService.updateSettings(99L, request);
 
-        assertEquals("de_DE", result.getLanguage());
-        assertEquals("dark", result.getTheme());
-        assertEquals(existing, result.getWorkSettings());
-        verify(identityRepository).findById(99L);
+        // No settings saved when request has no updates
+        verify(identitySettingsRepository, never()).save(any());
         verify(identityRepository).save(identity);
     }
 
     @Test
     void updateSettings_ThrowsWhenIdentityIsMissing() {
-        IdentityService identityService = new IdentityService(accountRepository, identityRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
+        IdentityService identityService = new IdentityService(accountRepository, identityRepository, identitySettingsRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
 
         when(identityRepository.findById(99L)).thenReturn(Optional.empty());
 
@@ -395,19 +377,22 @@ class IdentityServiceTest {
 
     @Test
     void mergeAccounts_InheritsSourceLanguageWhenTargetLanguageIsNull() {
-        IdentityService identityService = new IdentityService(accountRepository, identityRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
-
+        IdentityService identityService = new IdentityService(accountRepository, identityRepository, identitySettingsRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
         Identity sourceIdentity = new Identity();
         sourceIdentity.setId(101L);
-        sourceIdentity.setLanguage("de_DE");
-        sourceIdentity.setTheme("dark");
         Account sourceAccount = account(11L, "source-subject", sourceIdentity);
 
         Identity targetIdentity = new Identity();
         targetIdentity.setId(202L);
-            targetIdentity.setLanguage(null);
-            targetIdentity.setTheme(null);
         Account targetAccount = account(22L, "target-subject", targetIdentity);
+
+        var sourceSettings = new de.ni0.chronoscope.model.IdentitySettings();
+        sourceSettings.setIdentity(sourceIdentity);
+        sourceSettings.setLanguage("de_DE");
+        sourceSettings.setTheme("dark");
+
+        when(identitySettingsRepository.findByIdentityId(sourceIdentity.getId())).thenReturn(Optional.of(sourceSettings));
+        when(identitySettingsRepository.findByIdentityId(targetIdentity.getId())).thenReturn(Optional.empty());
 
         String token = requestLinkAndExtractToken(identityService, sourceAccount.getId(), targetAccount);
         when(accountRepository.getReferenceById(sourceAccount.getId())).thenReturn(sourceAccount);
@@ -417,27 +402,35 @@ class IdentityServiceTest {
 
         identityService.mergeAccounts(targetIdentity.getId(), token);
 
-        assertEquals("de_DE", sourceIdentity.getLanguage());
-        assertEquals("dark", sourceIdentity.getTheme());
-        verify(identityRepository).save(sourceIdentity);
+        // source settings existed and target had none — nothing to move, new identity keeps its settings
+        verify(identitySettingsRepository, never()).save(any());
         verify(identityRepository).delete(targetIdentity);
     }
 
     @Test
     void mergeAccounts_PreservesTargetLanguageWhenAlreadySet() {
-        IdentityService identityService = new IdentityService(accountRepository, identityRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
+        IdentityService identityService = new IdentityService(accountRepository, identityRepository, identitySettingsRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
 
         Identity sourceIdentity = new Identity();
         sourceIdentity.setId(101L);
-        sourceIdentity.setLanguage("de_DE");
-        sourceIdentity.setTheme("dark");
         Account sourceAccount = account(11L, "source-subject", sourceIdentity);
 
         Identity targetIdentity = new Identity();
         targetIdentity.setId(202L);
-        targetIdentity.setLanguage("en_US");
-        targetIdentity.setTheme("light");
         Account targetAccount = account(22L, "target-subject", targetIdentity);
+
+        var sourceSettings = new de.ni0.chronoscope.model.IdentitySettings();
+        sourceSettings.setIdentity(sourceIdentity);
+        sourceSettings.setLanguage("de_DE");
+        sourceSettings.setTheme("dark");
+
+        var targetSettings = new de.ni0.chronoscope.model.IdentitySettings();
+        targetSettings.setIdentity(targetIdentity);
+        targetSettings.setLanguage("en_US");
+        targetSettings.setTheme("light");
+
+        when(identitySettingsRepository.findByIdentityId(sourceIdentity.getId())).thenReturn(Optional.of(sourceSettings));
+        when(identitySettingsRepository.findByIdentityId(targetIdentity.getId())).thenReturn(Optional.of(targetSettings));
 
         String token = requestLinkAndExtractToken(identityService, sourceAccount.getId(), targetAccount);
         when(accountRepository.getReferenceById(sourceAccount.getId())).thenReturn(sourceAccount);
@@ -447,25 +440,32 @@ class IdentityServiceTest {
 
         identityService.mergeAccounts(targetIdentity.getId(), token);
 
-        assertEquals("en_US", sourceIdentity.getLanguage());
-        assertEquals("light", sourceIdentity.getTheme());
-        verify(identityRepository).save(sourceIdentity);
+        var captor = ArgumentCaptor.forClass(de.ni0.chronoscope.model.IdentitySettings.class);
+        verify(identitySettingsRepository).save(captor.capture());
+        assertEquals("en_US", captor.getValue().getLanguage());
+        assertEquals("light", captor.getValue().getTheme());
+        verify(identitySettingsRepository).delete(sourceSettings);
         verify(identityRepository).delete(targetIdentity);
     }
 
     @Test
     void mergeAccounts_PreservesSourceWorkSettingsWhenTargetWorkSettingsIsNull() {
-        IdentityService identityService = new IdentityService(accountRepository, identityRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
+        IdentityService identityService = new IdentityService(accountRepository, identityRepository, identitySettingsRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
 
         Identity sourceIdentity = new Identity();
         sourceIdentity.setId(101L);
-        sourceIdentity.setWorkSettings(new WorkSettings(300, Set.of("mo", "di", "mi")));
         Account sourceAccount = account(11L, "source-subject", sourceIdentity);
 
         Identity targetIdentity = new Identity();
         targetIdentity.setId(202L);
-        targetIdentity.setWorkSettings(null);
         Account targetAccount = account(22L, "target-subject", targetIdentity);
+
+        var sourceSettings = new de.ni0.chronoscope.model.IdentitySettings();
+        sourceSettings.setIdentity(sourceIdentity);
+        sourceSettings.setWorkSettings(new WorkSettings(300, Set.of("mo", "di", "mi")));
+
+        when(identitySettingsRepository.findByIdentityId(sourceIdentity.getId())).thenReturn(Optional.of(sourceSettings));
+        when(identitySettingsRepository.findByIdentityId(targetIdentity.getId())).thenReturn(Optional.empty());
 
         String token = requestLinkAndExtractToken(identityService, sourceAccount.getId(), targetAccount);
         when(accountRepository.getReferenceById(sourceAccount.getId())).thenReturn(sourceAccount);
@@ -474,26 +474,30 @@ class IdentityServiceTest {
         when(workSlotRepository.findByIdentityId(targetIdentity.getId())).thenReturn(List.of());
 
         identityService.mergeAccounts(targetIdentity.getId(), token);
-
-        assertEquals(new WorkSettings(300, Set.of("mo", "di", "mi")), sourceIdentity.getWorkSettings());
-        verify(identityRepository).save(sourceIdentity);
+        // target had no settings; nothing to move
+        verify(identitySettingsRepository, never()).save(any());
         verify(identityRepository).delete(targetIdentity);
     }
 
     @Test
     void mergeAccounts_OverridesSourceWorkSettingsWhenTargetWorkSettingsIsSet() {
-        IdentityService identityService = new IdentityService(accountRepository, identityRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
+        IdentityService identityService = new IdentityService(accountRepository, identityRepository, identitySettingsRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
 
         Identity sourceIdentity = new Identity();
         sourceIdentity.setId(101L);
-        sourceIdentity.setWorkSettings(new WorkSettings(300, Set.of("mo", "di", "mi")));
         Account sourceAccount = account(11L, "source-subject", sourceIdentity);
 
         Identity targetIdentity = new Identity();
         targetIdentity.setId(202L);
-        WorkSettings targetSettings = new WorkSettings(480, Set.of("mo", "di", "mi", "do", "fr"));
-        targetIdentity.setWorkSettings(targetSettings);
         Account targetAccount = account(22L, "target-subject", targetIdentity);
+
+        WorkSettings targetSettings = new WorkSettings(480, Set.of("mo", "di", "mi", "do", "fr"));
+        var targetSettingsRow = new de.ni0.chronoscope.model.IdentitySettings();
+        targetSettingsRow.setIdentity(targetIdentity);
+        targetSettingsRow.setWorkSettings(targetSettings);
+
+        when(identitySettingsRepository.findByIdentityId(sourceIdentity.getId())).thenReturn(Optional.empty());
+        when(identitySettingsRepository.findByIdentityId(targetIdentity.getId())).thenReturn(Optional.of(targetSettingsRow));
 
         String token = requestLinkAndExtractToken(identityService, sourceAccount.getId(), targetAccount);
         when(accountRepository.getReferenceById(sourceAccount.getId())).thenReturn(sourceAccount);
@@ -503,8 +507,9 @@ class IdentityServiceTest {
 
         identityService.mergeAccounts(targetIdentity.getId(), token);
 
-        assertEquals(targetSettings, sourceIdentity.getWorkSettings());
-        verify(identityRepository).save(sourceIdentity);
+        var captor = ArgumentCaptor.forClass(de.ni0.chronoscope.model.IdentitySettings.class);
+        verify(identitySettingsRepository).save(captor.capture());
+        assertEquals(targetSettings, captor.getValue().getWorkSettings());
         verify(identityRepository).delete(targetIdentity);
     }
 }

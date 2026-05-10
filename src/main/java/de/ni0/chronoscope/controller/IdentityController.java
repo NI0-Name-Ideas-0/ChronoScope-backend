@@ -93,10 +93,16 @@ public class IdentityController {
             response.id(),
             accountResponses,
             response.adminOrganizations(),
-            response.organizations(),
-            response.language(),
-            response.theme(),
-            response.workSettings()
+            response.organizations()
+        );
+    }
+
+    @GetMapping("/settings")
+    public de.ni0.chronoscope.controller.dto.response.SettingsResponse getSettings() {
+        long identityId = this.requestContext.getAccount().getIdentity().getId();
+        var settings = this.identityService.getSettings(identityId);
+        return new de.ni0.chronoscope.controller.dto.response.SettingsResponse(
+            settings.getLanguage(), settings.getTheme(), settings.getWorkSettings()
         );
     }
 

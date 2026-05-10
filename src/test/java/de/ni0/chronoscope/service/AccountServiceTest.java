@@ -13,6 +13,7 @@ import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -32,9 +33,12 @@ class AccountServiceTest {
     @Mock
     private IdentityRepository identityRepository;
 
+    @Mock
+    private de.ni0.chronoscope.repository.IdentitySettingsRepository identitySettingsRepository;
+
     @Test
     void syncAccount_CreatesMissingAccountAndOrganizations() {
-        AccountService accountService = new AccountService(accountRepository, identityRepository);
+        AccountService accountService = new AccountService(accountRepository, identityRepository, identitySettingsRepository);
 
         when(accountRepository.findBySubject("subject-123")).thenReturn(Optional.empty());
         when(accountRepository.save(any(Account.class))).thenAnswer(invocation -> {
@@ -53,9 +57,12 @@ class AccountServiceTest {
         assertEquals(1L, account.getId());
         assertEquals(2L, account.getIdentity().getId());
         assertTrue(account.getIdentity().getAccounts().contains(account));
-        assertEquals("en_US", account.getIdentity().getLanguage());
-        assertEquals("light", account.getIdentity().getTheme());
-        assertEquals(new WorkSettings(480, Set.of("mo", "di", "mi", "do", "fr")), account.getIdentity().getWorkSettings());
+
+        var captor = ArgumentCaptor.forClass(de.ni0.chronoscope.model.IdentitySettings.class);
+        verify(identitySettingsRepository).save(captor.capture());
+        assertEquals("en_US", captor.getValue().getLanguage());
+        assertEquals("light", captor.getValue().getTheme());
+        assertEquals(new WorkSettings(480, Set.of("mo", "di", "mi", "do", "fr")), captor.getValue().getWorkSettings());
         verify(accountRepository).findBySubject("subject-123");
         verify(accountRepository).save(any(Account.class));
         verify(identityRepository).save(any(Identity.class));
@@ -64,7 +71,7 @@ class AccountServiceTest {
 
     @Test
     void syncAccount_ReusesExistingAccountAndOrganization() {
-        AccountService accountService = new AccountService(accountRepository, identityRepository);
+        AccountService accountService = new AccountService(accountRepository, identityRepository, identitySettingsRepository);
 
         Account account = TestData.account(2L, 1L);
 
