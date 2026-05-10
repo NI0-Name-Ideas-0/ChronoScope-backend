@@ -746,9 +746,12 @@ components:
         identityId:
           type: integer
           format: int64
+        mail:
+          type: string
       required:
       - id
       - identityId
+      - mail
     DynamicTaskCreateRequest:
       allOf:
       - $ref: "#/components/schemas/TaskCreateRequest"

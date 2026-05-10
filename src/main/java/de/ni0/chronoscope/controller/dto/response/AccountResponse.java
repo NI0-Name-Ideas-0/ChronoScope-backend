@@ -7,6 +7,7 @@ import jakarta.validation.constraints.NotNull;
  */
 public record AccountResponse(
     @NotNull Long id,
-    @NotNull Long identityId
+    @NotNull Long identityId,
+    @NotNull String mail
 ) {
 }
