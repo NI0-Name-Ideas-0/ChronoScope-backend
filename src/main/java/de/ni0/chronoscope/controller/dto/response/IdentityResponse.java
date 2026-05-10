@@ -3,6 +3,7 @@ package de.ni0.chronoscope.controller.dto.response;
 import java.util.List;
 import java.util.Set;
 
+import de.ni0.chronoscope.model.WorkSettings;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
 
@@ -19,7 +20,9 @@ public record IdentityResponse(
     @Schema(description = "Language preference (de_DE or en_US)")
     @NotNull String language,
     @Schema(description = "Theme preference (light, dark, or system)")
-    @NotNull String theme
+    @NotNull String theme,
+    @Schema(description = "Opaque work schedule settings stored as JSON.")
+    WorkSettings workSettings
 ) {
     public record Organization(
         @NotNull String name,

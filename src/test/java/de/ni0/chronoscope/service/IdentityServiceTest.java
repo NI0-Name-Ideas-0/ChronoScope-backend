@@ -2,6 +2,7 @@ package de.ni0.chronoscope.service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -30,6 +31,7 @@ import de.ni0.chronoscope.exception.ResourceNotFoundException;
 import de.ni0.chronoscope.model.Account;
 import de.ni0.chronoscope.model.DynamicTask;
 import de.ni0.chronoscope.model.Identity;
+import de.ni0.chronoscope.model.WorkSettings;
 import de.ni0.chronoscope.model.WorkSlot;
 import de.ni0.chronoscope.repository.AccountRepository;
 import de.ni0.chronoscope.repository.IdentityRepository;
@@ -279,7 +281,7 @@ class IdentityServiceTest {
         when(identityRepository.findById(99L)).thenReturn(Optional.of(identity));
         when(identityRepository.save(identity)).thenReturn(identity);
 
-        SettingsUpdateRequest request = new SettingsUpdateRequest(Optional.of("de_DE"), Optional.empty());
+        SettingsUpdateRequest request = new SettingsUpdateRequest(Optional.of("de_DE"), Optional.empty(), Optional.empty());
         Identity result = identityService.updateSettings(99L, request);
 
         assertEquals("de_DE", result.getLanguage());
@@ -300,7 +302,7 @@ class IdentityServiceTest {
         when(identityRepository.findById(99L)).thenReturn(Optional.of(identity));
         when(identityRepository.save(identity)).thenReturn(identity);
 
-        SettingsUpdateRequest request = new SettingsUpdateRequest(Optional.empty(), Optional.of("dark"));
+        SettingsUpdateRequest request = new SettingsUpdateRequest(Optional.empty(), Optional.of("dark"), Optional.empty());
         Identity result = identityService.updateSettings(99L, request);
 
         assertEquals("de_DE", result.getLanguage());
@@ -321,11 +323,56 @@ class IdentityServiceTest {
         when(identityRepository.findById(99L)).thenReturn(Optional.of(identity));
         when(identityRepository.save(identity)).thenReturn(identity);
 
-        SettingsUpdateRequest request = new SettingsUpdateRequest(Optional.of("de_DE"), Optional.of("dark"));
+        SettingsUpdateRequest request = new SettingsUpdateRequest(Optional.of("de_DE"), Optional.of("dark"), Optional.empty());
         Identity result = identityService.updateSettings(99L, request);
 
         assertEquals("de_DE", result.getLanguage());
         assertEquals("dark", result.getTheme());
+        verify(identityRepository).findById(99L);
+        verify(identityRepository).save(identity);
+    }
+
+    @Test
+    void updateSettings_UpdatesWorkSettings() {
+        IdentityService identityService = new IdentityService(accountRepository, identityRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
+
+        Identity identity = new Identity();
+        identity.setId(99L);
+        identity.setLanguage("en_US");
+        identity.setTheme("light");
+
+        when(identityRepository.findById(99L)).thenReturn(Optional.of(identity));
+        when(identityRepository.save(identity)).thenReturn(identity);
+
+        WorkSettings workSettings = new WorkSettings(480, Set.of("mo", "di", "mi", "do", "fr"));
+        SettingsUpdateRequest request = new SettingsUpdateRequest(Optional.empty(), Optional.empty(), Optional.of(workSettings));
+        Identity result = identityService.updateSettings(99L, request);
+
+        assertEquals(workSettings, result.getWorkSettings());
+        verify(identityRepository).findById(99L);
+        verify(identityRepository).save(identity);
+    }
+
+    @Test
+    void updateSettings_LeavesExistingValuesWhenRequestIsEmpty() {
+        IdentityService identityService = new IdentityService(accountRepository, identityRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
+
+        Identity identity = new Identity();
+        identity.setId(99L);
+        identity.setLanguage("de_DE");
+        identity.setTheme("dark");
+        WorkSettings existing = new WorkSettings(360, Set.of("mo", "di", "mi"));
+        identity.setWorkSettings(existing);
+
+        when(identityRepository.findById(99L)).thenReturn(Optional.of(identity));
+        when(identityRepository.save(identity)).thenReturn(identity);
+
+        SettingsUpdateRequest request = new SettingsUpdateRequest(Optional.empty(), Optional.empty(), Optional.empty());
+        Identity result = identityService.updateSettings(99L, request);
+
+        assertEquals("de_DE", result.getLanguage());
+        assertEquals("dark", result.getTheme());
+        assertEquals(existing, result.getWorkSettings());
         verify(identityRepository).findById(99L);
         verify(identityRepository).save(identity);
     }
@@ -338,7 +385,7 @@ class IdentityServiceTest {
 
         ResourceNotFoundException exception = assertThrows(
             ResourceNotFoundException.class,
-            () -> identityService.updateSettings(99L, new SettingsUpdateRequest(Optional.of("de_DE"), Optional.empty()))
+            () -> identityService.updateSettings(99L, new SettingsUpdateRequest(Optional.of("de_DE"), Optional.empty(), Optional.empty()))
         );
 
         assertEquals("Identity not found: 99", exception.getMessage());
@@ -402,6 +449,61 @@ class IdentityServiceTest {
 
         assertEquals("en_US", sourceIdentity.getLanguage());
         assertEquals("light", sourceIdentity.getTheme());
+        verify(identityRepository).save(sourceIdentity);
+        verify(identityRepository).delete(targetIdentity);
+    }
+
+    @Test
+    void mergeAccounts_PreservesSourceWorkSettingsWhenTargetWorkSettingsIsNull() {
+        IdentityService identityService = new IdentityService(accountRepository, identityRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
+
+        Identity sourceIdentity = new Identity();
+        sourceIdentity.setId(101L);
+        sourceIdentity.setWorkSettings(new WorkSettings(300, Set.of("mo", "di", "mi")));
+        Account sourceAccount = account(11L, "source-subject", sourceIdentity);
+
+        Identity targetIdentity = new Identity();
+        targetIdentity.setId(202L);
+        targetIdentity.setWorkSettings(null);
+        Account targetAccount = account(22L, "target-subject", targetIdentity);
+
+        String token = requestLinkAndExtractToken(identityService, sourceAccount.getId(), targetAccount);
+        when(accountRepository.getReferenceById(sourceAccount.getId())).thenReturn(sourceAccount);
+        when(accountRepository.getReferenceById(targetAccount.getId())).thenReturn(targetAccount);
+        when(taskRepository.findByIdentityId(targetIdentity.getId())).thenReturn(List.of());
+        when(workSlotRepository.findByIdentityId(targetIdentity.getId())).thenReturn(List.of());
+
+        identityService.mergeAccounts(targetIdentity.getId(), token);
+
+        assertEquals(new WorkSettings(300, Set.of("mo", "di", "mi")), sourceIdentity.getWorkSettings());
+        verify(identityRepository).save(sourceIdentity);
+        verify(identityRepository).delete(targetIdentity);
+    }
+
+    @Test
+    void mergeAccounts_OverridesSourceWorkSettingsWhenTargetWorkSettingsIsSet() {
+        IdentityService identityService = new IdentityService(accountRepository, identityRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
+
+        Identity sourceIdentity = new Identity();
+        sourceIdentity.setId(101L);
+        sourceIdentity.setWorkSettings(new WorkSettings(300, Set.of("mo", "di", "mi")));
+        Account sourceAccount = account(11L, "source-subject", sourceIdentity);
+
+        Identity targetIdentity = new Identity();
+        targetIdentity.setId(202L);
+        WorkSettings targetSettings = new WorkSettings(480, Set.of("mo", "di", "mi", "do", "fr"));
+        targetIdentity.setWorkSettings(targetSettings);
+        Account targetAccount = account(22L, "target-subject", targetIdentity);
+
+        String token = requestLinkAndExtractToken(identityService, sourceAccount.getId(), targetAccount);
+        when(accountRepository.getReferenceById(sourceAccount.getId())).thenReturn(sourceAccount);
+        when(accountRepository.getReferenceById(targetAccount.getId())).thenReturn(targetAccount);
+        when(taskRepository.findByIdentityId(targetIdentity.getId())).thenReturn(List.of());
+        when(workSlotRepository.findByIdentityId(targetIdentity.getId())).thenReturn(List.of());
+
+        identityService.mergeAccounts(targetIdentity.getId(), token);
+
+        assertEquals(targetSettings, sourceIdentity.getWorkSettings());
         verify(identityRepository).save(sourceIdentity);
         verify(identityRepository).delete(targetIdentity);
     }

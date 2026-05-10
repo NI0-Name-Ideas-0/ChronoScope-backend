@@ -1,22 +1,25 @@
 package de.ni0.chronoscope.service;
 
-import java.util.Optional;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import de.ni0.chronoscope.TestData;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import static org.mockito.ArgumentMatchers.any;
-import org.mockito.Mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
+
+import java.util.Optional;
+import java.util.Set;
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import de.ni0.chronoscope.TestData;
 import de.ni0.chronoscope.model.Account;
 import de.ni0.chronoscope.model.Identity;
+import de.ni0.chronoscope.model.WorkSettings;
 import de.ni0.chronoscope.repository.AccountRepository;
 import de.ni0.chronoscope.repository.IdentityRepository;
 
@@ -50,6 +53,9 @@ class AccountServiceTest {
         assertEquals(1L, account.getId());
         assertEquals(2L, account.getIdentity().getId());
         assertTrue(account.getIdentity().getAccounts().contains(account));
+        assertEquals("en_US", account.getIdentity().getLanguage());
+        assertEquals("light", account.getIdentity().getTheme());
+        assertEquals(new WorkSettings(480, Set.of("mo", "di", "mi", "do", "fr")), account.getIdentity().getWorkSettings());
         verify(accountRepository).findBySubject("subject-123");
         verify(accountRepository).save(any(Account.class));
         verify(identityRepository).save(any(Identity.class));

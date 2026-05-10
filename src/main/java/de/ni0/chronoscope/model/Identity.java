@@ -4,6 +4,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
@@ -45,4 +46,8 @@ public class Identity {
     @Column(nullable = false, length = 10, columnDefinition = "varchar(10) default 'light'")
     @Pattern(regexp = "^(light|dark|system)$", message = "theme must be one of: light, dark, system")
     private String theme = "light";
+
+    @Convert(converter = WorkSettings.WorkSettingsConverter.class)
+    @Column(name = "work_settings", columnDefinition = "TEXT")
+    private WorkSettings workSettings = new WorkSettings(480, Set.of("mo", "di", "mi", "do", "fr"));
 }

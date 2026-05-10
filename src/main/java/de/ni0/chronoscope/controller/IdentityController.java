@@ -95,7 +95,8 @@ public class IdentityController {
             response.adminOrganizations(),
             response.organizations(),
             response.language(),
-            response.theme()
+            response.theme(),
+            response.workSettings()
         );
     }
 

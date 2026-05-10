@@ -98,6 +98,7 @@ public class IdentityService {
 
         request.language().ifPresent(identity::setLanguage);
         request.theme().ifPresent(identity::setTheme);
+        request.workSettings().ifPresent(identity::setWorkSettings);
 
         return this.identityRepository.save(identity);
     }
@@ -146,6 +147,9 @@ public class IdentityService {
         }
         if (oldIdentity.getTheme() != null && !oldIdentity.getTheme().isEmpty()) {
             newIdentity.setTheme(oldIdentity.getTheme());
+        }
+        if (oldIdentity.getWorkSettings() != null) {
+            newIdentity.setWorkSettings(oldIdentity.getWorkSettings());
         }
         this.identityRepository.save(newIdentity);
 

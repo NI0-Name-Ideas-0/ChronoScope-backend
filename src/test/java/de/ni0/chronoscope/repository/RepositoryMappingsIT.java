@@ -1,18 +1,30 @@
 package de.ni0.chronoscope.repository;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import de.ni0.chronoscope.model.*;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
+
+import de.ni0.chronoscope.model.Account;
+import de.ni0.chronoscope.model.DynamicTask;
+import de.ni0.chronoscope.model.Identity;
+import de.ni0.chronoscope.model.Label;
+import de.ni0.chronoscope.model.Scope;
+import de.ni0.chronoscope.model.Task;
+import de.ni0.chronoscope.model.WorkSettings;
 
 @SpringBootTest
 @Transactional
@@ -57,6 +69,31 @@ class RepositoryMappingsIT {
 
         assertTrue(identityRepository.findByAccountsContains(account).isPresent());
         assertEquals(identity.getId(), identityRepository.findByAccountsContains(account).orElseThrow().getId());
+    }
+
+    @Test
+    void identityRepository_PersistsDefaultSettingsForNewIdentity() {
+        Identity saved = identityRepository.saveAndFlush(new Identity());
+
+        Identity reloaded = identityRepository.findById(saved.getId()).orElseThrow();
+
+        assertEquals("en_US", reloaded.getLanguage());
+        assertEquals("light", reloaded.getTheme());
+        assertNotNull(reloaded.getWorkSettings());
+        assertEquals(480, reloaded.getWorkSettings().dailyWorkTimeMinutes());
+        assertEquals(Set.of("mo", "di", "mi", "do", "fr"), reloaded.getWorkSettings().workDays());
+    }
+
+    @Test
+    void identityRepository_PersistsCustomizedWorkSettings() {
+        Identity identity = new Identity();
+        WorkSettings customSettings = new WorkSettings(360, Set.of("mo", "di", "mi"));
+        identity.setWorkSettings(customSettings);
+
+        Identity saved = identityRepository.saveAndFlush(identity);
+        Identity reloaded = identityRepository.findById(saved.getId()).orElseThrow();
+
+        assertEquals(customSettings, reloaded.getWorkSettings());
     }
 
     @Test

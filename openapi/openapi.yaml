@@ -986,6 +986,9 @@ components:
         theme:
           type: string
           description: "Theme preference (light, dark, or system)"
+        workSettings:
+          $ref: "#/components/schemas/WorkSettings"
+          description: Opaque work schedule settings stored as JSON.
       required:
       - accounts
       - adminOrganizations
@@ -1149,6 +1152,8 @@ components:
           type: string
         theme:
           type: string
+        workSettings:
+          $ref: "#/components/schemas/WorkSettings"
     StaticTaskCreateRequest:
       allOf:
       - $ref: "#/components/schemas/TaskCreateRequest"
@@ -1304,6 +1309,24 @@ components:
           type: string
       required:
       - type
+    WorkSettings:
+      type: object
+      properties:
+        dailyWorkTimeMinutes:
+          type: integer
+          format: int32
+          minimum: 1
+        workDays:
+          type: array
+          items:
+            type: string
+            pattern: ^(mo|di|mi|do|fr|sa|so)$
+          maxItems: 2147483647
+          minItems: 1
+          uniqueItems: true
+      required:
+      - dailyWorkTimeMinutes
+      - workDays
     WorkSlotCreateRequest:
       type: object
       properties:

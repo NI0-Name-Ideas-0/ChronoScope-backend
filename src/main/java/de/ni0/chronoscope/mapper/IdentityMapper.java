@@ -28,5 +28,6 @@ public interface IdentityMapper {
     @Mapping(target = "organizations", source = "organizations")
     @Mapping(target = "language", source = "identity.language")
     @Mapping(target = "theme", source = "identity.theme")
+    @Mapping(target = "workSettings", source = "identity.workSettings")
     IdentityResponse toResponse(Identity identity, Set<String> adminOrganizations, Set<IdentityResponse.Organization> organizations);
 }

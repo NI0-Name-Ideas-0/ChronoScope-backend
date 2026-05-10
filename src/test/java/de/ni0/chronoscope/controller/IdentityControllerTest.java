@@ -21,6 +21,7 @@ import de.ni0.chronoscope.controller.dto.response.IdentityResponse;
 import de.ni0.chronoscope.mapper.IdentityMapper;
 import de.ni0.chronoscope.model.Account;
 import de.ni0.chronoscope.model.Identity;
+import de.ni0.chronoscope.model.WorkSettings;
 import de.ni0.chronoscope.service.IdentityService;
 import de.ni0.chronoscope.service.KeycloakService;
 
@@ -45,7 +46,7 @@ class IdentityControllerTest {
         Identity identity = account.getIdentity();
         when(requestContext.getAccount()).thenReturn(account);
 
-        IdentityResponse expected = new IdentityResponse(identity.getId(), List.of(), Set.of("dhbw-stuttgart"), Set.of(), "en_US", "light");
+        IdentityResponse expected = new IdentityResponse(identity.getId(), List.of(), Set.of("dhbw-stuttgart"), Set.of(), "en_US", "light", identity.getWorkSettings());
         when(keycloakService.getAdminOrganizations(identity)).thenReturn(Set.of("dhbw-stuttgart"));
         when(keycloakService.getIdentityOrganizations(identity)).thenReturn(Set.of());
         when(identityMapper.toResponse(identity, Set.of("dhbw-stuttgart"), Set.of(new IdentityResponse.Organization("Privat", "private")))).thenReturn(expected);
@@ -67,17 +68,18 @@ class IdentityControllerTest {
         Identity identity = account.getIdentity();
         identity.setLanguage("de_DE");
         identity.setTheme("light");
+        identity.setWorkSettings(new WorkSettings(480, Set.of("mo", "di", "mi", "do", "fr")));
 
         when(requestContext.getAccount()).thenReturn(account);
-        when(identityService.updateSettings(identity.getId(), new SettingsUpdateRequest(Optional.of("de_DE"), Optional.empty()))).thenReturn(identity);
+        when(identityService.updateSettings(identity.getId(), new SettingsUpdateRequest(Optional.of("de_DE"), Optional.empty(), Optional.of(identity.getWorkSettings())))).thenReturn(identity);
 
-        IdentityResponse expected = new IdentityResponse(identity.getId(), List.of(), Set.of("dhbw-stuttgart"), Set.of(), "de_DE", "light");
+        IdentityResponse expected = new IdentityResponse(identity.getId(), List.of(), Set.of("dhbw-stuttgart"), Set.of(), "de_DE", "light", identity.getWorkSettings());
         when(keycloakService.getAdminOrganizations(identity)).thenReturn(Set.of("dhbw-stuttgart"));
         when(keycloakService.getIdentityOrganizations(identity)).thenReturn(Set.of());
         when(identityMapper.toResponse(identity, Set.of("dhbw-stuttgart"), Set.of(new IdentityResponse.Organization("Privat", "private")))).thenReturn(expected);
 
         IdentityController controller = new IdentityController(identityService, requestContext, identityMapper, keycloakService);
-        SettingsUpdateRequest request = new SettingsUpdateRequest(Optional.of("de_DE"), Optional.empty());
+        SettingsUpdateRequest request = new SettingsUpdateRequest(Optional.of("de_DE"), Optional.empty(), Optional.of(identity.getWorkSettings()));
 
         IdentityResponse actual = controller.updateSettings(request);
 
