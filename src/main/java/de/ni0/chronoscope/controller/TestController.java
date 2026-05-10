@@ -292,36 +292,41 @@ public class TestController {
             workSlotService.createWorkSlot(workSlot(
                 identity,
                 privateOrganization,
-                at(startDate, 10, 0, zone),
-                at(startDate, 12, 0, zone)
+                java.time.DayOfWeek.MONDAY,
+                LocalTime.of(10, 0),
+                LocalTime.of(12, 0)
             )),
             workSlotService.createWorkSlot(workSlot(
                 identity,
                 localOrganization,
-                at(startDate, 13, 0, zone),
-                at(startDate, 16, 0, zone)
+                java.time.DayOfWeek.MONDAY,
+                LocalTime.of(13, 0),
+                LocalTime.of(16, 0)
             )),
             workSlotService.createWorkSlot(workSlot(
                 identity,
                 localOrganization,
-                at(startDate.plusDays(1), 9, 0, zone),
-                at(startDate.plusDays(1), 12, 30, zone)
+                java.time.DayOfWeek.TUESDAY,
+                LocalTime.of(9, 0),
+                LocalTime.of(12, 30)
             )),
             workSlotService.createWorkSlot(workSlot(
                 identity,
                 privateOrganization,
-                at(startDate.plusDays(2), 14, 0, zone),
-                at(startDate.plusDays(2), 17, 0, zone)
+                java.time.DayOfWeek.WEDNESDAY,
+                LocalTime.of(14, 0),
+                LocalTime.of(17, 0)
             ))
         );
     }
 
-    private WorkSlot workSlot(Identity identity, String organization, Instant startAt, Instant endAt) {
+    private WorkSlot workSlot(Identity identity, String organization, java.time.DayOfWeek dayOfWeek, LocalTime startTime, LocalTime endTime) {
         WorkSlot workSlot = new WorkSlot();
         workSlot.setIdentity(identity);
         workSlot.setOrganizationId(organization);
-        workSlot.setStartAt(startAt);
-        workSlot.setEndAt(endAt);
+        workSlot.setDayOfWeek(dayOfWeek);
+        workSlot.setStartTime(startTime);
+        workSlot.setEndTime(endTime);
         return workSlot;
     }
 

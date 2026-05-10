@@ -1,7 +1,6 @@
 package de.ni0.chronoscope.algorithm;
 
 import de.ni0.chronoscope.model.Scope;
-import de.ni0.chronoscope.model.WorkSlot;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,11 +41,11 @@ public class Algorithm {
                             Map<TaskGraphNode, Integer> dependencyCount,
                             Map<TaskGraphNode, Duration> remainingTaskDurations,
                             WorkSlotProvider slots,
-                            WorkSlot slot,
+                            ConcreteWorkSlot slot,
                             Instant currentTime,
                             List<Scope> plannedScopes) {
         log.debug("Planning tasks {} in slot", tasks);
-        Duration remainingSlotDuration = currentTime.until(slot.getEndAt());
+        Duration remainingSlotDuration = currentTime.until(slot.endAt());
         log.debug("{} time left in slot", remainingSlotDuration);
 
         for (TaskGraphNode task : tasks) {
@@ -125,15 +124,15 @@ public class Algorithm {
             }
 
             Instant newCurrentTime = currentTime.plus(scopeDuration);
-            WorkSlot newWorkSlot = slot;
+            ConcreteWorkSlot newWorkSlot = slot;
             boolean branchCanContinue = true;
-            if (newCurrentTime.equals(slot.getEndAt())) {
+            if (newCurrentTime.equals(slot.endAt())) {
                 System.out.println("Using next slot");
                 newWorkSlot = slots.getNextSlot(slot);
                 if (newWorkSlot == null) {
                     branchCanContinue = false;
                 } else {
-                    newCurrentTime = newWorkSlot.getStartAt();
+                    newCurrentTime = newWorkSlot.startAt();
                 }
             }
 
@@ -169,14 +168,14 @@ public class Algorithm {
                                           Map<TaskGraphNode, Integer> dependencyCount,
                                           Map<TaskGraphNode, Duration> remainingTaskDurations,
                                           WorkSlotProvider slots,
-                                          WorkSlot slot,
+                                          ConcreteWorkSlot slot,
                                           Instant currentTime,
                                           List<Scope> plannedScopes) {
-        WorkSlot nextSlot = slots.getNextSlot(slot);
-        if (nextSlot == null || !nextSlot.getStartAt().isAfter(currentTime)) {
+        ConcreteWorkSlot nextSlot = slots.getNextSlot(slot);
+        if (nextSlot == null || !nextSlot.startAt().isAfter(currentTime)) {
             return null;
         }
-        return plan(tasks, dependencyCount, remainingTaskDurations, slots, nextSlot, nextSlot.getStartAt(), plannedScopes);
+        return plan(tasks, dependencyCount, remainingTaskDurations, slots, nextSlot, nextSlot.startAt(), plannedScopes);
     }
 
     private double getWeight(TaskGraphNode task) {

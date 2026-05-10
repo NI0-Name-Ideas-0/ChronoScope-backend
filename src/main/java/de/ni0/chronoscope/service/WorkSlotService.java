@@ -50,8 +50,8 @@ public class WorkSlotService {
      * @return persisted work slot
      */
     public WorkSlot createWorkSlot(WorkSlot workSlot) {
-        if (!workSlot.getStartAt().isBefore(workSlot.getEndAt())) {
-            throw new InvalidRequestException("startAt must be before endAt");
+        if (!workSlot.getStartTime().isBefore(workSlot.getEndTime())) {
+            throw new InvalidRequestException("startTime must be before endTime");
         }
         return workSlotRepository.save(workSlot);
     }
@@ -69,11 +69,12 @@ public class WorkSlotService {
         var workSlot = workSlotRepository.findByIdAndIdentityId(id, identityId)
                 .orElseThrow(() -> new ResourceNotFoundException("Work slot not found: " + id));
 
-        if (request.startAt() != null) workSlot.setStartAt(request.startAt());
-        if (request.endAt() != null) workSlot.setEndAt(request.endAt());
+        if (request.dayOfWeek() != null) workSlot.setDayOfWeek(request.dayOfWeek());
+        if (request.startTime() != null) workSlot.setStartTime(request.startTime());
+        if (request.endTime() != null) workSlot.setEndTime(request.endTime());
 
-        if (!workSlot.getStartAt().isBefore(workSlot.getEndAt())) {
-            throw new InvalidRequestException("startAt must be before endAt");
+        if (!workSlot.getStartTime().isBefore(workSlot.getEndTime())) {
+            throw new InvalidRequestException("startTime must be before endTime");
         }
 
         return workSlot;

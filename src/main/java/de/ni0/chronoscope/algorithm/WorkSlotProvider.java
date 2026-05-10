@@ -1,28 +1,35 @@
 package de.ni0.chronoscope.algorithm;
 
-import de.ni0.chronoscope.model.WorkSlot;
 import lombok.RequiredArgsConstructor;
 
 import java.util.List;
 
 /**
- * Cyclic provider for the ordered work-slot list used during planning.
+ * Linear provider for the ordered concrete work-slot list used during planning.
  */
 @RequiredArgsConstructor
 public class WorkSlotProvider {
-    private final List<WorkSlot> workSlots;
+    private final List<ConcreteWorkSlot> workSlots;
 
     /**
      * Returns the first slot for a new plan or the next slot after the supplied one.
      *
      * @param currentSlot current slot, or {@code null} to request the first slot
-     * @return next slot, or {@code null} when no slots are available
+     * @return next slot, or {@code null} when no slots are available or the current slot is the last one
      */
-    public WorkSlot getNextSlot(WorkSlot currentSlot) {
+    public ConcreteWorkSlot getNextSlot(ConcreteWorkSlot currentSlot) {
         if (currentSlot == null) {
             if (this.workSlots.isEmpty()) return null;
             return this.workSlots.getFirst();
         }
-        return this.workSlots.get(Math.floorMod(this.workSlots.indexOf(currentSlot) + 1, this.workSlots.size()));
+        int currentIndex = this.workSlots.indexOf(currentSlot);
+        if (currentIndex < 0) {
+            return null;
+        }
+        int nextIndex = currentIndex + 1;
+        if (nextIndex >= this.workSlots.size()) {
+            return null;
+        }
+        return this.workSlots.get(nextIndex);
     }
 }
