@@ -8,6 +8,7 @@ import java.util.UUID;
 import javax.crypto.SecretKey;
 
 import org.keycloak.representations.idm.UserRepresentation;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
@@ -53,6 +54,7 @@ public class IdentityService {
 
     private final SecretKey key = Keys.secretKeyFor(SignatureAlgorithm.HS256);
 
+    @Autowired
     public IdentityService(AccountRepository accountRepository,
             IdentityRepository identityRepository,
             de.ni0.chronoscope.repository.IdentitySettingsRepository identitySettingsRepository,

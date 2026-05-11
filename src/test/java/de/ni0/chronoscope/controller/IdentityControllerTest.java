@@ -1,20 +1,19 @@
 package de.ni0.chronoscope.controller;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
-
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import de.ni0.chronoscope.TestData;
 import de.ni0.chronoscope.config.RequestContext;
 import de.ni0.chronoscope.controller.dto.request.SettingsUpdateRequest;
 import de.ni0.chronoscope.controller.dto.response.IdentityResponse;
@@ -28,6 +27,18 @@ import de.ni0.chronoscope.service.KeycloakService;
 
 @ExtendWith(MockitoExtension.class)
 class IdentityControllerTest {
+
+    private static Account account(long identityId, long accountId) {
+        Identity identity = new Identity();
+        identity.setId(identityId);
+
+        Account account = new Account();
+        account.setId(accountId);
+        account.setSubject(UUID.randomUUID().toString());
+        account.setIdentity(identity);
+        identity.setAccounts(Set.of(account));
+        return account;
+    }
 
     @Mock
     private IdentityService identityService;
@@ -43,7 +54,7 @@ class IdentityControllerTest {
 
     @Test
     void getIdentity_UsesIdentityIdFromRequestContext() {
-        Account account = TestData.account(1L, 2L);
+        Account account = account(1L, 2L);
         Identity identity = account.getIdentity();
         when(requestContext.getAccount()).thenReturn(account);
 
@@ -65,7 +76,7 @@ class IdentityControllerTest {
 
     @Test
     void updateSettings_UpdatesLanguageAndReturnsUpdatedSettings() {
-        Account account = TestData.account(1L, 2L);
+        Account account = account(1L, 2L);
         Identity identity = account.getIdentity();
 
         when(requestContext.getAccount()).thenReturn(account);
