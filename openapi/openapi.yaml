@@ -134,7 +134,7 @@ paths:
           content:
             '*/*':
               schema:
-                $ref: "#/components/schemas/SettingsResponse"
+                $ref: "#/components/schemas/IdentityResponse"
           description: Settings updated successfully
         "400":
           content:

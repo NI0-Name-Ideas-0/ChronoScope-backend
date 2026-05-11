@@ -84,7 +84,6 @@ class IdentityControllerTest {
         assertEquals("de_DE", actual.language());
         assertEquals("light", actual.theme());
         assertEquals(ws, actual.workSettings());
-        verify(requestContext).getAccount();
         verify(identityService).updateSettings(identity.getId(), request);
         verify(identityService).getSettings(identity.getId());
     }
