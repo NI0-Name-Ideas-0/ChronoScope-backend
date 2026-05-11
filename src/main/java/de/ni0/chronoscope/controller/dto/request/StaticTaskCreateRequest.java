@@ -3,6 +3,7 @@ package de.ni0.chronoscope.controller.dto.request;
 import java.time.Instant;
 import java.util.List;
 
+import de.ni0.chronoscope.model.ColorToken;
 import de.ni0.chronoscope.model.Task;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
@@ -20,6 +21,7 @@ import jakarta.validation.constraints.NotNull;
 public record StaticTaskCreateRequest(
     @Schema(description = "Organization ID. Required unless this static task is a blocker.")
     String organizationId,
+    ColorToken color,
     @NotBlank String name,
     @NotNull String description,
     @NotNull String rrule,
@@ -29,4 +31,9 @@ public record StaticTaskCreateRequest(
     @NotNull List<@Valid @NotNull LabelCreateRequest> labels,
     @NotNull Boolean isBlocker
 ) implements TaskCreateRequest {
+    public StaticTaskCreateRequest(String organizationId, String name, String description, String rrule,
+            Task.Difficulty difficulty, Instant startAt, Instant endAt,
+            List<@Valid @NotNull LabelCreateRequest> labels, Boolean isBlocker) {
+        this(organizationId, null, name, description, rrule, difficulty, startAt, endAt, labels, isBlocker);
+    }
 }

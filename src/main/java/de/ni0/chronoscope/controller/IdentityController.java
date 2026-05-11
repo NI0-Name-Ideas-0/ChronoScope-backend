@@ -10,9 +10,12 @@ import java.util.Set;
 import org.keycloak.representations.idm.OrganizationRepresentation;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -21,9 +24,11 @@ import org.springframework.web.bind.annotation.RestController;
 import de.ni0.chronoscope.config.RequestContext;
 import de.ni0.chronoscope.controller.dto.request.AccountLinkConfirmRequest;
 import de.ni0.chronoscope.controller.dto.request.AccountLinkRequest;
+import de.ni0.chronoscope.controller.dto.request.IdentityOrganizationColorUpdateRequest;
 import de.ni0.chronoscope.controller.dto.request.SettingsUpdateRequest;
 import de.ni0.chronoscope.controller.dto.response.AccountLinkConfirmResponse;
 import de.ni0.chronoscope.controller.dto.response.AccountResponse;
+import de.ni0.chronoscope.controller.dto.response.IdentityOrganizationColorResponse;
 import de.ni0.chronoscope.controller.dto.response.IdentityResponse;
 import de.ni0.chronoscope.controller.dto.response.SettingsResponse;
 import de.ni0.chronoscope.mapper.IdentityMapper;
@@ -105,6 +110,31 @@ public class IdentityController {
         return new de.ni0.chronoscope.controller.dto.response.SettingsResponse(
             settings.getLanguage(), settings.getTheme(), settings.getWorkSettings()
         );
+    }
+
+    @GetMapping("/colors")
+    public List<IdentityOrganizationColorResponse> getOrganizationColors() {
+        long identityId = this.requestContext.getAccount().getIdentity().getId();
+        return this.identityService.getOrganizationColors(identityId).stream()
+            .map(color -> new IdentityOrganizationColorResponse(color.getOrganizationId(), color.getColor()))
+            .toList();
+    }
+
+    @PutMapping("/colors/{organizationId}")
+    public IdentityOrganizationColorResponse updateOrganizationColor(@PathVariable String organizationId,
+            @Valid @RequestBody IdentityOrganizationColorUpdateRequest request) {
+        Identity identity = this.requestContext.getAccount().getIdentity();
+        this.keycloakService.validateIdentityOrgAccess(identity, organizationId);
+        var color = this.identityService.upsertOrganizationColor(identity.getId(), organizationId, request.color());
+        return new IdentityOrganizationColorResponse(organizationId, color == null ? request.color() : color.getColor());
+    }
+
+    @DeleteMapping("/colors/{organizationId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteOrganizationColor(@PathVariable String organizationId) {
+        Identity identity = this.requestContext.getAccount().getIdentity();
+        this.keycloakService.validateIdentityOrgAccess(identity, organizationId);
+        this.identityService.deleteOrganizationColor(identity.getId(), organizationId);
     }
 
     /**

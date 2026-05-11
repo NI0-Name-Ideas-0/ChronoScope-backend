@@ -19,10 +19,13 @@ import de.ni0.chronoscope.exception.AccountAccessDeniedException;
 import de.ni0.chronoscope.exception.AccountNotFoundException;
 import de.ni0.chronoscope.exception.ResourceNotFoundException;
 import de.ni0.chronoscope.model.Account;
+import de.ni0.chronoscope.model.ColorToken;
 import de.ni0.chronoscope.model.Identity;
+import de.ni0.chronoscope.model.IdentityOrganizationColor;
 import de.ni0.chronoscope.model.Task;
 import de.ni0.chronoscope.model.WorkSlot;
 import de.ni0.chronoscope.repository.AccountRepository;
+import de.ni0.chronoscope.repository.IdentityOrganizationColorRepository;
 import de.ni0.chronoscope.repository.IdentityRepository;
 import de.ni0.chronoscope.repository.TaskRepository;
 import de.ni0.chronoscope.repository.WorkSlotRepository;
@@ -42,12 +45,23 @@ public class IdentityService {
     private final AccountRepository accountRepository;
     private final IdentityRepository identityRepository;
     private final de.ni0.chronoscope.repository.IdentitySettingsRepository identitySettingsRepository;
+    private final IdentityOrganizationColorRepository identityOrganizationColorRepository;
     private final KeycloakService keycloakService;
     private final JavaMailSender mailSender;
     private final TaskRepository taskRepository;
     private final WorkSlotRepository workSlotRepository;
 
     private final SecretKey key = Keys.secretKeyFor(SignatureAlgorithm.HS256);
+
+    public IdentityService(AccountRepository accountRepository,
+            IdentityRepository identityRepository,
+            de.ni0.chronoscope.repository.IdentitySettingsRepository identitySettingsRepository,
+            KeycloakService keycloakService,
+            JavaMailSender mailSender,
+            TaskRepository taskRepository,
+            WorkSlotRepository workSlotRepository) {
+        this(accountRepository, identityRepository, identitySettingsRepository, null, keycloakService, mailSender, taskRepository, workSlotRepository);
+    }
 
     /**
      * Synchronizes the identity for the user identified by the given subject.
@@ -93,6 +107,46 @@ public class IdentityService {
     public Identity getIdentity(long identityId) {
         return this.identityRepository.findByIdWithAccountsAndOrganizations(identityId)
             .orElseThrow(() -> new ResourceNotFoundException("Identity not found: " + identityId));
+    }
+
+    @Transactional(readOnly = true)
+    public List<IdentityOrganizationColor> getOrganizationColors(long identityId) {
+        if (this.identityOrganizationColorRepository == null) {
+            return List.of();
+        }
+        return this.identityOrganizationColorRepository.findByIdentityId(identityId);
+    }
+
+    @Transactional
+    public IdentityOrganizationColor upsertOrganizationColor(long identityId, String organizationId, ColorToken color) {
+        if (this.identityOrganizationColorRepository == null) {
+            throw new IllegalStateException("Organization color repository is not configured");
+        }
+        Identity identity = this.identityRepository.findById(identityId)
+            .orElseThrow(() -> new ResourceNotFoundException("Identity not found: " + identityId));
+        if (color == null) {
+            throw new IllegalArgumentException("color must be provided");
+        }
+
+        var existing = this.identityOrganizationColorRepository.findByIdentityIdAndOrganizationId(identityId, organizationId);
+        if (color == ColorToken.UNSET) {
+            existing.ifPresent(this.identityOrganizationColorRepository::delete);
+            return null;
+        }
+
+        IdentityOrganizationColor entity = existing.orElseGet(IdentityOrganizationColor::new);
+        entity.setIdentity(identity);
+        entity.setOrganizationId(organizationId);
+        entity.setColor(color);
+        return this.identityOrganizationColorRepository.save(entity);
+    }
+
+    @Transactional
+    public void deleteOrganizationColor(long identityId, String organizationId) {
+        if (this.identityOrganizationColorRepository == null) {
+            return;
+        }
+        this.identityOrganizationColorRepository.deleteByIdentityIdAndOrganizationId(identityId, organizationId);
     }
 
     /**
@@ -160,6 +214,21 @@ public class IdentityService {
             workSlot.setIdentity(newIdentity);
         }
         this.workSlotRepository.saveAll(workSlots);
+
+        if (this.identityOrganizationColorRepository != null) {
+            List<IdentityOrganizationColor> oldOrganizationColors = this.identityOrganizationColorRepository.findByIdentityId(oldIdentity.getId());
+            for (IdentityOrganizationColor oldColor : oldOrganizationColors) {
+                var newColor = this.identityOrganizationColorRepository.findByIdentityIdAndOrganizationId(newIdentity.getId(), oldColor.getOrganizationId());
+                if (newColor.isPresent()) {
+                    newColor.get().setColor(oldColor.getColor());
+                    this.identityOrganizationColorRepository.save(newColor.get());
+                    this.identityOrganizationColorRepository.delete(oldColor);
+                } else {
+                    oldColor.setIdentity(newIdentity);
+                    this.identityOrganizationColorRepository.save(oldColor);
+                }
+            }
+        }
 
         for (Account account : oldIdentity.getAccounts()) {
             account.setIdentity(newIdentity);

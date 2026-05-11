@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import de.ni0.chronoscope.exception.InvalidRequestException;
 import de.ni0.chronoscope.exception.ResourceNotFoundException;
+import de.ni0.chronoscope.model.ColorToken;
 import de.ni0.chronoscope.model.DynamicTask;
 import de.ni0.chronoscope.model.StaticTask;
 import de.ni0.chronoscope.model.Task;
@@ -27,8 +28,6 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class TaskService {
 
-    private static final int MIN_DIFFICULTY = 1;
-    private static final int MAX_DIFFICULTY = 5;
     private static final Duration MIN_SCOPE_DURATION = Duration.ofMinutes(10);
     private static final Duration MAX_SCOPE_DURATION = Duration.ofMinutes(90);
     private static final Duration MIN_SCOPE_GAP = Duration.ofMinutes(5);
@@ -43,6 +42,7 @@ public class TaskService {
      * @return persisted task
      */
     public StaticTask createStaticTask(StaticTask task) {
+        normalizeColor(task);
         validateStaticTask(task);
         return this.taskRepository.save(task);
     }
@@ -54,6 +54,7 @@ public class TaskService {
      * @return persisted task
      */
     public DynamicTask createDynamicTask(DynamicTask task) {
+        normalizeColor(task);
         validateAndNormalizeDynamicTask(task);
         validateDependencyIdentity(task);
         return this.taskRepository.save(task);
@@ -171,6 +172,7 @@ public class TaskService {
         managedTask.setElapsed(task.getElapsed());
         managedTask.setMinScopeDuration(task.getMinScopeDuration());
         managedTask.setMaxScopeDuration(task.getMaxScopeDuration());
+        managedTask.setColor(task.getColor());
         if (organizationId != null) {
             managedTask.setOrganizationId(organizationId);
         }
@@ -183,6 +185,7 @@ public class TaskService {
         }
 
         validateAndNormalizeDynamicTask(managedTask);
+        normalizeColor(managedTask);
 
         if (dependencyIds != null) {
             Set<DynamicTask> previousDependencies = new HashSet<>(managedTask.getDependencies());
@@ -248,6 +251,7 @@ public class TaskService {
         managedTask.setStartAt(task.getStartAt());
         managedTask.setEndAt(task.getEndAt());
         managedTask.setIsBlocker(task.getIsBlocker());
+        managedTask.setColor(task.getColor());
         if (organizationId != null) {
             managedTask.setOrganizationId(organizationId);
         }
@@ -260,9 +264,16 @@ public class TaskService {
         }
 
         validateStaticTask(managedTask);
+        normalizeColor(managedTask);
 
         this.taskRepository.flush();
         return managedTask;
+    }
+
+    private void normalizeColor(Task task) {
+        if (task.getColor() == ColorToken.UNSET) {
+            task.setColor(null);
+        }
     }
 
     private void validateStaticTask(StaticTask task) {

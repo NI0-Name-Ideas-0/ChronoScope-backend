@@ -6,6 +6,7 @@ import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
+import de.ni0.chronoscope.model.ColorToken;
 import de.ni0.chronoscope.model.Task;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
@@ -22,6 +23,7 @@ import jakarta.validation.constraints.Size;
 @Schema(description = "Update request for a dynamic (schedulable) task")
 public record DynamicTaskUpdateRequest(
     String organizationId,
+    ColorToken color,
     @Size(min = 1) String name,
     String description,
     Task.Difficulty difficulty,
@@ -34,6 +36,13 @@ public record DynamicTaskUpdateRequest(
     Duration maxScopeDuration,
     List<@NotNull Long> dependencies
 ) implements TaskUpdateRequest {
+    public DynamicTaskUpdateRequest(String organizationId, String name, String description,
+            Task.Difficulty difficulty, Instant startAt, Instant endAt,
+            List<@Valid @NotNull LabelCreateRequest> labels,
+            Duration duration, Duration elapsed, Duration minScopeDuration,
+            Duration maxScopeDuration, List<@NotNull Long> dependencies) {
+        this(organizationId, null, name, description, difficulty, startAt, endAt, labels, duration, elapsed, minScopeDuration, maxScopeDuration, dependencies);
+    }
 
     /**
      * Validation hook that permits omitted duration updates while rejecting negative values.
