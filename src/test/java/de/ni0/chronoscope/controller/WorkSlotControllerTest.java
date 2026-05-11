@@ -19,7 +19,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
-import java.time.Instant;
+import java.time.DayOfWeek;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -61,7 +62,7 @@ class WorkSlotControllerTest {
         slot.setId(1L);
 
         WorkSlotResponse response = new WorkSlotResponse(1L, UUID.randomUUID().toString(),
-                Instant.parse("2026-04-20T08:00:00Z"), Instant.parse("2026-04-20T17:00:00Z"));
+            DayOfWeek.MONDAY, LocalTime.of(8, 0), LocalTime.of(17, 0));
 
         when(workSlotService.getWorkSlotsForIdentity(account.getIdentity().getId())).thenReturn(List.of(slot));
         when(workSlotMapper.toResponse(slot)).thenReturn(response);
@@ -83,14 +84,14 @@ class WorkSlotControllerTest {
 
         WorkSlotCreateRequest request = new WorkSlotCreateRequest(
                 UUID.randomUUID().toString(),
-                Instant.parse("2026-04-20T08:00:00Z"), Instant.parse("2026-04-20T17:00:00Z"));
+            DayOfWeek.MONDAY, LocalTime.of(8, 0), LocalTime.of(17, 0));
 
         WorkSlot mappedSlot = new WorkSlot();
         WorkSlot savedSlot = new WorkSlot();
         savedSlot.setId(7L);
 
         WorkSlotResponse expectedResponse = new WorkSlotResponse(7L, request.organizationId(),
-                Instant.parse("2026-04-20T08:00:00Z"), Instant.parse("2026-04-20T17:00:00Z"));
+            request.dayOfWeek(), request.startTime(), request.endTime());
 
         when(workSlotMapper.fromCreateRequest(request)).thenReturn(mappedSlot);
         when(workSlotService.createWorkSlot(any(WorkSlot.class))).thenReturn(savedSlot);
@@ -115,13 +116,13 @@ class WorkSlotControllerTest {
         WorkSlotController controller = new WorkSlotController(workSlotService, workSlotMapper, requestContext, keycloakService);
 
         WorkSlotUpdateRequest request = new WorkSlotUpdateRequest(
-                Instant.parse("2026-04-21T09:00:00Z"), Instant.parse("2026-04-21T18:00:00Z"));
+            DayOfWeek.TUESDAY, LocalTime.of(9, 0), LocalTime.of(18, 0));
 
         WorkSlot updatedSlot = new WorkSlot();
         updatedSlot.setId(7L);
 
         WorkSlotResponse expectedResponse = new WorkSlotResponse(7L, UUID.randomUUID().toString(),
-                Instant.parse("2026-04-21T09:00:00Z"), Instant.parse("2026-04-21T18:00:00Z"));
+            request.dayOfWeek(), request.startTime(), request.endTime());
 
         when(workSlotService.updateWorkSlot(account.getIdentity().getId(), 7L, request)).thenReturn(updatedSlot);
         when(workSlotMapper.toResponse(updatedSlot)).thenReturn(expectedResponse);
@@ -141,7 +142,7 @@ class WorkSlotControllerTest {
         requestContext.setAccount(account);
         WorkSlotController controller = new WorkSlotController(workSlotService, workSlotMapper, requestContext, keycloakService);
 
-        WorkSlotUpdateRequest request = new WorkSlotUpdateRequest(null, null);
+        WorkSlotUpdateRequest request = new WorkSlotUpdateRequest(null, null, null);
 
         when(workSlotService.updateWorkSlot(account.getIdentity().getId(), 999L, request)).thenThrow(new ResourceNotFoundException("Work slot not found: 999"));
 

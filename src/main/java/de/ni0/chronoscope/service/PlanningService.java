@@ -1,8 +1,10 @@
 package de.ni0.chronoscope.service;
 
 import de.ni0.chronoscope.algorithm.Algorithm;
+import de.ni0.chronoscope.algorithm.ConcreteWorkSlot;
 import de.ni0.chronoscope.algorithm.TaskGraphNode;
 import de.ni0.chronoscope.algorithm.WeightDataProvider;
+import de.ni0.chronoscope.algorithm.WorkSlotExpander;
 import de.ni0.chronoscope.algorithm.WorkSlotProvider;
 import de.ni0.chronoscope.algorithm.dataprovider.CPMDataProvider;
 import de.ni0.chronoscope.algorithm.dataprovider.DifficultyDataProvider;
@@ -17,7 +19,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -34,6 +38,7 @@ public class PlanningService {
     private final WorkSlotService workSlotService;
     private final AccountService accountService;
     private final KeycloakService keycloakService;
+    private final WorkSlotExpander workSlotExpander;
 
     /**
      * Replans all dynamic tasks for an account and organizationId.
@@ -57,9 +62,9 @@ public class PlanningService {
         }
 
         var dynamicTaskIds = dynamicTasks.stream().map(DynamicTask::getId).toList();
-        var workSlots = workSlotService.getWorkSlotsForIdentity(identity.getId(), orgId);
+        var recurringSlots = workSlotService.getWorkSlotsForIdentity(identity.getId(), orgId);
 
-        var planningResult = plan(dynamicTasks, workSlots);
+        var planningResult = plan(dynamicTasks, recurringSlots);
 
         if (planningResult == null) {
             throw new InsufficientSlotsException("No valid plan could be found with the available work slots");
@@ -71,9 +76,22 @@ public class PlanningService {
         return planningResult;
     }
 
-    private List<Scope> plan(List<DynamicTask> tasks, List<WorkSlot> slots) {
-        if (slots == null || slots.isEmpty()) {
+    private List<Scope> plan(List<DynamicTask> tasks, List<WorkSlot> recurringSlots) {
+        if (recurringSlots == null || recurringSlots.isEmpty()) {
             throw new InsufficientSlotsException("No work slots are available for planning");
+        }
+
+        // Determine planning horizon: furthest task deadline, extended by one week as buffer
+        Instant now = Instant.now();
+        Instant horizon = tasks.stream()
+                .map(Task::getEndAt)
+                .max(Comparator.naturalOrder())
+                .orElse(now)
+                .plusSeconds(7L * 24 * 60 * 60);
+
+        List<ConcreteWorkSlot> slots = workSlotExpander.expand(recurringSlots, now, horizon);
+        if (slots.isEmpty()) {
+            throw new InsufficientSlotsException("No work slots fall within the planning horizon");
         }
 
         List<TaskGraphNode> taskNodes = toTaskGraphNodes(tasks);
@@ -100,11 +118,11 @@ public class PlanningService {
         );
         Algorithm algorithm = new Algorithm(providers);
         WorkSlotProvider workSlotProvider = new WorkSlotProvider(slots);
-        WorkSlot startSlot = workSlotProvider.getNextSlot(null);
+        ConcreteWorkSlot startSlot = workSlotProvider.getNextSlot(null);
 
         return algorithm.plan(startNodes, dependencyCountMap,
                 remainingTaskDurationMap, workSlotProvider, startSlot,
-                startSlot.getStartAt(),
+                startSlot.startAt(),
                 new ArrayList<>());
     }
 

@@ -2,7 +2,6 @@ package de.ni0.chronoscope.algorithm;
 
 import de.ni0.chronoscope.model.DynamicTask;
 import de.ni0.chronoscope.model.Scope;
-import de.ni0.chronoscope.model.WorkSlot;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
@@ -34,7 +33,7 @@ class AlgorithmTest {
                 secondDependency, 2.0,
                 successor, 1.0));
         Algorithm algorithm = new Algorithm(List.of(provider));
-        WorkSlot slot = slot(START, START.plus(Duration.ofHours(4)));
+        ConcreteWorkSlot slot = slot(START, START.plus(Duration.ofHours(4)));
 
         List<Scope> result = algorithm.plan(
                 new ArrayList<>(List.of(firstDependency, secondDependency)),
@@ -55,8 +54,8 @@ class AlgorithmTest {
     @Test
     void planSplitsTaskAcrossConsecutiveSlots() {
         TaskGraphNode task = node(1L, Duration.ofMinutes(90), START.plus(Duration.ofHours(4)));
-        WorkSlot firstSlot = slot(START, START.plus(Duration.ofHours(1)));
-        WorkSlot secondSlot = slot(START.plus(Duration.ofHours(1)), START.plus(Duration.ofHours(2)));
+        ConcreteWorkSlot firstSlot = slot(START, START.plus(Duration.ofHours(1)));
+        ConcreteWorkSlot secondSlot = slot(START.plus(Duration.ofHours(1)), START.plus(Duration.ofHours(2)));
         Algorithm algorithm = new Algorithm(List.of(new FixedWeightProvider(Map.of(task, 1.0))));
 
         List<Scope> result = algorithm.plan(
@@ -78,8 +77,8 @@ class AlgorithmTest {
     void planBacktracksAfterPartialScopeWhenTighterDeadlineWouldBeMissed() {
         TaskGraphNode longLooseTask = node(1L, Duration.ofHours(2), START.plus(Duration.ofHours(4)));
         TaskGraphNode urgentTask = node(2L, Duration.ofHours(1), START.plus(Duration.ofHours(1)));
-        WorkSlot firstSlot = slot(START, START.plus(Duration.ofHours(1)));
-        WorkSlot secondSlot = slot(START.plus(Duration.ofHours(1)), START.plus(Duration.ofHours(4)));
+        ConcreteWorkSlot firstSlot = slot(START, START.plus(Duration.ofHours(1)));
+        ConcreteWorkSlot secondSlot = slot(START.plus(Duration.ofHours(1)), START.plus(Duration.ofHours(4)));
         Algorithm algorithm = new Algorithm(List.of(new FixedWeightProvider(Map.of(
                 longLooseTask, 2.0,
                 urgentTask, 1.0))));
@@ -105,7 +104,7 @@ class AlgorithmTest {
         TaskGraphNode urgentTask = node(2L, Duration.ofHours(1), START.plus(Duration.ofHours(1)));
         TaskGraphNode successor = node(3L, Duration.ofHours(1), START.plus(Duration.ofHours(4)));
         link(dependency, successor);
-        WorkSlot slot = slot(START, START.plus(Duration.ofHours(4)));
+        ConcreteWorkSlot slot = slot(START, START.plus(Duration.ofHours(4)));
         Algorithm algorithm = new Algorithm(List.of(new FixedWeightProvider(Map.of(
                 dependency, 2.0,
                 urgentTask, 1.0,
@@ -131,7 +130,7 @@ class AlgorithmTest {
     void planReturnsNullWhenTaskCannotFitBeforeDeadlineFromCurrentTime() {
         TaskGraphNode impossibleTask = node(1L, Duration.ofHours(2), START.plus(Duration.ofHours(1)));
         FixedWeightProvider provider = new FixedWeightProvider(Map.of(impossibleTask, 1.0));
-        WorkSlot slot = slot(START, START.plus(Duration.ofHours(4)));
+        ConcreteWorkSlot slot = slot(START, START.plus(Duration.ofHours(4)));
 
         List<Scope> result = new Algorithm(List.of(provider)).plan(
                 new ArrayList<>(List.of(impossibleTask)),
@@ -149,7 +148,7 @@ class AlgorithmTest {
     @Test
     void planReturnsNullWhenWorkSlotsAreExhaustedBeforeTaskCompletes() {
         TaskGraphNode task = node(1L, Duration.ofHours(2), START.plus(Duration.ofHours(4)));
-        WorkSlot slot = slot(START, START.plus(Duration.ofHours(1)));
+        ConcreteWorkSlot slot = slot(START, START.plus(Duration.ofHours(1)));
 
         List<Scope> result = new Algorithm(List.of(new FixedWeightProvider(Map.of(task, 1.0)))).plan(
                 new ArrayList<>(List.of(task)),
@@ -165,7 +164,7 @@ class AlgorithmTest {
 
     @Test
     void planReturnsNullWhenCalledWithoutStartNodes() {
-        WorkSlot slot = slot(START, START.plus(Duration.ofHours(1)));
+        ConcreteWorkSlot slot = slot(START, START.plus(Duration.ofHours(1)));
 
         List<Scope> result = new Algorithm(List.of()).plan(
                 new ArrayList<>(),
@@ -184,7 +183,7 @@ class AlgorithmTest {
         // Task: 90 min total, max scope 30 min → expect 3 × 30-min scopes in a 2 h slot
         TaskGraphNode task = node(1L, Duration.ofMinutes(90), Duration.ofMinutes(1), Duration.ofMinutes(30),
                 START.plus(Duration.ofHours(4)));
-        WorkSlot slot = slot(START, START.plus(Duration.ofHours(2)));
+        ConcreteWorkSlot slot = slot(START, START.plus(Duration.ofHours(2)));
         Algorithm algorithm = new Algorithm(List.of(new FixedWeightProvider(Map.of(task, 1.0))));
 
         List<Scope> result = algorithm.plan(
@@ -208,8 +207,8 @@ class AlgorithmTest {
         // Slot 1 has only 20 min; task needs min 30 min → must skip slot 1 entirely and use slot 2
         TaskGraphNode task = node(1L, Duration.ofMinutes(60), Duration.ofMinutes(30), Duration.ofMinutes(60),
                 START.plus(Duration.ofHours(4)));
-        WorkSlot shortSlot = slot(START, START.plus(Duration.ofMinutes(20)));
-        WorkSlot fullSlot = slot(START.plus(Duration.ofHours(1)), START.plus(Duration.ofHours(3)));
+        ConcreteWorkSlot shortSlot = slot(START, START.plus(Duration.ofMinutes(20)));
+        ConcreteWorkSlot fullSlot = slot(START.plus(Duration.ofHours(1)), START.plus(Duration.ofHours(3)));
         Algorithm algorithm = new Algorithm(List.of(new FixedWeightProvider(Map.of(task, 1.0))));
 
         List<Scope> result = algorithm.plan(
@@ -232,8 +231,8 @@ class AlgorithmTest {
         // The valid plan is to leave slot 1 unused and schedule the full task in slot 2.
         TaskGraphNode task = node(1L, Duration.ofMinutes(45), Duration.ofMinutes(30), Duration.ofMinutes(45),
                 START.plus(Duration.ofHours(4)));
-        WorkSlot awkwardSlot = slot(START, START.plus(Duration.ofMinutes(40)));
-        WorkSlot fullSlot = slot(START.plus(Duration.ofHours(1)), START.plus(Duration.ofHours(2)));
+        ConcreteWorkSlot awkwardSlot = slot(START, START.plus(Duration.ofMinutes(40)));
+        ConcreteWorkSlot fullSlot = slot(START.plus(Duration.ofHours(1)), START.plus(Duration.ofHours(2)));
         Algorithm algorithm = new Algorithm(List.of(new FixedWeightProvider(Map.of(task, 1.0))));
 
         List<Scope> result = algorithm.plan(
@@ -257,7 +256,7 @@ class AlgorithmTest {
         // Algorithm must shrink first scope to 25 min so tail = 20 min.
         TaskGraphNode task = node(1L, Duration.ofMinutes(45), Duration.ofMinutes(20), Duration.ofMinutes(30),
                 START.plus(Duration.ofHours(4)));
-        WorkSlot slot = slot(START, START.plus(Duration.ofHours(1)));
+        ConcreteWorkSlot slot = slot(START, START.plus(Duration.ofHours(1)));
         Algorithm algorithm = new Algorithm(List.of(new FixedWeightProvider(Map.of(task, 1.0))));
 
         List<Scope> result = algorithm.plan(
@@ -302,12 +301,8 @@ class AlgorithmTest {
         dependency.dependents().add(dependent);
     }
 
-    private static WorkSlot slot(Instant startAt, Instant endAt) {
-        WorkSlot slot = new WorkSlot();
-        slot.setId(startAt.toEpochMilli());
-        slot.setStartAt(startAt);
-        slot.setEndAt(endAt);
-        return slot;
+    private static ConcreteWorkSlot slot(Instant startAt, Instant endAt) {
+        return new ConcreteWorkSlot(startAt, endAt, startAt.toString());
     }
 
     private static Map<TaskGraphNode, Integer> dependencyCounts(TaskGraphNode... tasks) {
@@ -352,15 +347,15 @@ class AlgorithmTest {
     }
 
     private static final class ExhaustingWorkSlotProvider extends WorkSlotProvider {
-        private final List<WorkSlot> workSlots;
+        private final List<ConcreteWorkSlot> workSlots;
 
-        private ExhaustingWorkSlotProvider(List<WorkSlot> workSlots) {
+        private ExhaustingWorkSlotProvider(List<ConcreteWorkSlot> workSlots) {
             super(workSlots);
             this.workSlots = workSlots;
         }
 
         @Override
-        public WorkSlot getNextSlot(WorkSlot currentSlot) {
+        public ConcreteWorkSlot getNextSlot(ConcreteWorkSlot currentSlot) {
             if (currentSlot == null) {
                 return this.workSlots.isEmpty() ? null : this.workSlots.getFirst();
             }

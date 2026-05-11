@@ -2,14 +2,16 @@ package de.ni0.chronoscope.controller.dto.request;
 
 import jakarta.validation.constraints.NotNull;
 
-import java.time.Instant;
+import java.time.DayOfWeek;
+import java.time.LocalTime;
 
 /**
- * Request payload for creating an availability window.
+ * Request payload for creating a recurring weekly availability window.
  */
 public record WorkSlotCreateRequest(
     @NotNull String organizationId,
-    @NotNull Instant startAt,
-    @NotNull Instant endAt
+    @NotNull DayOfWeek dayOfWeek,
+    @NotNull LocalTime startTime,
+    @NotNull LocalTime endTime
 ) {
 }

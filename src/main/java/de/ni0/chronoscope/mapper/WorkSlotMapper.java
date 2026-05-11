@@ -23,7 +23,6 @@ public interface WorkSlotMapper {
      */
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "identity", ignore = true)
-    @Mapping(target = "organizationId", source = "organizationId")
     WorkSlot fromCreateRequest(WorkSlotCreateRequest request);
 
     /**
@@ -43,6 +42,5 @@ public interface WorkSlotMapper {
      * @param workSlot work slot entity
      * @return response DTO
      */
-    @Mapping(target = "organizationId", source = "organizationId")
     WorkSlotResponse toResponse(WorkSlot workSlot);
 }

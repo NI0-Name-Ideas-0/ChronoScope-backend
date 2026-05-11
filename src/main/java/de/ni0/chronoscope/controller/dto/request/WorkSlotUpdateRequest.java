@@ -1,12 +1,14 @@
 package de.ni0.chronoscope.controller.dto.request;
 
-import java.time.Instant;
+import java.time.DayOfWeek;
+import java.time.LocalTime;
 
 /**
- * Partial update request for an availability window.
+ * Partial update request for a recurring weekly availability window.
  */
 public record WorkSlotUpdateRequest(
-    Instant startAt,
-    Instant endAt
+    DayOfWeek dayOfWeek,
+    LocalTime startTime,
+    LocalTime endTime
 ) {
 }

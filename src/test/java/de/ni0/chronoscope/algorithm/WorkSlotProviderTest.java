@@ -1,6 +1,5 @@
 package de.ni0.chronoscope.algorithm;
 
-import de.ni0.chronoscope.model.WorkSlot;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
@@ -21,29 +20,43 @@ class WorkSlotProviderTest {
 
     @Test
     void getNextSlotReturnsFirstSlotWhenCurrentSlotIsNull() {
-        WorkSlot first = slot(START, START.plus(Duration.ofHours(1)));
-        WorkSlot second = slot(START.plus(Duration.ofHours(1)), START.plus(Duration.ofHours(2)));
+        ConcreteWorkSlot first = slot(START, START.plus(Duration.ofHours(1)), "first");
+        ConcreteWorkSlot second = slot(START.plus(Duration.ofHours(1)), START.plus(Duration.ofHours(2)), "second");
 
-        WorkSlot result = new WorkSlotProvider(List.of(first, second)).getNextSlot(null);
+        ConcreteWorkSlot result = new WorkSlotProvider(List.of(first, second)).getNextSlot(null);
 
         assertSame(first, result);
     }
 
     @Test
-    void getNextSlotReturnsFollowingSlotAndWrapsAfterLastSlot() {
-        WorkSlot first = slot(START, START.plus(Duration.ofHours(1)));
-        WorkSlot second = slot(START.plus(Duration.ofHours(1)), START.plus(Duration.ofHours(2)));
+    void getNextSlotReturnsFollowingSlotAndNullAfterLastSlot() {
+        ConcreteWorkSlot first = slot(START, START.plus(Duration.ofHours(1)), "first");
+        ConcreteWorkSlot second = slot(START.plus(Duration.ofHours(1)), START.plus(Duration.ofHours(2)), "second");
         WorkSlotProvider provider = new WorkSlotProvider(List.of(first, second));
 
         assertSame(second, provider.getNextSlot(first));
-        assertSame(first, provider.getNextSlot(second));
+        assertNull(provider.getNextSlot(second));
     }
 
-    private static WorkSlot slot(Instant startAt, Instant endAt) {
-        WorkSlot slot = new WorkSlot();
-        slot.setId(startAt.toEpochMilli());
-        slot.setStartAt(startAt);
-        slot.setEndAt(endAt);
-        return slot;
+    @Test
+    void getNextSlotDistinguishesDuplicateWindowsByOccurrenceId() {
+        ConcreteWorkSlot first = slot(START, START.plus(Duration.ofHours(1)), "first");
+        ConcreteWorkSlot second = slot(START, START.plus(Duration.ofHours(1)), "second");
+        WorkSlotProvider provider = new WorkSlotProvider(List.of(first, second));
+
+        assertSame(second, provider.getNextSlot(first));
+        assertNull(provider.getNextSlot(second));
+    }
+
+    @Test
+    void getNextSlotReturnsNullWhenCurrentSlotIsUnknown() {
+        ConcreteWorkSlot known = slot(START, START.plus(Duration.ofHours(1)), "known");
+        ConcreteWorkSlot unknown = slot(START.plus(Duration.ofHours(1)), START.plus(Duration.ofHours(2)), "unknown");
+
+        assertNull(new WorkSlotProvider(List.of(known)).getNextSlot(unknown));
+    }
+
+    private static ConcreteWorkSlot slot(Instant startAt, Instant endAt, String occurrenceId) {
+        return new ConcreteWorkSlot(startAt, endAt, occurrenceId);
     }
 }

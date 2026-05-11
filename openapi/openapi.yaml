@@ -1342,46 +1342,72 @@ components:
     WorkSlotCreateRequest:
       type: object
       properties:
-        endAt:
+        dayOfWeek:
           type: string
-          format: date-time
+          enum:
+          - MONDAY
+          - TUESDAY
+          - WEDNESDAY
+          - THURSDAY
+          - FRIDAY
+          - SATURDAY
+          - SUNDAY
+        endTime:
+          type: string
         organizationId:
           type: string
-        startAt:
+        startTime:
           type: string
-          format: date-time
       required:
-      - endAt
+      - dayOfWeek
+      - endTime
       - organizationId
-      - startAt
+      - startTime
     WorkSlotResponse:
       type: object
       properties:
-        endAt:
+        dayOfWeek:
           type: string
-          format: date-time
+          enum:
+          - MONDAY
+          - TUESDAY
+          - WEDNESDAY
+          - THURSDAY
+          - FRIDAY
+          - SATURDAY
+          - SUNDAY
+        endTime:
+          type: string
         id:
           type: integer
           format: int64
         organizationId:
           type: string
-        startAt:
+        startTime:
           type: string
-          format: date-time
       required:
-      - endAt
+      - dayOfWeek
+      - endTime
       - id
       - organizationId
-      - startAt
+      - startTime
     WorkSlotUpdateRequest:
       type: object
       properties:
-        endAt:
+        dayOfWeek:
           type: string
-          format: date-time
-        startAt:
+          enum:
+          - MONDAY
+          - TUESDAY
+          - WEDNESDAY
+          - THURSDAY
+          - FRIDAY
+          - SATURDAY
+          - SUNDAY
+        endTime:
           type: string
-          format: date-time
+        startTime:
+          type: string
   securitySchemes:
     oauth2:
       description: Keycloak OAuth2 (Authorization Code flow)
