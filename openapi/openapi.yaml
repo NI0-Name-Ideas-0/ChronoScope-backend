@@ -107,6 +107,57 @@ paths:
       summary: Confirm account linking
       tags:
       - Identity
+  /v1/identity/colors:
+    get:
+      operationId: getOrganizationColors
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/IdentityOrganizationColorResponse"
+          description: OK
+      tags:
+      - Identity
+  /v1/identity/colors/{organizationId}:
+    delete:
+      operationId: deleteOrganizationColor
+      parameters:
+      - in: path
+        name: organizationId
+        required: true
+        schema:
+          type: string
+      responses:
+        "204":
+          description: No Content
+      tags:
+      - Identity
+    put:
+      operationId: updateOrganizationColor
+      parameters:
+      - in: path
+        name: organizationId
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IdentityOrganizationColorUpdateRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/IdentityOrganizationColorResponse"
+          description: OK
+      tags:
+      - Identity
   /v1/identity/settings:
     get:
       operationId: getSettings
@@ -801,6 +852,45 @@ components:
       - $ref: "#/components/schemas/TaskCreateRequest"
       - type: object
         properties:
+          color:
+            type: string
+            enum:
+            - UNSET
+            - RED
+            - DARK_RED
+            - LIGHT_RED
+            - ORANGE
+            - DARK_ORANGE
+            - LIGHT_ORANGE
+            - AMBER
+            - YELLOW
+            - DARK_YELLOW
+            - LIGHT_YELLOW
+            - LIME
+            - GREEN
+            - DARK_GREEN
+            - LIGHT_GREEN
+            - MINT
+            - BLUE
+            - DARK_BLUE
+            - LIGHT_BLUE
+            - SKY
+            - NAVY
+            - CYAN
+            - TURQUOISE
+            - TEAL
+            - INDIGO
+            - VIOLET
+            - PURPLE
+            - PINK
+            - MAGENTA
+            - BROWN
+            - OLIVE
+            - GRAY
+            - LIGHT_GRAY
+            - DARK_GRAY
+            - BLACK
+            - WHITE
           dependencies:
             type: array
             items:
@@ -857,6 +947,45 @@ components:
       - $ref: "#/components/schemas/TaskResponse"
       - type: object
         properties:
+          color:
+            type: string
+            enum:
+            - UNSET
+            - RED
+            - DARK_RED
+            - LIGHT_RED
+            - ORANGE
+            - DARK_ORANGE
+            - LIGHT_ORANGE
+            - AMBER
+            - YELLOW
+            - DARK_YELLOW
+            - LIGHT_YELLOW
+            - LIME
+            - GREEN
+            - DARK_GREEN
+            - LIGHT_GREEN
+            - MINT
+            - BLUE
+            - DARK_BLUE
+            - LIGHT_BLUE
+            - SKY
+            - NAVY
+            - CYAN
+            - TURQUOISE
+            - TEAL
+            - INDIGO
+            - VIOLET
+            - PURPLE
+            - PINK
+            - MAGENTA
+            - BROWN
+            - OLIVE
+            - GRAY
+            - LIGHT_GRAY
+            - DARK_GRAY
+            - BLACK
+            - WHITE
           dependencies:
             type: array
             items:
@@ -928,6 +1057,45 @@ components:
       - $ref: "#/components/schemas/TaskUpdateRequest"
       - type: object
         properties:
+          color:
+            type: string
+            enum:
+            - UNSET
+            - RED
+            - DARK_RED
+            - LIGHT_RED
+            - ORANGE
+            - DARK_ORANGE
+            - LIGHT_ORANGE
+            - AMBER
+            - YELLOW
+            - DARK_YELLOW
+            - LIGHT_YELLOW
+            - LIME
+            - GREEN
+            - DARK_GREEN
+            - LIGHT_GREEN
+            - MINT
+            - BLUE
+            - DARK_BLUE
+            - LIGHT_BLUE
+            - SKY
+            - NAVY
+            - CYAN
+            - TURQUOISE
+            - TEAL
+            - INDIGO
+            - VIOLET
+            - PURPLE
+            - PINK
+            - MAGENTA
+            - BROWN
+            - OLIVE
+            - GRAY
+            - LIGHT_GRAY
+            - DARK_GRAY
+            - BLACK
+            - WHITE
           dependencies:
             type: array
             items:
@@ -968,6 +1136,97 @@ components:
             type: string
             format: date-time
       description: Update request for a dynamic (schedulable) task
+    IdentityOrganizationColorResponse:
+      type: object
+      properties:
+        color:
+          type: string
+          enum:
+          - UNSET
+          - RED
+          - DARK_RED
+          - LIGHT_RED
+          - ORANGE
+          - DARK_ORANGE
+          - LIGHT_ORANGE
+          - AMBER
+          - YELLOW
+          - DARK_YELLOW
+          - LIGHT_YELLOW
+          - LIME
+          - GREEN
+          - DARK_GREEN
+          - LIGHT_GREEN
+          - MINT
+          - BLUE
+          - DARK_BLUE
+          - LIGHT_BLUE
+          - SKY
+          - NAVY
+          - CYAN
+          - TURQUOISE
+          - TEAL
+          - INDIGO
+          - VIOLET
+          - PURPLE
+          - PINK
+          - MAGENTA
+          - BROWN
+          - OLIVE
+          - GRAY
+          - LIGHT_GRAY
+          - DARK_GRAY
+          - BLACK
+          - WHITE
+        organizationId:
+          type: string
+      required:
+      - color
+      - organizationId
+    IdentityOrganizationColorUpdateRequest:
+      type: object
+      properties:
+        color:
+          type: string
+          enum:
+          - UNSET
+          - RED
+          - DARK_RED
+          - LIGHT_RED
+          - ORANGE
+          - DARK_ORANGE
+          - LIGHT_ORANGE
+          - AMBER
+          - YELLOW
+          - DARK_YELLOW
+          - LIGHT_YELLOW
+          - LIME
+          - GREEN
+          - DARK_GREEN
+          - LIGHT_GREEN
+          - MINT
+          - BLUE
+          - DARK_BLUE
+          - LIGHT_BLUE
+          - SKY
+          - NAVY
+          - CYAN
+          - TURQUOISE
+          - TEAL
+          - INDIGO
+          - VIOLET
+          - PURPLE
+          - PINK
+          - MAGENTA
+          - BROWN
+          - OLIVE
+          - GRAY
+          - LIGHT_GRAY
+          - DARK_GRAY
+          - BLACK
+          - WHITE
+      required:
+      - color
     IdentityResponse:
       type: object
       properties:
@@ -1171,6 +1430,45 @@ components:
       - $ref: "#/components/schemas/TaskCreateRequest"
       - type: object
         properties:
+          color:
+            type: string
+            enum:
+            - UNSET
+            - RED
+            - DARK_RED
+            - LIGHT_RED
+            - ORANGE
+            - DARK_ORANGE
+            - LIGHT_ORANGE
+            - AMBER
+            - YELLOW
+            - DARK_YELLOW
+            - LIGHT_YELLOW
+            - LIME
+            - GREEN
+            - DARK_GREEN
+            - LIGHT_GREEN
+            - MINT
+            - BLUE
+            - DARK_BLUE
+            - LIGHT_BLUE
+            - SKY
+            - NAVY
+            - CYAN
+            - TURQUOISE
+            - TEAL
+            - INDIGO
+            - VIOLET
+            - PURPLE
+            - PINK
+            - MAGENTA
+            - BROWN
+            - OLIVE
+            - GRAY
+            - LIGHT_GRAY
+            - DARK_GRAY
+            - BLACK
+            - WHITE
           description:
             type: string
           difficulty:
@@ -1216,6 +1514,45 @@ components:
       - $ref: "#/components/schemas/TaskResponse"
       - type: object
         properties:
+          color:
+            type: string
+            enum:
+            - UNSET
+            - RED
+            - DARK_RED
+            - LIGHT_RED
+            - ORANGE
+            - DARK_ORANGE
+            - LIGHT_ORANGE
+            - AMBER
+            - YELLOW
+            - DARK_YELLOW
+            - LIGHT_YELLOW
+            - LIME
+            - GREEN
+            - DARK_GREEN
+            - LIGHT_GREEN
+            - MINT
+            - BLUE
+            - DARK_BLUE
+            - LIGHT_BLUE
+            - SKY
+            - NAVY
+            - CYAN
+            - TURQUOISE
+            - TEAL
+            - INDIGO
+            - VIOLET
+            - PURPLE
+            - PINK
+            - MAGENTA
+            - BROWN
+            - OLIVE
+            - GRAY
+            - LIGHT_GRAY
+            - DARK_GRAY
+            - BLACK
+            - WHITE
           description:
             type: string
           difficulty:
@@ -1266,6 +1603,45 @@ components:
       - $ref: "#/components/schemas/TaskUpdateRequest"
       - type: object
         properties:
+          color:
+            type: string
+            enum:
+            - UNSET
+            - RED
+            - DARK_RED
+            - LIGHT_RED
+            - ORANGE
+            - DARK_ORANGE
+            - LIGHT_ORANGE
+            - AMBER
+            - YELLOW
+            - DARK_YELLOW
+            - LIGHT_YELLOW
+            - LIME
+            - GREEN
+            - DARK_GREEN
+            - LIGHT_GREEN
+            - MINT
+            - BLUE
+            - DARK_BLUE
+            - LIGHT_BLUE
+            - SKY
+            - NAVY
+            - CYAN
+            - TURQUOISE
+            - TEAL
+            - INDIGO
+            - VIOLET
+            - PURPLE
+            - PINK
+            - MAGENTA
+            - BROWN
+            - OLIVE
+            - GRAY
+            - LIGHT_GRAY
+            - DARK_GRAY
+            - BLACK
+            - WHITE
           description:
             type: string
           difficulty:
