@@ -2,11 +2,12 @@ package de.ni0.chronoscope.mapper;
 
 import java.util.Set;
 
-import de.ni0.chronoscope.controller.dto.response.IdentityResponse;
-import de.ni0.chronoscope.model.Identity;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingConstants;
+
+import de.ni0.chronoscope.controller.dto.response.IdentityResponse;
+import de.ni0.chronoscope.model.Identity;
 
 /**
  * MapStruct mapper for identity responses.

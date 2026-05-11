@@ -1,18 +1,30 @@
 package de.ni0.chronoscope.repository;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import java.time.Duration;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
-import de.ni0.chronoscope.model.*;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
+
+import de.ni0.chronoscope.model.Account;
+import de.ni0.chronoscope.model.DynamicTask;
+import de.ni0.chronoscope.model.Identity;
+import de.ni0.chronoscope.model.Label;
+import de.ni0.chronoscope.model.Scope;
+import de.ni0.chronoscope.model.Task;
+import de.ni0.chronoscope.model.WorkSettings;
 
 @SpringBootTest
 @Transactional
@@ -23,6 +35,12 @@ class RepositoryMappingsIT {
 
     @Autowired
     private IdentityRepository identityRepository;
+
+    @Autowired
+    private de.ni0.chronoscope.repository.IdentitySettingsRepository identitySettingsRepository;
+
+    @Autowired
+    private de.ni0.chronoscope.service.AccountService accountService;
 
     @Autowired
     private LabelRepository labelRepository;
@@ -57,6 +75,35 @@ class RepositoryMappingsIT {
 
         assertTrue(identityRepository.findByAccountsContains(account).isPresent());
         assertEquals(identity.getId(), identityRepository.findByAccountsContains(account).orElseThrow().getId());
+    }
+
+    @Test
+    void identityRepository_PersistsDefaultSettingsForNewIdentity() {
+        // create account via service so default settings row is created
+        de.ni0.chronoscope.model.Account account = accountService.syncAccount("subject-repo-it");
+        Identity identity = account.getIdentity();
+
+        var settings = identitySettingsRepository.findByIdentityId(identity.getId()).orElseThrow();
+        assertEquals("en_US", settings.getLanguage());
+        assertEquals("light", settings.getTheme());
+        assertNotNull(settings.getWorkSettings());
+        assertEquals(480, settings.getWorkSettings().dailyWorkTimeMinutes());
+        assertEquals(Set.of("mo", "di", "mi", "do", "fr"), settings.getWorkSettings().workDays());
+    }
+
+    @Test
+    void identityRepository_PersistsCustomizedWorkSettings() {
+        Identity identity = new Identity();
+        WorkSettings customSettings = new WorkSettings(360, Set.of("mo", "di", "mi"));
+        identity = identityRepository.saveAndFlush(identity);
+
+        de.ni0.chronoscope.model.IdentitySettings settings = new de.ni0.chronoscope.model.IdentitySettings();
+        settings.setIdentity(identity);
+        settings.setWorkSettings(customSettings);
+        settings = identitySettingsRepository.saveAndFlush(settings);
+
+        var reloaded = identitySettingsRepository.findById(settings.getId()).orElseThrow();
+        assertEquals(customSettings, reloaded.getWorkSettings());
     }
 
     @Test

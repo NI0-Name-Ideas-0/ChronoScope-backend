@@ -107,6 +107,50 @@ paths:
       summary: Confirm account linking
       tags:
       - Identity
+  /v1/identity/settings:
+    get:
+      operationId: getSettings
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/SettingsResponse"
+          description: OK
+      tags:
+      - Identity
+    patch:
+      description: Update language and/or theme preferences for the authenticated
+        identity. Both fields are optional; only specified fields will be updated.
+      operationId: updateSettings
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SettingsUpdateRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/SettingsResponse"
+          description: Settings updated successfully
+        "400":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Validation error
+        "401":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+          description: Missing or invalid token
+      summary: Update identity settings
+      tags:
+      - Identity
   /v1/organizations/{organizationId}/invitations:
     get:
       description: Returns all pending invitations for the organization. The identity
@@ -1101,6 +1145,27 @@ components:
       - endAt
       - id
       - startAt
+    SettingsResponse:
+      type: object
+      properties:
+        language:
+          type: string
+          description: Language preference (de_DE or en_US)
+        theme:
+          type: string
+          description: "Theme preference (light, dark, or system)"
+        workSettings:
+          $ref: "#/components/schemas/WorkSettings"
+          description: Opaque work schedule settings stored as JSON.
+    SettingsUpdateRequest:
+      type: object
+      properties:
+        language:
+          type: string
+        theme:
+          type: string
+        workSettings:
+          $ref: "#/components/schemas/WorkSettings"
     StaticTaskCreateRequest:
       allOf:
       - $ref: "#/components/schemas/TaskCreateRequest"
@@ -1256,6 +1321,24 @@ components:
           type: string
       required:
       - type
+    WorkSettings:
+      type: object
+      properties:
+        dailyWorkTimeMinutes:
+          type: integer
+          format: int32
+          minimum: 1
+        workDays:
+          type: array
+          items:
+            type: string
+            pattern: ^(mo|di|mi|do|fr|sa|so)$
+          maxItems: 2147483647
+          minItems: 1
+          uniqueItems: true
+      required:
+      - dailyWorkTimeMinutes
+      - workDays
     WorkSlotCreateRequest:
       type: object
       properties:

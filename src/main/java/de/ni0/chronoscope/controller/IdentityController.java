@@ -1,13 +1,17 @@
 package de.ni0.chronoscope.controller;
 
-import de.ni0.chronoscope.controller.dto.response.AccountResponse;
-import de.ni0.chronoscope.model.Account;
-import de.ni0.chronoscope.model.Identity;
-import de.ni0.chronoscope.service.KeycloakService;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import org.keycloak.representations.idm.OrganizationRepresentation;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -17,10 +21,16 @@ import org.springframework.web.bind.annotation.RestController;
 import de.ni0.chronoscope.config.RequestContext;
 import de.ni0.chronoscope.controller.dto.request.AccountLinkConfirmRequest;
 import de.ni0.chronoscope.controller.dto.request.AccountLinkRequest;
+import de.ni0.chronoscope.controller.dto.request.SettingsUpdateRequest;
 import de.ni0.chronoscope.controller.dto.response.AccountLinkConfirmResponse;
+import de.ni0.chronoscope.controller.dto.response.AccountResponse;
 import de.ni0.chronoscope.controller.dto.response.IdentityResponse;
+import de.ni0.chronoscope.controller.dto.response.SettingsResponse;
 import de.ni0.chronoscope.mapper.IdentityMapper;
+import de.ni0.chronoscope.model.Account;
+import de.ni0.chronoscope.model.Identity;
 import de.ni0.chronoscope.service.IdentityService;
+import de.ni0.chronoscope.service.KeycloakService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -29,8 +39,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-
-import java.util.*;
 
 /**
  * REST controller for identity operations.
@@ -82,7 +90,21 @@ public class IdentityController {
             accountResponses.add(new AccountResponse(account.id(), account.identityId(), mail));
         }
 
-        return new IdentityResponse(response.id(), accountResponses, response.adminOrganizations(), response.organizations());
+        return new IdentityResponse(
+            response.id(),
+            accountResponses,
+            response.adminOrganizations(),
+            response.organizations()
+        );
+    }
+
+    @GetMapping("/settings")
+    public de.ni0.chronoscope.controller.dto.response.SettingsResponse getSettings() {
+        long identityId = this.requestContext.getAccount().getIdentity().getId();
+        var settings = this.identityService.getSettings(identityId);
+        return new de.ni0.chronoscope.controller.dto.response.SettingsResponse(
+            settings.getLanguage(), settings.getTheme(), settings.getWorkSettings()
+        );
     }
 
     /**
@@ -120,5 +142,24 @@ public class IdentityController {
     public AccountLinkConfirmResponse confirmAccountLink(@Valid @RequestBody AccountLinkConfirmRequest request) {
         long identityId = this.requestContext.getAccount().getIdentity().getId();
         return this.identityService.mergeAccounts(identityId, request.token());
+    }
+
+    /**
+     * Updates the authenticated identity's language and/or theme settings.
+     *
+     * @param request the settings update request with optional language and theme
+     * @return the updated settings response
+     */
+    @Operation(summary = "Update identity settings", description = "Update language and/or theme preferences for the authenticated identity. Both fields are optional; only specified fields will be updated.")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Settings updated successfully"),
+        @ApiResponse(responseCode = "400", description = "Validation error", content = @Content(schema = @Schema(implementation = ProblemDetail.class))),
+        @ApiResponse(responseCode = "401", description = "Missing or invalid token", content = @Content(schema = @Schema(implementation = ProblemDetail.class)))
+    })
+    @PatchMapping("/settings")
+    public SettingsResponse updateSettings(@Valid @RequestBody SettingsUpdateRequest request) {
+        long identityId = this.requestContext.getAccount().getIdentity().getId();
+        this.identityService.updateSettings(identityId, request);
+        return this.getSettings();
     }
 }
