@@ -15,12 +15,16 @@ import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import de.ni0.chronoscope.config.RequestContext;
+import de.ni0.chronoscope.controller.dto.request.IdentityOrganizationColorUpdateRequest;
 import de.ni0.chronoscope.controller.dto.request.SettingsUpdateRequest;
+import de.ni0.chronoscope.controller.dto.response.IdentityOrganizationColorResponse;
 import de.ni0.chronoscope.controller.dto.response.IdentityResponse;
 import de.ni0.chronoscope.controller.dto.response.SettingsResponse;
 import de.ni0.chronoscope.mapper.IdentityMapper;
 import de.ni0.chronoscope.model.Account;
+import de.ni0.chronoscope.model.ColorToken;
 import de.ni0.chronoscope.model.Identity;
+import de.ni0.chronoscope.model.IdentityOrganizationColor;
 import de.ni0.chronoscope.model.WorkSettings;
 import de.ni0.chronoscope.service.IdentityService;
 import de.ni0.chronoscope.service.KeycloakService;
@@ -97,5 +101,75 @@ class IdentityControllerTest {
         assertEquals(ws, actual.workSettings());
         verify(identityService).updateSettings(identity.getId(), request);
         verify(identityService).getSettings(identity.getId());
+    }
+
+    @Test
+    void getOrganizationColors_MapsServiceRowsToResponses() {
+        Account account = account(1L, 2L);
+        Identity identity = account.getIdentity();
+        when(requestContext.getAccount()).thenReturn(account);
+
+        IdentityOrganizationColor color = new IdentityOrganizationColor();
+        color.setOrganizationId("org-1");
+        color.setColor(ColorToken.BLUE);
+        when(identityService.getOrganizationColors(identity.getId())).thenReturn(List.of(color));
+
+        IdentityController controller = new IdentityController(identityService, requestContext, identityMapper, keycloakService);
+
+        List<IdentityOrganizationColorResponse> actual = controller.getOrganizationColors();
+
+        assertEquals(List.of(new IdentityOrganizationColorResponse("org-1", ColorToken.BLUE)), actual);
+        verify(identityService).getOrganizationColors(identity.getId());
+        verifyNoInteractions(keycloakService);
+    }
+
+    @Test
+    void updateOrganizationColor_ValidatesAccessAndReturnsUpdatedColor() {
+        Account account = account(1L, 2L);
+        Identity identity = account.getIdentity();
+        when(requestContext.getAccount()).thenReturn(account);
+
+        IdentityOrganizationColor persistedColor = new IdentityOrganizationColor();
+        persistedColor.setOrganizationId("org-1");
+        persistedColor.setColor(ColorToken.PURPLE);
+        when(identityService.upsertOrganizationColor(identity.getId(), "org-1", ColorToken.PURPLE)).thenReturn(persistedColor);
+
+        IdentityController controller = new IdentityController(identityService, requestContext, identityMapper, keycloakService);
+
+        IdentityOrganizationColorResponse actual = controller.updateOrganizationColor("org-1", new IdentityOrganizationColorUpdateRequest(ColorToken.PURPLE));
+
+        assertEquals(new IdentityOrganizationColorResponse("org-1", ColorToken.PURPLE), actual);
+        verify(keycloakService).validateIdentityOrgAccess(identity, "org-1");
+        verify(identityService).upsertOrganizationColor(identity.getId(), "org-1", ColorToken.PURPLE);
+    }
+
+    @Test
+    void updateOrganizationColor_ReturnsUnsetWhenServiceDeletesColor() {
+        Account account = account(1L, 2L);
+        Identity identity = account.getIdentity();
+        when(requestContext.getAccount()).thenReturn(account);
+        when(identityService.upsertOrganizationColor(identity.getId(), "org-1", ColorToken.UNSET)).thenReturn(null);
+
+        IdentityController controller = new IdentityController(identityService, requestContext, identityMapper, keycloakService);
+
+        IdentityOrganizationColorResponse actual = controller.updateOrganizationColor("org-1", new IdentityOrganizationColorUpdateRequest(ColorToken.UNSET));
+
+        assertEquals(new IdentityOrganizationColorResponse("org-1", ColorToken.UNSET), actual);
+        verify(keycloakService).validateIdentityOrgAccess(identity, "org-1");
+        verify(identityService).upsertOrganizationColor(identity.getId(), "org-1", ColorToken.UNSET);
+    }
+
+    @Test
+    void deleteOrganizationColor_ValidatesAccessAndDeletesColor() {
+        Account account = account(1L, 2L);
+        Identity identity = account.getIdentity();
+        when(requestContext.getAccount()).thenReturn(account);
+
+        IdentityController controller = new IdentityController(identityService, requestContext, identityMapper, keycloakService);
+
+        controller.deleteOrganizationColor("org-1");
+
+        verify(keycloakService).validateIdentityOrgAccess(identity, "org-1");
+        verify(identityService).deleteOrganizationColor(identity.getId(), "org-1");
     }
 }

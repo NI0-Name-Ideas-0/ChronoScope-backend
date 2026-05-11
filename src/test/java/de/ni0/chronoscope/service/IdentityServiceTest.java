@@ -5,6 +5,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -29,11 +30,14 @@ import de.ni0.chronoscope.exception.AccountAccessDeniedException;
 import de.ni0.chronoscope.exception.AccountNotFoundException;
 import de.ni0.chronoscope.exception.ResourceNotFoundException;
 import de.ni0.chronoscope.model.Account;
+import de.ni0.chronoscope.model.ColorToken;
 import de.ni0.chronoscope.model.DynamicTask;
 import de.ni0.chronoscope.model.Identity;
+import de.ni0.chronoscope.model.IdentityOrganizationColor;
 import de.ni0.chronoscope.model.WorkSettings;
 import de.ni0.chronoscope.model.WorkSlot;
 import de.ni0.chronoscope.repository.AccountRepository;
+import de.ni0.chronoscope.repository.IdentityOrganizationColorRepository;
 import de.ni0.chronoscope.repository.IdentityRepository;
 import de.ni0.chronoscope.repository.TaskRepository;
 import de.ni0.chronoscope.repository.WorkSlotRepository;
@@ -46,6 +50,9 @@ class IdentityServiceTest {
 
     @Mock
     private IdentityRepository identityRepository;
+
+    @Mock
+    private IdentityOrganizationColorRepository identityOrganizationColorRepository;
 
     @Mock
     private de.ni0.chronoscope.repository.IdentitySettingsRepository identitySettingsRepository;
@@ -61,6 +68,19 @@ class IdentityServiceTest {
 
     @Mock
     private WorkSlotRepository workSlotRepository;
+
+    private IdentityService identityServiceWithColors() {
+        return new IdentityService(
+            accountRepository,
+            identityRepository,
+            identitySettingsRepository,
+            identityOrganizationColorRepository,
+            keycloakService,
+            mailSender,
+            taskRepository,
+            workSlotRepository
+        );
+    }
 
     @Test
     void syncIdentity_ReusesExistingIdentityForSameAccount() {
@@ -510,6 +530,172 @@ class IdentityServiceTest {
         var captor = ArgumentCaptor.forClass(de.ni0.chronoscope.model.IdentitySettings.class);
         verify(identitySettingsRepository).save(captor.capture());
         assertEquals(targetSettings, captor.getValue().getWorkSettings());
+        verify(identityRepository).delete(targetIdentity);
+    }
+
+    @Test
+    void getOrganizationColors_ReturnsMappedRows() {
+        IdentityService identityService = identityServiceWithColors();
+        Identity identity = new Identity();
+        identity.setId(99L);
+
+        IdentityOrganizationColor color = new IdentityOrganizationColor();
+        color.setIdentity(identity);
+        color.setOrganizationId("org-1");
+        color.setColor(ColorToken.BLUE);
+
+        when(identityOrganizationColorRepository.findByIdentityId(99L)).thenReturn(List.of(color));
+
+        List<IdentityOrganizationColor> result = identityService.getOrganizationColors(99L);
+
+        assertEquals(List.of(color), result);
+        verify(identityOrganizationColorRepository).findByIdentityId(99L);
+    }
+
+    @Test
+    void getOrganizationColors_ReturnsEmptyWhenRepositoryIsMissing() {
+        IdentityService identityService = new IdentityService(accountRepository, identityRepository, identitySettingsRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
+
+        assertEquals(List.of(), identityService.getOrganizationColors(99L));
+    }
+
+    @Test
+    void upsertOrganizationColor_CreatesRowWhenMissing() {
+        IdentityService identityService = identityServiceWithColors();
+        Identity identity = new Identity();
+        identity.setId(77L);
+
+        when(identityRepository.findById(77L)).thenReturn(Optional.of(identity));
+        when(identityOrganizationColorRepository.findByIdentityIdAndOrganizationId(77L, "org-1")).thenReturn(Optional.empty());
+        when(identityOrganizationColorRepository.save(any(IdentityOrganizationColor.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        IdentityOrganizationColor result = identityService.upsertOrganizationColor(77L, "org-1", ColorToken.PURPLE);
+
+        assertEquals(identity, result.getIdentity());
+        assertEquals("org-1", result.getOrganizationId());
+        assertEquals(ColorToken.PURPLE, result.getColor());
+        verify(identityOrganizationColorRepository).save(result);
+    }
+
+    @Test
+    void upsertOrganizationColor_UpdatesExistingRow() {
+        IdentityService identityService = identityServiceWithColors();
+        Identity identity = new Identity();
+        identity.setId(77L);
+
+        IdentityOrganizationColor existing = new IdentityOrganizationColor();
+        existing.setIdentity(identity);
+        existing.setOrganizationId("org-1");
+        existing.setColor(ColorToken.BLUE);
+
+        when(identityRepository.findById(77L)).thenReturn(Optional.of(identity));
+        when(identityOrganizationColorRepository.findByIdentityIdAndOrganizationId(77L, "org-1")).thenReturn(Optional.of(existing));
+        when(identityOrganizationColorRepository.save(any(IdentityOrganizationColor.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        IdentityOrganizationColor result = identityService.upsertOrganizationColor(77L, "org-1", ColorToken.GREEN);
+
+        assertEquals(existing, result);
+        assertEquals(ColorToken.GREEN, existing.getColor());
+        verify(identityOrganizationColorRepository).save(existing);
+    }
+
+    @Test
+    void upsertOrganizationColor_DeletesRowWhenUnset() {
+        IdentityService identityService = identityServiceWithColors();
+        Identity identity = new Identity();
+        identity.setId(77L);
+
+        IdentityOrganizationColor existing = new IdentityOrganizationColor();
+        existing.setIdentity(identity);
+        existing.setOrganizationId("org-1");
+        existing.setColor(ColorToken.BLUE);
+
+        when(identityRepository.findById(77L)).thenReturn(Optional.of(identity));
+        when(identityOrganizationColorRepository.findByIdentityIdAndOrganizationId(77L, "org-1")).thenReturn(Optional.of(existing));
+
+        IdentityOrganizationColor result = identityService.upsertOrganizationColor(77L, "org-1", ColorToken.UNSET);
+
+        assertNull(result);
+        verify(identityOrganizationColorRepository).delete(existing);
+    }
+
+    @Test
+    void deleteOrganizationColor_DeletesMappedRow() {
+        IdentityService identityService = identityServiceWithColors();
+
+        identityService.deleteOrganizationColor(55L, "org-1");
+
+        verify(identityOrganizationColorRepository).deleteByIdentityIdAndOrganizationId(55L, "org-1");
+    }
+
+    @Test
+    void mergeAccounts_MigratesOrganizationColorsToNewIdentity() {
+        IdentityService identityService = identityServiceWithColors();
+
+        Identity sourceIdentity = new Identity();
+        sourceIdentity.setId(101L);
+        Account sourceAccount = account(11L, "source-subject", sourceIdentity);
+
+        Identity targetIdentity = new Identity();
+        targetIdentity.setId(202L);
+        Account targetAccount = account(22L, "target-subject", targetIdentity);
+
+        IdentityOrganizationColor targetColor = new IdentityOrganizationColor();
+        targetColor.setIdentity(targetIdentity);
+        targetColor.setOrganizationId("org-1");
+        targetColor.setColor(ColorToken.ORANGE);
+
+        when(identityOrganizationColorRepository.findByIdentityId(targetIdentity.getId())).thenReturn(List.of(targetColor));
+
+        String token = requestLinkAndExtractToken(identityService, sourceAccount.getId(), targetAccount);
+        when(accountRepository.getReferenceById(sourceAccount.getId())).thenReturn(sourceAccount);
+        when(accountRepository.getReferenceById(targetAccount.getId())).thenReturn(targetAccount);
+        when(taskRepository.findByIdentityId(targetIdentity.getId())).thenReturn(List.of());
+        when(workSlotRepository.findByIdentityId(targetIdentity.getId())).thenReturn(List.of());
+
+        identityService.mergeAccounts(targetIdentity.getId(), token);
+
+        assertEquals(sourceIdentity, targetColor.getIdentity());
+        verify(identityOrganizationColorRepository).save(targetColor);
+        verify(identityRepository).delete(targetIdentity);
+    }
+
+    @Test
+    void mergeAccounts_PrefersSourceOrganizationColorWhenBothIdentitiesHaveOne() {
+        IdentityService identityService = identityServiceWithColors();
+
+        Identity sourceIdentity = new Identity();
+        sourceIdentity.setId(101L);
+        Account sourceAccount = account(11L, "source-subject", sourceIdentity);
+
+        Identity targetIdentity = new Identity();
+        targetIdentity.setId(202L);
+        Account targetAccount = account(22L, "target-subject", targetIdentity);
+
+        IdentityOrganizationColor targetColor = new IdentityOrganizationColor();
+        targetColor.setIdentity(targetIdentity);
+        targetColor.setOrganizationId("org-1");
+        targetColor.setColor(ColorToken.ORANGE);
+
+        IdentityOrganizationColor sourceColor = new IdentityOrganizationColor();
+        sourceColor.setIdentity(sourceIdentity);
+        sourceColor.setOrganizationId("org-1");
+        sourceColor.setColor(ColorToken.PURPLE);
+
+        when(identityOrganizationColorRepository.findByIdentityId(targetIdentity.getId())).thenReturn(List.of(targetColor));
+        when(identityOrganizationColorRepository.findByIdentityIdAndOrganizationId(sourceIdentity.getId(), "org-1")).thenReturn(Optional.of(sourceColor));
+
+        String token = requestLinkAndExtractToken(identityService, sourceAccount.getId(), targetAccount);
+        when(accountRepository.getReferenceById(sourceAccount.getId())).thenReturn(sourceAccount);
+        when(accountRepository.getReferenceById(targetAccount.getId())).thenReturn(targetAccount);
+        when(taskRepository.findByIdentityId(targetIdentity.getId())).thenReturn(List.of());
+        when(workSlotRepository.findByIdentityId(targetIdentity.getId())).thenReturn(List.of());
+
+        identityService.mergeAccounts(targetIdentity.getId(), token);
+
+        assertEquals(ColorToken.ORANGE, sourceColor.getColor());
+        verify(identityOrganizationColorRepository).save(sourceColor);
+        verify(identityOrganizationColorRepository).delete(targetColor);
         verify(identityRepository).delete(targetIdentity);
     }
 }

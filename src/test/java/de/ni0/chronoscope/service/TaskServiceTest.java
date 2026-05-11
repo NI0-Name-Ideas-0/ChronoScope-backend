@@ -8,9 +8,9 @@ import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -22,6 +22,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import de.ni0.chronoscope.exception.InvalidRequestException;
 import de.ni0.chronoscope.exception.ResourceNotFoundException;
 import de.ni0.chronoscope.model.Account;
+import de.ni0.chronoscope.model.ColorToken;
 import de.ni0.chronoscope.model.DynamicTask;
 import de.ni0.chronoscope.model.Identity;
 import de.ni0.chronoscope.model.Label;
@@ -229,6 +230,23 @@ class TaskServiceTest {
         StaticTask result = taskService.createStaticTask(newTask);
 
         assertEquals(newTask, result);
+        verify(taskRepository).save(newTask);
+    }
+
+    @Test
+    void createStaticTask_NormalizesUnsetColorToNullBeforeSave() {
+        TaskService taskService = new TaskService(taskRepository, keycloakService);
+
+        StaticTask newTask = new StaticTask();
+        populateValidStaticFields(newTask);
+        newTask.setColor(ColorToken.UNSET);
+
+        when(taskRepository.save(newTask)).thenReturn(newTask);
+
+        StaticTask result = taskService.createStaticTask(newTask);
+
+        assertEquals(newTask, result);
+        assertNull(newTask.getColor());
         verify(taskRepository).save(newTask);
     }
 
@@ -721,6 +739,41 @@ class TaskServiceTest {
 
         assertEquals(managedTask, result);
         assertEquals(Duration.ofMinutes(20), managedTask.getMaxScopeDuration());
+        verify(taskRepository).flush();
+    }
+
+    @Test
+    void updateDynamicTask_NormalizesUnsetColorToNullBeforeSave() {
+        TaskService taskService = new TaskService(taskRepository, keycloakService);
+
+        Identity identity = new Identity();
+        identity.setId(42L);
+
+        DynamicTask task = new DynamicTask();
+        task.setId(230L);
+        task.setIdentity(identity);
+        populateValidDynamicFields(task);
+        task.setColor(ColorToken.UNSET);
+        task.setDependencies(new java.util.HashSet<>());
+        task.setLabels(new java.util.ArrayList<>());
+        task.setScopes(new java.util.ArrayList<>());
+
+        DynamicTask managedTask = new DynamicTask();
+        managedTask.setId(230L);
+        managedTask.setIdentity(identity);
+        populateValidDynamicFields(managedTask);
+        managedTask.setColor(ColorToken.UNSET);
+        managedTask.setDependencies(new java.util.HashSet<>());
+        managedTask.setDependents(new java.util.HashSet<>());
+        managedTask.setLabels(new java.util.ArrayList<>());
+        managedTask.setScopes(new java.util.ArrayList<>());
+
+        when(taskRepository.findById(230L)).thenReturn(Optional.of(managedTask));
+
+        DynamicTask result = taskService.updateDynamicTask(230L, task);
+
+        assertEquals(managedTask, result);
+        assertNull(managedTask.getColor());
         verify(taskRepository).flush();
     }
 }
