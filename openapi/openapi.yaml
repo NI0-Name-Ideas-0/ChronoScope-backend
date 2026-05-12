@@ -135,6 +135,23 @@ paths:
           description: No Content
       tags:
       - Identity
+    get:
+      operationId: getOrganizationColor
+      parameters:
+      - in: path
+        name: organizationId
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/IdentityOrganizationColorResponse"
+          description: OK
+      tags:
+      - Identity
     put:
       operationId: updateOrganizationColor
       parameters:
@@ -857,40 +874,18 @@ components:
             enum:
             - UNSET
             - RED
-            - DARK_RED
-            - LIGHT_RED
             - ORANGE
-            - DARK_ORANGE
-            - LIGHT_ORANGE
             - AMBER
             - YELLOW
-            - DARK_YELLOW
-            - LIGHT_YELLOW
-            - LIME
             - GREEN
-            - DARK_GREEN
-            - LIGHT_GREEN
             - MINT
-            - BLUE
-            - DARK_BLUE
-            - LIGHT_BLUE
-            - SKY
-            - NAVY
             - CYAN
-            - TURQUOISE
-            - TEAL
+            - BLUE
             - INDIGO
-            - VIOLET
             - PURPLE
             - PINK
-            - MAGENTA
             - BROWN
-            - OLIVE
             - GRAY
-            - LIGHT_GRAY
-            - DARK_GRAY
-            - BLACK
-            - WHITE
           dependencies:
             type: array
             items:
@@ -953,40 +948,18 @@ components:
             enum:
             - UNSET
             - RED
-            - DARK_RED
-            - LIGHT_RED
             - ORANGE
-            - DARK_ORANGE
-            - LIGHT_ORANGE
             - AMBER
             - YELLOW
-            - DARK_YELLOW
-            - LIGHT_YELLOW
-            - LIME
             - GREEN
-            - DARK_GREEN
-            - LIGHT_GREEN
             - MINT
-            - BLUE
-            - DARK_BLUE
-            - LIGHT_BLUE
-            - SKY
-            - NAVY
             - CYAN
-            - TURQUOISE
-            - TEAL
+            - BLUE
             - INDIGO
-            - VIOLET
             - PURPLE
             - PINK
-            - MAGENTA
             - BROWN
-            - OLIVE
             - GRAY
-            - LIGHT_GRAY
-            - DARK_GRAY
-            - BLACK
-            - WHITE
           dependencies:
             type: array
             items:
@@ -1064,40 +1037,18 @@ components:
             enum:
             - UNSET
             - RED
-            - DARK_RED
-            - LIGHT_RED
             - ORANGE
-            - DARK_ORANGE
-            - LIGHT_ORANGE
             - AMBER
             - YELLOW
-            - DARK_YELLOW
-            - LIGHT_YELLOW
-            - LIME
             - GREEN
-            - DARK_GREEN
-            - LIGHT_GREEN
             - MINT
-            - BLUE
-            - DARK_BLUE
-            - LIGHT_BLUE
-            - SKY
-            - NAVY
             - CYAN
-            - TURQUOISE
-            - TEAL
+            - BLUE
             - INDIGO
-            - VIOLET
             - PURPLE
             - PINK
-            - MAGENTA
             - BROWN
-            - OLIVE
             - GRAY
-            - LIGHT_GRAY
-            - DARK_GRAY
-            - BLACK
-            - WHITE
           dependencies:
             type: array
             items:
@@ -1146,40 +1097,18 @@ components:
           enum:
           - UNSET
           - RED
-          - DARK_RED
-          - LIGHT_RED
           - ORANGE
-          - DARK_ORANGE
-          - LIGHT_ORANGE
           - AMBER
           - YELLOW
-          - DARK_YELLOW
-          - LIGHT_YELLOW
-          - LIME
           - GREEN
-          - DARK_GREEN
-          - LIGHT_GREEN
           - MINT
-          - BLUE
-          - DARK_BLUE
-          - LIGHT_BLUE
-          - SKY
-          - NAVY
           - CYAN
-          - TURQUOISE
-          - TEAL
+          - BLUE
           - INDIGO
-          - VIOLET
           - PURPLE
           - PINK
-          - MAGENTA
           - BROWN
-          - OLIVE
           - GRAY
-          - LIGHT_GRAY
-          - DARK_GRAY
-          - BLACK
-          - WHITE
         organizationId:
           type: string
       required:
@@ -1193,40 +1122,18 @@ components:
           enum:
           - UNSET
           - RED
-          - DARK_RED
-          - LIGHT_RED
           - ORANGE
-          - DARK_ORANGE
-          - LIGHT_ORANGE
           - AMBER
           - YELLOW
-          - DARK_YELLOW
-          - LIGHT_YELLOW
-          - LIME
           - GREEN
-          - DARK_GREEN
-          - LIGHT_GREEN
           - MINT
-          - BLUE
-          - DARK_BLUE
-          - LIGHT_BLUE
-          - SKY
-          - NAVY
           - CYAN
-          - TURQUOISE
-          - TEAL
+          - BLUE
           - INDIGO
-          - VIOLET
           - PURPLE
           - PINK
-          - MAGENTA
           - BROWN
-          - OLIVE
           - GRAY
-          - LIGHT_GRAY
-          - DARK_GRAY
-          - BLACK
-          - WHITE
       required:
       - color
     IdentityResponse:
@@ -1437,40 +1344,18 @@ components:
             enum:
             - UNSET
             - RED
-            - DARK_RED
-            - LIGHT_RED
             - ORANGE
-            - DARK_ORANGE
-            - LIGHT_ORANGE
             - AMBER
             - YELLOW
-            - DARK_YELLOW
-            - LIGHT_YELLOW
-            - LIME
             - GREEN
-            - DARK_GREEN
-            - LIGHT_GREEN
             - MINT
-            - BLUE
-            - DARK_BLUE
-            - LIGHT_BLUE
-            - SKY
-            - NAVY
             - CYAN
-            - TURQUOISE
-            - TEAL
+            - BLUE
             - INDIGO
-            - VIOLET
             - PURPLE
             - PINK
-            - MAGENTA
             - BROWN
-            - OLIVE
             - GRAY
-            - LIGHT_GRAY
-            - DARK_GRAY
-            - BLACK
-            - WHITE
           description:
             type: string
           difficulty:
@@ -1522,40 +1407,18 @@ components:
             enum:
             - UNSET
             - RED
-            - DARK_RED
-            - LIGHT_RED
             - ORANGE
-            - DARK_ORANGE
-            - LIGHT_ORANGE
             - AMBER
             - YELLOW
-            - DARK_YELLOW
-            - LIGHT_YELLOW
-            - LIME
             - GREEN
-            - DARK_GREEN
-            - LIGHT_GREEN
             - MINT
-            - BLUE
-            - DARK_BLUE
-            - LIGHT_BLUE
-            - SKY
-            - NAVY
             - CYAN
-            - TURQUOISE
-            - TEAL
+            - BLUE
             - INDIGO
-            - VIOLET
             - PURPLE
             - PINK
-            - MAGENTA
             - BROWN
-            - OLIVE
             - GRAY
-            - LIGHT_GRAY
-            - DARK_GRAY
-            - BLACK
-            - WHITE
           description:
             type: string
           difficulty:
@@ -1612,40 +1475,18 @@ components:
             enum:
             - UNSET
             - RED
-            - DARK_RED
-            - LIGHT_RED
             - ORANGE
-            - DARK_ORANGE
-            - LIGHT_ORANGE
             - AMBER
             - YELLOW
-            - DARK_YELLOW
-            - LIGHT_YELLOW
-            - LIME
             - GREEN
-            - DARK_GREEN
-            - LIGHT_GREEN
             - MINT
-            - BLUE
-            - DARK_BLUE
-            - LIGHT_BLUE
-            - SKY
-            - NAVY
             - CYAN
-            - TURQUOISE
-            - TEAL
+            - BLUE
             - INDIGO
-            - VIOLET
             - PURPLE
             - PINK
-            - MAGENTA
             - BROWN
-            - OLIVE
             - GRAY
-            - LIGHT_GRAY
-            - DARK_GRAY
-            - BLACK
-            - WHITE
           description:
             type: string
           difficulty:
