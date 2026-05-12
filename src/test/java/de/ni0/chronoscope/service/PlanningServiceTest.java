@@ -5,10 +5,7 @@ import de.ni0.chronoscope.algorithm.WorkSlotExpander;
 import de.ni0.chronoscope.TestData;
 import de.ni0.chronoscope.exception.InsufficientSlotsException;
 import de.ni0.chronoscope.exception.InvalidRequestException;
-import de.ni0.chronoscope.model.DynamicTask;
-import de.ni0.chronoscope.model.Identity;
-import de.ni0.chronoscope.model.Scope;
-import de.ni0.chronoscope.model.WorkSlot;
+import de.ni0.chronoscope.model.*;
 import de.ni0.chronoscope.repository.ScopeRepository;
 import de.ni0.chronoscope.repository.TaskRepository;
 import org.junit.jupiter.api.Test;
@@ -54,7 +51,7 @@ class PlanningServiceTest {
 
     @Test
     void planTasksForAccount_ReturnsEmptyList_WhenNoTasksForOrganization() {
-        PlanningService service = new PlanningService(taskRepository, scopeRepository, workSlotService, accountService, keycloakService, workSlotExpander);
+        PlanningService service = new PlanningService(taskRepository, scopeRepository, workSlotService, keycloakService, workSlotExpander);
         String orgId = UUID.randomUUID().toString();
         Identity identity = TestData.identity(1);
 
@@ -66,14 +63,14 @@ class PlanningServiceTest {
         verify(taskRepository).findDynamicTasksByIdentityIdAndOrganizationId(identity.getId(), orgId);
         verify(workSlotService, never()).getWorkSlotsForIdentity(anyLong());
         verify(workSlotService, never()).getWorkSlotsForIdentity(anyLong(), anyString());
-        verify(scopeRepository, never()).deleteByDynamicTaskIdIn(anyList());
+        verify(scopeRepository, never()).deleteAll(anyList());
         verify(scopeRepository, never()).saveAll(anyList());
         verifyNoMoreInteractions(taskRepository, scopeRepository, workSlotService, accountService);
     }
 
     @Test
     void planTasksForAccount_ThrowsInsufficientSlotsException_WhenNoWorkSlotsAvailable() {
-        PlanningService service = new PlanningService(taskRepository, scopeRepository, workSlotService, accountService, keycloakService, workSlotExpander);
+        PlanningService service = new PlanningService(taskRepository, scopeRepository, workSlotService, keycloakService, workSlotExpander);
         Identity identity = TestData.identity(1);
         String orgId = UUID.randomUUID().toString();
 
@@ -83,13 +80,13 @@ class PlanningServiceTest {
 
         assertThrows(InsufficientSlotsException.class, () -> service.planTasksForIdentity(identity, orgId));
 
-        verify(scopeRepository, never()).deleteByDynamicTaskIdIn(anyList());
+        verify(scopeRepository, never()).deleteAll(anyList());
         verify(scopeRepository, never()).saveAll(anyList());
     }
 
     @Test
     void planTasksForAccount_ThrowsInvalidRequestException_WhenTasksFormACycle() {
-        PlanningService service = new PlanningService(taskRepository, scopeRepository, workSlotService, accountService, keycloakService, workSlotExpander);
+        PlanningService service = new PlanningService(taskRepository, scopeRepository, workSlotService, keycloakService, workSlotExpander);
         Identity identity = TestData.identity(1);
         String orgId = UUID.randomUUID().toString();
 
@@ -108,13 +105,13 @@ class PlanningServiceTest {
 
         assertThrows(InvalidRequestException.class, () -> service.planTasksForIdentity(identity, orgId));
 
-        verify(scopeRepository, never()).deleteByDynamicTaskIdIn(anyList());
+        verify(scopeRepository, never()).deleteAll(anyList());
         verify(scopeRepository, never()).saveAll(anyList());
     }
 
     @Test
     void planTasksForAccount_ThrowsInsufficientSlotsException_WhenDeadlineCannotBeMet() {
-        PlanningService service = new PlanningService(taskRepository, scopeRepository, workSlotService, accountService, keycloakService, workSlotExpander);
+        PlanningService service = new PlanningService(taskRepository, scopeRepository, workSlotService, keycloakService, workSlotExpander);
         Identity identity = TestData.identity(1);
         String orgId = UUID.randomUUID().toString();
 
@@ -133,32 +130,67 @@ class PlanningServiceTest {
 
         assertThrows(InsufficientSlotsException.class, () -> service.planTasksForIdentity(identity, orgId));
 
-        verify(scopeRepository, never()).deleteByDynamicTaskIdIn(anyList());
+        verify(scopeRepository, never()).deleteAll(anyList());
         verify(scopeRepository, never()).saveAll(anyList());
     }
 
     @Test
     void planTasksForAccount_DeletesOldScopesAndReturnsNewScopes_WhenPlanSucceeds() {
-        PlanningService service = new PlanningService(taskRepository, scopeRepository, workSlotService, accountService, keycloakService, workSlotExpander);
+        PlanningService service = new PlanningService(taskRepository, scopeRepository, workSlotService, keycloakService, workSlotExpander);
         Identity identity = TestData.identity(1);
         String orgId = UUID.randomUUID().toString();
 
         DynamicTask task = buildTask(1L, Duration.ofHours(1));
         WorkSlot slot = buildWorkSlot();
+        Scope existingScope = new Scope(2L, task, Instant.MIN, Instant.MAX);
 
         when(taskRepository.findDynamicTasksByIdentityIdAndOrganizationId(identity.getId(), orgId))
                 .thenReturn(List.of(task));
+        when(scopeRepository.findActiveScope(identity.getId())).thenReturn(List.of());
+        when(scopeRepository.getScopesByDynamicTaskOrganizationIdAndDynamicTaskIdentityId(orgId, identity.getId()))
+                .thenReturn(Set.of(existingScope));
         when(workSlotService.getWorkSlotsForIdentity(identity.getId(), orgId)).thenReturn(List.of(slot));
         when(workSlotExpander.expand(eq(List.of(slot)), any(Instant.class), any(Instant.class)))
             .thenReturn(List.of(concreteSlot(Instant.parse("2026-04-26T08:00:00Z"), Instant.parse("2026-04-26T18:00:00Z"))));
-        when(scopeRepository.deleteByDynamicTaskIdIn(List.of(1L))).thenReturn(0L);
         when(scopeRepository.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
 
         List<Scope> result = service.planTasksForIdentity(identity, orgId);
 
         assertEquals(1, result.size());
         assertEquals(task, result.getFirst().getDynamicTask());
-        verify(scopeRepository).deleteByDynamicTaskIdIn(List.of(1L));
+        verify(scopeRepository).deleteAll(Set.of(existingScope));
+        verify(scopeRepository).saveAll(result);
+        verifyNoMoreInteractions(taskRepository, scopeRepository, workSlotService, accountService);
+    }
+
+    @Test
+    void planTasksForAccount_DoNotDeleteActiveScope_WhenPlanSucceeds() {
+        PlanningService service = new PlanningService(taskRepository, scopeRepository, workSlotService, keycloakService, workSlotExpander);
+        Identity identity = TestData.identity(1);
+        String orgId = UUID.randomUUID().toString();
+
+        DynamicTask task = buildTask(1L, Duration.ofHours(2));
+        WorkSlot slot = buildWorkSlot();
+        Scope existingScope = new Scope(2L, task,
+                Instant.parse("2026-04-26T07:30:00Z"),
+                Instant.parse("2026-04-26T08:30:00Z"));
+
+        when(taskRepository.findDynamicTasksByIdentityIdAndOrganizationId(identity.getId(), orgId))
+                .thenReturn(List.of(task));
+        when(scopeRepository.findActiveScope(identity.getId())).thenReturn(List.of(existingScope));
+        when(scopeRepository.getScopesByDynamicTaskOrganizationIdAndDynamicTaskIdentityId(orgId, identity.getId()))
+                .thenReturn(Set.of(existingScope));
+        when(workSlotService.getWorkSlotsForIdentity(identity.getId(), orgId)).thenReturn(List.of(slot));
+        when(workSlotExpander.expand(eq(List.of(slot)), any(Instant.class), any(Instant.class)))
+                .thenReturn(List.of(concreteSlot(Instant.parse("2026-04-26T08:30:00Z"), Instant.parse("2026-04-26T18:00:00Z"))));
+        when(scopeRepository.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        List<Scope> result = service.planTasksForIdentity(identity, orgId);
+
+        assertEquals(1, result.size());
+        assertEquals(task, result.getFirst().getDynamicTask());
+        assertEquals(existingScope.getEndAt(), result.getFirst().getStartAt());
+        verify(scopeRepository).deleteAll(Set.of());
         verify(scopeRepository).saveAll(result);
         verifyNoMoreInteractions(taskRepository, scopeRepository, workSlotService, accountService);
     }
@@ -175,6 +207,7 @@ class PlanningServiceTest {
         task.setDependencies(new HashSet<>());
         task.setDependents(new HashSet<>());
         task.setScopes(new ArrayList<>());
+        task.setDifficulty(Task.Difficulty.TRIVIAL);
         return task;
     }
 
