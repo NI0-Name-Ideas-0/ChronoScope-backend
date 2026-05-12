@@ -105,6 +105,21 @@ public class IdentityService {
     }
 
     @Transactional
+    public IdentityOrganizationColor getOrganizationColor(long identityId, String organizationId) {
+        var existing = this.identityOrganizationColorRepository.findByIdentityIdAndOrganizationId(identityId, organizationId);
+        if(existing.isPresent()) return existing.get();
+
+        // Set random color for organizations without a set color
+
+        IdentityOrganizationColor color = new IdentityOrganizationColor();
+        color.setIdentity(this.identityRepository.getReferenceById(identityId));
+        color.setOrganizationId(organizationId);
+        color.setColor(randomColor());
+
+        return this.identityOrganizationColorRepository.save(color);
+    }
+
+    @Transactional
     public IdentityOrganizationColor upsertOrganizationColor(long identityId, String organizationId, ColorToken color) {
         Identity identity = this.identityRepository.findById(identityId)
             .orElseThrow(() -> new ResourceNotFoundException("Identity not found: " + identityId));
@@ -308,5 +323,10 @@ public class IdentityService {
 
     private Claims getTokenClaims(String token) {
         return Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody();
+    }
+
+    private ColorToken randomColor() {
+        ColorToken[] values = ColorToken.values();
+        return values[1 + (int) (Math.random() * (values.length - 1))]; // exclude UNSET
     }
 }

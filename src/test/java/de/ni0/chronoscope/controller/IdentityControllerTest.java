@@ -172,4 +172,44 @@ class IdentityControllerTest {
         verify(keycloakService).validateIdentityOrgAccess(identity, "org-1");
         verify(identityService).deleteOrganizationColor(identity.getId(), "org-1");
     }
+
+    @Test
+    void getOrganizationColor_ReturnsExistingColor() {
+        Account account = account(1L, 2L);
+        Identity identity = account.getIdentity();
+        when(requestContext.getAccount()).thenReturn(account);
+
+        IdentityOrganizationColor existingColor = new IdentityOrganizationColor();
+        existingColor.setOrganizationId("org-1");
+        existingColor.setColor(ColorToken.BLUE);
+        when(identityService.getOrganizationColor(identity.getId(), "org-1")).thenReturn(existingColor);
+
+        IdentityController controller = new IdentityController(identityService, requestContext, identityMapper, keycloakService);
+
+        IdentityOrganizationColorResponse actual = controller.getOrganizationColor("org-1");
+
+        assertEquals(new IdentityOrganizationColorResponse("org-1", ColorToken.BLUE), actual);
+        verify(keycloakService).validateIdentityOrgAccess(identity, "org-1");
+        verify(identityService).getOrganizationColor(identity.getId(), "org-1");
+    }
+
+    @Test
+    void getOrganizationColor_ReturnsNewlyCreatedColorWhenNotExists() {
+        Account account = account(1L, 2L);
+        Identity identity = account.getIdentity();
+        when(requestContext.getAccount()).thenReturn(account);
+
+        IdentityOrganizationColor newColor = new IdentityOrganizationColor();
+        newColor.setOrganizationId("org-1");
+        newColor.setColor(ColorToken.PURPLE);
+        when(identityService.getOrganizationColor(identity.getId(), "org-1")).thenReturn(newColor);
+
+        IdentityController controller = new IdentityController(identityService, requestContext, identityMapper, keycloakService);
+
+        IdentityOrganizationColorResponse actual = controller.getOrganizationColor("org-1");
+
+        assertEquals(new IdentityOrganizationColorResponse("org-1", ColorToken.PURPLE), actual);
+        verify(keycloakService).validateIdentityOrgAccess(identity, "org-1");
+        verify(identityService).getOrganizationColor(identity.getId(), "org-1");
+    }
 }

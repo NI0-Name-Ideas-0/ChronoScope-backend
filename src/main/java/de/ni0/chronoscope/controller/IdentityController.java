@@ -120,6 +120,14 @@ public class IdentityController {
             .toList();
     }
 
+    @GetMapping("/colors/{organizationId}")
+    public IdentityOrganizationColorResponse getOrganizationColor(@PathVariable String organizationId) {
+        Identity identity = this.requestContext.getAccount().getIdentity();
+        this.keycloakService.validateIdentityOrgAccess(identity, organizationId);
+        var color = this.identityService.getOrganizationColor(identity.getId(), organizationId);
+        return new IdentityOrganizationColorResponse(organizationId, color.getColor());
+    }
+
     @PutMapping("/colors/{organizationId}")
     public IdentityOrganizationColorResponse updateOrganizationColor(@PathVariable String organizationId,
             @Valid @RequestBody IdentityOrganizationColorUpdateRequest request) {

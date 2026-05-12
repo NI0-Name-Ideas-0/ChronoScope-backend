@@ -553,6 +553,45 @@ class IdentityServiceTest {
     }
 
     @Test
+    void getOrganizationColor_ReturnsExistingColor() {
+        IdentityService identityService = identityServiceWithColors();
+        Identity identity = new Identity();
+        identity.setId(77L);
+
+        IdentityOrganizationColor existing = new IdentityOrganizationColor();
+        existing.setIdentity(identity);
+        existing.setOrganizationId("org-1");
+        existing.setColor(ColorToken.BLUE);
+
+        when(identityOrganizationColorRepository.findByIdentityIdAndOrganizationId(77L, "org-1")).thenReturn(Optional.of(existing));
+
+        IdentityOrganizationColor result = identityService.getOrganizationColor(77L, "org-1");
+
+        assertEquals(existing, result);
+        assertEquals(ColorToken.BLUE, result.getColor());
+        verify(identityOrganizationColorRepository).findByIdentityIdAndOrganizationId(77L, "org-1");
+        verify(identityOrganizationColorRepository, never()).save(any());
+    }
+
+    @Test
+    void getOrganizationColor_CreatesNewColorWhenNotExists() {
+        IdentityService identityService = identityServiceWithColors();
+        Identity identity = new Identity();
+        identity.setId(77L);
+
+        when(identityOrganizationColorRepository.findByIdentityIdAndOrganizationId(77L, "org-1")).thenReturn(Optional.empty());
+        when(identityRepository.getReferenceById(77L)).thenReturn(identity);
+        when(identityOrganizationColorRepository.save(any(IdentityOrganizationColor.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        IdentityOrganizationColor result = identityService.getOrganizationColor(77L, "org-1");
+
+        assertEquals(identity, result.getIdentity());
+        assertEquals("org-1", result.getOrganizationId());
+        assertNotNull(result.getColor());
+        verify(identityOrganizationColorRepository).save(result);
+    }
+
+    @Test
     void upsertOrganizationColor_CreatesRowWhenMissing() {
         IdentityService identityService = identityServiceWithColors();
         Identity identity = new Identity();
