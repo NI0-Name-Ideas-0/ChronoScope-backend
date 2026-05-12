@@ -160,7 +160,7 @@ public class Algorithm {
                 }
             }
         }
-        log.debug("Path did not found result");
+        log.debug("Path did not find result");
         return advanceToNextSlot(tasks, dependencyCount, remainingTaskDurations, slots, slot, currentTime, plannedScopes);
     }
 
