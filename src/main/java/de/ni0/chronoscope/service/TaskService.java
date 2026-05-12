@@ -28,7 +28,7 @@ import lombok.RequiredArgsConstructor;
 public class TaskService {
 
     private static final Duration MIN_SCOPE_DURATION = Duration.ofMinutes(10);
-    private static final Duration MAX_SCOPE_DURATION = Duration.ofMinutes(90);
+    private static final Duration MAX_SCOPE_DURATION = Duration.ofHours(4);
 
     private final TaskRepository taskRepository;
     private final KeycloakService keycloakService;
@@ -306,7 +306,7 @@ public class TaskService {
         }
 
         if (maxScopeDuration.compareTo(MAX_SCOPE_DURATION) > 0) {
-            throw new InvalidRequestException("maxScopeDuration must be at most 90 minutes");
+            throw new InvalidRequestException("maxScopeDuration must be at most 4 hours");
         }
 
         if (minScopeDuration.compareTo(MIN_SCOPE_DURATION) < 0) {

@@ -34,7 +34,7 @@ class TaskServiceTest {
 
     @Mock
     private TaskRepository taskRepository;
-    
+
     @Mock
     private KeycloakService keycloakService;
 
@@ -614,7 +614,7 @@ class TaskServiceTest {
     }
 
     @Test
-    void createDynamicTask_ThrowsWhenMaxScopeDurationExceedsNinety() {
+    void createDynamicTask_ThrowsWhenMaxScopeDurationExceedsFourHours() {
         TaskService taskService = new TaskService(taskRepository, keycloakService);
 
         Identity identity = new Identity();
@@ -623,9 +623,9 @@ class TaskServiceTest {
         DynamicTask newTask = new DynamicTask();
         newTask.setIdentity(identity);
         populateValidDynamicFields(newTask);
-        newTask.setDuration(Duration.ofMinutes(120));
+        newTask.setDuration(Duration.ofHours(8));
         newTask.setMinScopeDuration(Duration.ofMinutes(30));
-        newTask.setMaxScopeDuration(Duration.ofMinutes(95));
+        newTask.setMaxScopeDuration(Duration.ofHours(5));
         newTask.setDependencies(new java.util.HashSet<>());
 
         InvalidRequestException exception = assertThrows(
@@ -633,7 +633,7 @@ class TaskServiceTest {
             () -> taskService.createDynamicTask(newTask)
         );
 
-        assertEquals("maxScopeDuration must be at most 90 minutes", exception.getMessage());
+        assertEquals("maxScopeDuration must be at most 4 hours", exception.getMessage());
         verify(taskRepository, never()).save(newTask);
     }
 
