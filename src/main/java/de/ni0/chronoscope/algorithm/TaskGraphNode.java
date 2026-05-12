@@ -51,4 +51,19 @@ public record TaskGraphNode(DynamicTask task, List<TaskGraphNode> dependencies, 
     public Duration getMaxScopeDuration() {
         return this.task.getMaxScopeDuration();
     }
+
+    public Duration getRemaining() {
+        return this.getDuration().minus(this.task.getElapsed());
+    }
+
+    public List<TaskGraphNode> getUncompletedDependencies() {
+        return this.dependencies.stream().filter(d ->  {
+            return d.getRemaining().isPositive();
+        }).toList();
+    }
+    public List<TaskGraphNode> getUncompletedDependents() {
+        return this.dependents.stream().filter(d ->  {
+            return d.getRemaining().isPositive();
+        }).toList();
+    }
 }

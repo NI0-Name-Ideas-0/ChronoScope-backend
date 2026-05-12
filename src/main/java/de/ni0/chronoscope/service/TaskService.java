@@ -29,7 +29,6 @@ public class TaskService {
 
     private static final Duration MIN_SCOPE_DURATION = Duration.ofMinutes(10);
     private static final Duration MAX_SCOPE_DURATION = Duration.ofHours(4);
-    private static final Duration MIN_SCOPE_GAP = Duration.ofMinutes(5);
 
     private final TaskRepository taskRepository;
     private final KeycloakService keycloakService;
@@ -298,43 +297,26 @@ public class TaskService {
             throw new InvalidRequestException("maxScopeDuration must be greater than 0");
         }
 
-        boolean minScopeWasCapped = false;
-        boolean maxScopeWasCapped = false;
-
         if (maxScopeDuration.compareTo(duration) > 0) {
             maxScopeDuration = duration;
             task.setMaxScopeDuration(maxScopeDuration);
-            maxScopeWasCapped = true;
         }
 
         if (minScopeDuration.compareTo(duration) > 0) {
             minScopeDuration = duration;
             task.setMinScopeDuration(minScopeDuration);
-            minScopeWasCapped = true;
         }
 
         if (maxScopeDuration.compareTo(MAX_SCOPE_DURATION) > 0) {
             throw new InvalidRequestException("maxScopeDuration must be at most 4 hours");
         }
 
-        if (!minScopeWasCapped && minScopeDuration.compareTo(MIN_SCOPE_DURATION) < 0) {
+        if (minScopeDuration.compareTo(MIN_SCOPE_DURATION) < 0) {
             throw new InvalidRequestException("minScopeDuration must be at least 10 minutes");
         }
 
-        boolean allowReducedGap = minScopeWasCapped || maxScopeWasCapped;
-        if (allowReducedGap) {
-            if (maxScopeDuration.compareTo(minScopeDuration) < 0) {
-                throw new InvalidRequestException("maxScopeDuration must be greater than or equal to minScopeDuration");
-            }
-            return;
-        }
-
-        if (maxScopeDuration.compareTo(minScopeDuration) <= 0) {
-            throw new InvalidRequestException("maxScopeDuration must be greater than minScopeDuration");
-        }
-
-        if (maxScopeDuration.compareTo(minScopeDuration.plus(MIN_SCOPE_GAP)) < 0) {
-            throw new InvalidRequestException("maxScopeDuration must be at least 5 minutes greater than minScopeDuration");
+        if (maxScopeDuration.compareTo(minScopeDuration) < 0) {
+            throw new InvalidRequestException("maxScopeDuration must be greater or equals than minScopeDuration");
         }
     }
 

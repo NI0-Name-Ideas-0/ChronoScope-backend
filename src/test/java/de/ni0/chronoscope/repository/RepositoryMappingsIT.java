@@ -125,7 +125,7 @@ class RepositoryMappingsIT {
         Account account = new Account();
         account.setSubject("subject-dependency-test");
         account.setIdentity(identity);
-        account = accountRepository.saveAndFlush(account);
+        accountRepository.saveAndFlush(account);
 
         DynamicTask predecessor = new DynamicTask();
         predecessor.setIdentity(identity);

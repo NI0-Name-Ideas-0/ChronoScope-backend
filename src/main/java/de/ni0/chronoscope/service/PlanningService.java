@@ -20,11 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Application service that turns dynamic tasks and work slots into persisted planned scopes.
@@ -36,7 +32,6 @@ public class PlanningService {
     private final TaskRepository taskRepository;
     private final ScopeRepository scopeRepository;
     private final WorkSlotService workSlotService;
-    private final AccountService accountService;
     private final KeycloakService keycloakService;
     private final WorkSlotExpander workSlotExpander;
 
@@ -60,29 +55,42 @@ public class PlanningService {
             // therefore we return an empty plan instead of throwing an exception in this case.
             return List.of();
         }
+        List<Scope> activeScopes = scopeRepository.findActiveScope(identity.getId());
+        if (activeScopes.size() > 1) {
+            throw new IllegalStateException(
+                    "More than one active scope found for identityId=" + identity.getId() + ", orgId=" + orgId
+                            + " (activeScopes=" + activeScopes.size() + ")");
+        }
+        Scope activeScope = activeScopes.isEmpty() ? null : activeScopes.getFirst();
 
-        var dynamicTaskIds = dynamicTasks.stream().map(DynamicTask::getId).toList();
         var recurringSlots = workSlotService.getWorkSlotsForIdentity(identity.getId(), orgId);
 
-        var planningResult = plan(dynamicTasks, recurringSlots);
+        var planningResult = plan(dynamicTasks, activeScope, recurringSlots);
 
         if (planningResult == null) {
             throw new InsufficientSlotsException("No valid plan could be found with the available work slots");
         }
 
-        scopeRepository.deleteByDynamicTaskIdIn(dynamicTaskIds); // Clear old scopes
+        Set<Scope> existingScopes = new HashSet<>(scopeRepository.getScopesByDynamicTaskOrganizationIdAndDynamicTaskIdentityId(orgId, identity.getId()));
+        if (activeScope != null) {
+            existingScopes.remove(activeScope);
+        }
+        scopeRepository.deleteAllInBatch(existingScopes); // Clear old scopes
         scopeRepository.saveAll(planningResult); // Save new scopes
 
         return planningResult;
     }
 
-    private List<Scope> plan(List<DynamicTask> tasks, List<WorkSlot> recurringSlots) {
+    private List<Scope> plan(List<DynamicTask> tasks, Scope activeScope, List<WorkSlot> recurringSlots) {
         if (recurringSlots == null || recurringSlots.isEmpty()) {
             throw new InsufficientSlotsException("No work slots are available for planning");
         }
 
         // Determine planning horizon: furthest task deadline, extended by one week as buffer
         Instant now = Instant.now();
+        if (activeScope != null) {
+            now = activeScope.getEndAt();
+        }
         Instant horizon = tasks.stream()
                 .map(Task::getEndAt)
                 .max(Comparator.naturalOrder())
@@ -95,21 +103,36 @@ public class PlanningService {
         }
 
         List<TaskGraphNode> taskNodes = toTaskGraphNodes(tasks);
-        Map<TaskGraphNode, Integer> dependencyCountMap = new HashMap<>();
+        Map<TaskGraphNode, Integer> uncompletedDependencies = new HashMap<>();
         Map<TaskGraphNode, Duration> remainingTaskDurationMap = new HashMap<>();
         List<TaskGraphNode> startNodes = new ArrayList<>();
 
         for (TaskGraphNode node : taskNodes) {
-            int dependencyCount = node.dependencies().size();
-            dependencyCountMap.put(node, dependencyCount);
-            remainingTaskDurationMap.put(node, node.getDuration());
+            int dependencyCount = getUncompletedDependencies(node, activeScope).size();
+            uncompletedDependencies.put(node, dependencyCount);
+            Duration remainingTaskDuration = node.getRemaining();
+
+            // If there is an active scope we want  to respect it when planning
+            if (activeScope != null && activeScope.getDynamicTask().getId().equals(node.task().getId())) {
+                if (activeScope.getEndAt().isBefore(activeScope.getStartAt())) {
+                    throw new InvalidRequestException("Active scope end time must not be before start time");
+                }
+                Duration activeScopeDuration = Duration.between(activeScope.getStartAt(), activeScope.getEndAt());
+                remainingTaskDuration = remainingTaskDuration.minus(activeScopeDuration);
+            }
+
+            if (!remainingTaskDuration.isPositive()) {
+                continue;
+            }
+
+            remainingTaskDurationMap.put(node, remainingTaskDuration);
             if (dependencyCount == 0) {
                 startNodes.add(node);
             }
         }
 
         if (startNodes.isEmpty()) {
-            throw new InvalidRequestException("Tasks contain a dependency cycle: no task has zero dependencies");
+            throw new InvalidRequestException("Did not find any nodes to start");
         }
 
         List<WeightDataProvider> providers = List.of(
@@ -120,10 +143,21 @@ public class PlanningService {
         WorkSlotProvider workSlotProvider = new WorkSlotProvider(slots);
         ConcreteWorkSlot startSlot = workSlotProvider.getNextSlot(null);
 
-        return algorithm.plan(startNodes, dependencyCountMap,
+        return algorithm.plan(startNodes, uncompletedDependencies,
                 remainingTaskDurationMap, workSlotProvider, startSlot,
                 startSlot.startAt(),
                 new ArrayList<>());
+    }
+
+    private List<TaskGraphNode> getUncompletedDependencies(TaskGraphNode node, Scope activeScope) {
+        List<TaskGraphNode> uncompletedDependencies = node.getUncompletedDependencies();
+        return uncompletedDependencies.stream().filter(d -> {
+            if (activeScope != null && d.task().getId().equals(activeScope.getDynamicTask().getId())) {
+                return d.getRemaining().minus(Duration.between(activeScope.getStartAt(), activeScope.getEndAt()))
+                        .isPositive();
+            }
+            return true;
+        }).toList();
     }
 
     private List<TaskGraphNode> toTaskGraphNodes(List<DynamicTask> tasks) {

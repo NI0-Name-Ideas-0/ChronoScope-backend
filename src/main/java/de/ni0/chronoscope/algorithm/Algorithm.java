@@ -48,44 +48,61 @@ public class Algorithm {
         Duration remainingSlotDuration = currentTime.until(slot.endAt());
         log.debug("{} time left in slot", remainingSlotDuration);
 
+        if (tasks.isEmpty()) {
+            return List.of();
+        }
+        boolean hasRemainingWork = tasks.stream()
+                .anyMatch(task -> remainingTaskDurations.get(task).isPositive());
+        if (!hasRemainingWork) {
+            return List.of();
+        }
+
+        CPM cpm = new CPM(tasks, currentTime);
         for (TaskGraphNode task : tasks) {
-            if (currentTime.plus(remainingTaskDurations.get(task)).isAfter(task.getEndAt())) {
+            if (cpm.getTaskData().get(task).getSlack().isNegative()) {
                 log.debug("Deadline not met");
                 return null;
             }
         }
 
-        // Advance to the next slot if no pending task's minimum scope fits in the remaining time
-        boolean anyTaskCanStart = tasks.stream()
-                .anyMatch(t -> remainingSlotDuration.compareTo(t.getMinScopeDuration()) >= 0);
-        if (!anyTaskCanStart) {
-            log.debug("Remaining slot time {} is below all minScopeDurations; advancing to next slot", remainingSlotDuration);
+        // Advance to the next slot if no pending task can start: either its minimum scope does not fit
+        // the remaining time or its startAt has not been reached yet.
+        List<TaskGraphNode> possibleTasks = new ArrayList<>(
+                tasks.stream().filter(
+                t -> remainingSlotDuration.compareTo(t.getMinScopeDuration()) >= 0
+                            && remainingTaskDurations.get(t).isPositive()
+                            && (t.getStartAt() == null || t.getStartAt().isBefore(slot.endAt()))).toList()
+        );
+        if (possibleTasks.isEmpty()) {
+            log.debug("No task can start in remaining slot time; advancing to next slot");
             return advanceToNextSlot(tasks, dependencyCount, remainingTaskDurations, slots, slot, currentTime, plannedScopes);
         }
 
         for (WeightDataProvider provider : this.providers) {
-            provider.calculate(new DataProviderContext(currentTime, plannedScopes), tasks);
+            provider.calculate(new DataProviderContext(currentTime, plannedScopes), possibleTasks);
         }
-        tasks.sort((t1, t2) -> -1*Double.compare(getWeight(t1), getWeight(t2)));
+        possibleTasks.sort((t1, t2) -> -1*Double.compare(getWeight(t1), getWeight(t2)));
 
-        for (TaskGraphNode task : new ArrayList<>(tasks)) {
+        for (TaskGraphNode task : new ArrayList<>(possibleTasks)) {
             log.debug("Chose Task: {}", task);
+            Instant effectiveStart = task.getStartAt().isAfter(currentTime) ? task.getStartAt() : currentTime;
+            Duration remainingTaskSlotDuration = Duration.between(effectiveStart, slot.endAt());
 
             List<Scope> scopes = new ArrayList<>();
 
             Duration remainingTaskDuration = remainingTaskDurations.get(task);
 
-            // Skip tasks whose minimum scope duration exceeds the remaining slot time
-            if (remainingSlotDuration.compareTo(task.getMinScopeDuration()) < 0) {
-                continue;
-            }
-
             // Cap at maxScopeDuration after taking the smaller of remaining task and remaining slot
             Duration scopeDuration = remainingTaskDuration.compareTo(remainingSlotDuration) <= 0
                     ? remainingTaskDuration
-                    : remainingSlotDuration;
+                    : remainingTaskSlotDuration;
             if (scopeDuration.compareTo(task.getMaxScopeDuration()) > 0) {
                 scopeDuration = task.getMaxScopeDuration();
+            }
+
+            // If the scope is too small continue
+            if (scopeDuration.compareTo(task.getMinScopeDuration()) < 0) {
+                continue;
             }
 
             // Tail guard: if the leftover after this scope is non-zero but below minScopeDuration,
@@ -107,7 +124,7 @@ public class Algorithm {
             // Only calculate new possible tasks if current one has been completly planned
             if (newRemainingTaskDuration.isZero()) {
                 tasks.remove(task);
-                for (TaskGraphNode successor : task.dependents()) {
+                for (TaskGraphNode successor : task.getUncompletedDependents()) {
                     int newCount = dependencyCount.get(successor) - 1;
                     dependencyCount.put(successor, newCount);
                     if (newCount == 0) {
@@ -117,33 +134,24 @@ public class Algorithm {
                 System.out.println("Updated Tasks: " + tasks);
             }
 
-            scopes.add(new Scope(null, task.task(), currentTime, currentTime.plus(scopeDuration)));
+            scopes.add(new Scope(null, task.task(), effectiveStart, effectiveStart.plus(scopeDuration)));
 
             if (tasks.isEmpty()) {
                 return scopes;
             }
 
-            Instant newCurrentTime = currentTime.plus(scopeDuration);
-            ConcreteWorkSlot newWorkSlot = slot;
-            boolean branchCanContinue = true;
+            Instant newCurrentTime = effectiveStart.plus(scopeDuration);
+            List<Scope> nextResult;
             if (newCurrentTime.equals(slot.endAt())) {
-                System.out.println("Using next slot");
-                newWorkSlot = slots.getNextSlot(slot);
-                if (newWorkSlot == null) {
-                    branchCanContinue = false;
-                } else {
-                    newCurrentTime = newWorkSlot.startAt();
-                }
+                nextResult = advanceToNextSlot(tasks, dependencyCount, remainingTaskDurations,
+                        slots, slot, newCurrentTime, scopes);
+            } else {
+                nextResult = plan(tasks, dependencyCount, remainingTaskDurations,
+                        slots, slot, newCurrentTime, scopes);
             }
-
-            if (branchCanContinue) {
-                List<Scope> nextResult = plan(tasks, dependencyCount, remainingTaskDurations,
-                        slots, newWorkSlot, newCurrentTime, scopes);
-                if (nextResult != null) {
-                    scopes.addAll(nextResult);
-                    return scopes;
-                }
-                System.out.println("Path did not return result");
+            if (nextResult != null) {
+                scopes.addAll(nextResult);
+                return scopes;
             }
 
             // Reset for backtracking
@@ -160,7 +168,7 @@ public class Algorithm {
                 }
             }
         }
-        log.debug("Path did not found result");
+        log.debug("Path did not find result");
         return advanceToNextSlot(tasks, dependencyCount, remainingTaskDurations, slots, slot, currentTime, plannedScopes);
     }
 
@@ -172,7 +180,7 @@ public class Algorithm {
                                           Instant currentTime,
                                           List<Scope> plannedScopes) {
         ConcreteWorkSlot nextSlot = slots.getNextSlot(slot);
-        if (nextSlot == null || !nextSlot.startAt().isAfter(currentTime)) {
+        if (nextSlot == null || nextSlot.startAt().isBefore(currentTime)) {
             return null;
         }
         return plan(tasks, dependencyCount, remainingTaskDurations, slots, nextSlot, nextSlot.startAt(), plannedScopes);

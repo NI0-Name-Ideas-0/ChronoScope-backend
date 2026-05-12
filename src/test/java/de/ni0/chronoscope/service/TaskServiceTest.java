@@ -572,7 +572,7 @@ class TaskServiceTest {
         DynamicTask newTask = new DynamicTask();
         newTask.setIdentity(identity);
         populateValidDynamicFields(newTask);
-        newTask.setDuration(Duration.ofMinutes(8));
+        newTask.setDuration(Duration.ofMinutes(15));
         newTask.setMinScopeDuration(Duration.ofMinutes(20));
         newTask.setMaxScopeDuration(Duration.ofMinutes(25));
         newTask.setDependencies(new java.util.HashSet<>());
@@ -582,8 +582,8 @@ class TaskServiceTest {
         DynamicTask result = taskService.createDynamicTask(newTask);
 
         assertEquals(newTask, result);
-        assertEquals(Duration.ofMinutes(8), newTask.getMinScopeDuration());
-        assertEquals(Duration.ofMinutes(8), newTask.getMaxScopeDuration());
+        assertEquals(Duration.ofMinutes(15), newTask.getMinScopeDuration());
+        assertEquals(Duration.ofMinutes(15), newTask.getMaxScopeDuration());
         verify(taskRepository).save(newTask);
     }
 
@@ -632,30 +632,6 @@ class TaskServiceTest {
         );
 
         assertEquals("maxScopeDuration must be at most 4 hours", exception.getMessage());
-        verify(taskRepository, never()).save(newTask);
-    }
-
-    @Test
-    void createDynamicTask_ThrowsWhenGapIsLessThanFiveMinutesWithoutCapping() {
-        TaskService taskService = new TaskService(taskRepository, keycloakService);
-
-        Identity identity = new Identity();
-        identity.setId(42L);
-
-        DynamicTask newTask = new DynamicTask();
-        newTask.setIdentity(identity);
-        populateValidDynamicFields(newTask);
-        newTask.setDuration(Duration.ofMinutes(60));
-        newTask.setMinScopeDuration(Duration.ofMinutes(30));
-        newTask.setMaxScopeDuration(Duration.ofMinutes(34));
-        newTask.setDependencies(new java.util.HashSet<>());
-
-        InvalidRequestException exception = assertThrows(
-            InvalidRequestException.class,
-            () -> taskService.createDynamicTask(newTask)
-        );
-
-        assertEquals("maxScopeDuration must be at least 5 minutes greater than minScopeDuration", exception.getMessage());
         verify(taskRepository, never()).save(newTask);
     }
 
