@@ -85,6 +85,8 @@ public class Algorithm {
 
         for (TaskGraphNode task : new ArrayList<>(possibleTasks)) {
             log.debug("Chose Task: {}", task);
+            Instant effectiveStart = task.getStartAt().isAfter(currentTime) ? task.getStartAt() : currentTime;
+            Duration remainingTaskSlotDuration = Duration.between(effectiveStart, slot.endAt());
 
             List<Scope> scopes = new ArrayList<>();
 
@@ -93,9 +95,14 @@ public class Algorithm {
             // Cap at maxScopeDuration after taking the smaller of remaining task and remaining slot
             Duration scopeDuration = remainingTaskDuration.compareTo(remainingSlotDuration) <= 0
                     ? remainingTaskDuration
-                    : remainingSlotDuration;
+                    : remainingTaskSlotDuration;
             if (scopeDuration.compareTo(task.getMaxScopeDuration()) > 0) {
                 scopeDuration = task.getMaxScopeDuration();
+            }
+
+            // If the scope is too small continue
+            if (scopeDuration.compareTo(task.getMinScopeDuration()) < 0) {
+                continue;
             }
 
             // Tail guard: if the leftover after this scope is non-zero but below minScopeDuration,
@@ -127,16 +134,17 @@ public class Algorithm {
                 System.out.println("Updated Tasks: " + tasks);
             }
 
-            scopes.add(new Scope(null, task.task(), currentTime, currentTime.plus(scopeDuration)));
+            scopes.add(new Scope(null, task.task(), effectiveStart, effectiveStart.plus(scopeDuration)));
 
             if (tasks.isEmpty()) {
                 return scopes;
             }
 
-            Instant newCurrentTime = currentTime.plus(scopeDuration);
+            Instant newCurrentTime = effectiveStart.plus(scopeDuration);
             List<Scope> nextResult;
             if (newCurrentTime.equals(slot.endAt())) {
-                nextResult = advanceToNextSlot(tasks, dependencyCount, remainingTaskDurations, slots, slot, currentTime, plannedScopes);
+                nextResult = advanceToNextSlot(tasks, dependencyCount, remainingTaskDurations,
+                        slots, slot, newCurrentTime, plannedScopes);
             } else {
                 nextResult = plan(tasks, dependencyCount, remainingTaskDurations,
                         slots, slot, newCurrentTime, scopes);
@@ -172,7 +180,7 @@ public class Algorithm {
                                           Instant currentTime,
                                           List<Scope> plannedScopes) {
         ConcreteWorkSlot nextSlot = slots.getNextSlot(slot);
-        if (nextSlot == null || !nextSlot.startAt().isAfter(currentTime)) {
+        if (nextSlot == null || nextSlot.startAt().isBefore(currentTime)) {
             return null;
         }
         return plan(tasks, dependencyCount, remainingTaskDurations, slots, nextSlot, nextSlot.startAt(), plannedScopes);
