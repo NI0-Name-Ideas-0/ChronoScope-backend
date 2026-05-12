@@ -51,10 +51,9 @@ public class Algorithm {
         if (tasks.isEmpty()) {
             return List.of();
         }
-        for (TaskGraphNode task : tasks) {
-            if (remainingTaskDurations.get(task).isPositive()) {
-                break;
-            }
+        boolean hasRemainingWork = tasks.stream()
+                .anyMatch(task -> remainingTaskDurations.get(task).isPositive());
+        if (!hasRemainingWork) {
             return List.of();
         }
 

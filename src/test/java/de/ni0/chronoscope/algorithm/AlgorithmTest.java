@@ -225,6 +225,31 @@ class AlgorithmTest {
     }
 
     @Test
+    void planContinuesWhenSomeTasksAreFinishedButOthersHaveRemainingWork() {
+        TaskGraphNode finishedTask = node(1L, Duration.ofMinutes(60), START.plus(Duration.ofHours(4)));
+        TaskGraphNode remainingTask = node(2L, Duration.ofMinutes(60), START.plus(Duration.ofHours(4)));
+        finishedTask.task().setElapsed(Duration.ofMinutes(60));
+        remainingTask.task().setElapsed(Duration.ofMinutes(0));
+        ConcreteWorkSlot slot = slot(START, START.plus(Duration.ofHours(2)));
+        Algorithm algorithm = new Algorithm(List.of(new FixedWeightProvider(Map.of(
+                finishedTask, 2.0,
+                remainingTask, 1.0))));
+
+        List<Scope> result = algorithm.plan(
+                new ArrayList<>(List.of(finishedTask, remainingTask)),
+                dependencyCounts(finishedTask, remainingTask),
+                remainingDurations(finishedTask, remainingTask),
+                new WorkSlotProvider(List.of(slot)),
+                slot,
+                START,
+                new ArrayList<>());
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertScope(result.get(0), remainingTask, START, START.plus(Duration.ofMinutes(60)));
+    }
+
+    @Test
     void planAdvancesToNextSlotWhenRemainingTimeIsBelowMinScopeDuration() {
         // Slot 1 has only 20 min; task needs min 30 min → must skip slot 1 entirely and use slot 2
         TaskGraphNode task = node(1L, Duration.ofMinutes(60), Duration.ofMinutes(30), Duration.ofMinutes(60),
