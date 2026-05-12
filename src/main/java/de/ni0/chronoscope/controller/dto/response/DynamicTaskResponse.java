@@ -16,7 +16,7 @@ import jakarta.validation.constraints.NotNull;
 public record DynamicTaskResponse(
     @NotNull Long id,
     @NotNull String organizationId,
-    ColorToken color,
+    @NotNull ColorToken color,
     @NotNull String name,
     String description,
     @NotNull Task.Difficulty difficulty,
@@ -31,10 +31,4 @@ public record DynamicTaskResponse(
     @NotNull List<Long> dependencies,
     @NotNull List<Long> dependents
 ) implements TaskResponse {
-    public DynamicTaskResponse(Long id, String organizationId, String name, String description,
-            Task.Difficulty difficulty, Instant startAt, Instant endAt, List<LabelResponse> labels,
-            Duration duration, Duration elapsed, Duration minScopeDuration, Duration maxScopeDuration,
-            List<ScopeResponse> scopes, List<Long> dependencies, List<Long> dependents) {
-        this(id, organizationId, null, name, description, difficulty, startAt, endAt, labels, duration, elapsed, minScopeDuration, maxScopeDuration, scopes, dependencies, dependents);
-    }
 }

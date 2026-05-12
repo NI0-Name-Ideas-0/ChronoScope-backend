@@ -8,7 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import de.ni0.chronoscope.model.IdentityOrganizationColor;
 
 public interface IdentityOrganizationColorRepository extends JpaRepository<IdentityOrganizationColor, Long> {
-    List<IdentityOrganizationColor> findByIdentityId(Long identityId);
+    List<IdentityOrganizationColor> findAllByIdentityId(Long identityId);
 
     Optional<IdentityOrganizationColor> findByIdentityIdAndOrganizationId(Long identityId, String organizationId);
 

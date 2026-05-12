@@ -14,7 +14,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import de.ni0.chronoscope.exception.InvalidRequestException;
 import de.ni0.chronoscope.exception.ResourceNotFoundException;
-import de.ni0.chronoscope.model.ColorToken;
 import de.ni0.chronoscope.model.DynamicTask;
 import de.ni0.chronoscope.model.StaticTask;
 import de.ni0.chronoscope.model.Task;
@@ -42,7 +41,6 @@ public class TaskService {
      * @return persisted task
      */
     public StaticTask createStaticTask(StaticTask task) {
-        normalizeColor(task);
         validateStaticTask(task);
         return this.taskRepository.save(task);
     }
@@ -54,7 +52,6 @@ public class TaskService {
      * @return persisted task
      */
     public DynamicTask createDynamicTask(DynamicTask task) {
-        normalizeColor(task);
         validateAndNormalizeDynamicTask(task);
         validateDependencyIdentity(task);
         return this.taskRepository.save(task);
@@ -185,7 +182,6 @@ public class TaskService {
         }
 
         validateAndNormalizeDynamicTask(managedTask);
-        normalizeColor(managedTask);
 
         if (dependencyIds != null) {
             Set<DynamicTask> previousDependencies = new HashSet<>(managedTask.getDependencies());
@@ -264,16 +260,9 @@ public class TaskService {
         }
 
         validateStaticTask(managedTask);
-        normalizeColor(managedTask);
 
         this.taskRepository.flush();
         return managedTask;
-    }
-
-    private void normalizeColor(Task task) {
-        if (task.getColor() == ColorToken.UNSET) {
-            task.setColor(null);
-        }
     }
 
     private void validateStaticTask(StaticTask task) {

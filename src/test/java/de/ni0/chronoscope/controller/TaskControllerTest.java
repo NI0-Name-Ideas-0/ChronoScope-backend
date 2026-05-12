@@ -34,6 +34,7 @@ import de.ni0.chronoscope.exception.AccountAccessDeniedException;
 import de.ni0.chronoscope.exception.InvalidRequestException;
 import de.ni0.chronoscope.mapper.TaskMapper;
 import de.ni0.chronoscope.model.Account;
+import de.ni0.chronoscope.model.ColorToken;
 import de.ni0.chronoscope.model.DynamicTask;
 import de.ni0.chronoscope.model.StaticTask;
 import de.ni0.chronoscope.service.AccountService;
@@ -73,6 +74,7 @@ class TaskControllerTest {
         StaticTaskResponse staticResponse = new StaticTaskResponse(
             1L,
             UUID.randomUUID().toString(),
+            ColorToken.RED,
             "Static task",
             "desc",
             Task.Difficulty.TRIVIAL,
@@ -85,6 +87,7 @@ class TaskControllerTest {
         DynamicTaskResponse dynamicResponse = new DynamicTaskResponse(
             2L,
                 UUID.randomUUID().toString(),
+            ColorToken.RED,
             "Dynamic task",
             "desc",
             Task.Difficulty.TRIVIAL,
@@ -123,6 +126,7 @@ class TaskControllerTest {
 
         StaticTaskCreateRequest request = new StaticTaskCreateRequest(
             UUID.randomUUID().toString(),
+            ColorToken.RED,
             "Write report",
             "Prepare weekly summary",
             "FREQ=WEEKLY;BYDAY=MO",
@@ -144,6 +148,7 @@ class TaskControllerTest {
         StaticTaskResponse expectedResponse = new StaticTaskResponse(
             123L,
             request.organizationId(),
+            ColorToken.RED,
             "Write report",
             "Prepare weekly summary",
             Task.Difficulty.TRIVIAL,
@@ -177,6 +182,7 @@ class TaskControllerTest {
 
         StaticTaskCreateRequest request = new StaticTaskCreateRequest(
             null,
+            ColorToken.RED,
             "Maintenance window",
             "Time that should stay blocked",
             "FREQ=DAILY;COUNT=1",
@@ -199,6 +205,7 @@ class TaskControllerTest {
         StaticTaskResponse expectedResponse = new StaticTaskResponse(
             123L,
             null,
+            ColorToken.RED,
             "Maintenance window",
             "Time that should stay blocked",
             Task.Difficulty.TRIVIAL,
@@ -232,6 +239,7 @@ class TaskControllerTest {
 
         DynamicTaskCreateRequest request = new DynamicTaskCreateRequest(
             UUID.randomUUID().toString(),
+            ColorToken.RED,
             "Implement API endpoint",
             "Create and test endpoint",
             Task.Difficulty.TRIVIAL,
@@ -255,6 +263,7 @@ class TaskControllerTest {
         DynamicTaskResponse expectedResponse = new DynamicTaskResponse(
             124L,
             request.organizationId(),
+            ColorToken.RED,
             "Implement API endpoint",
             "Create and test endpoint",
             Task.Difficulty.TRIVIAL,
@@ -310,6 +319,7 @@ class TaskControllerTest {
         DynamicTaskResponse expectedResponse = new DynamicTaskResponse(
             500L,
             UUID.randomUUID().toString(),
+            ColorToken.RED,
             "Dynamic task",
             "desc",
                 Task.Difficulty.TRIVIAL,
@@ -348,6 +358,7 @@ class TaskControllerTest {
 
         StaticTaskUpdateRequest request = new StaticTaskUpdateRequest(
             null,
+            ColorToken.RED,
             "Updated static task",
             "Updated description",
             "FREQ=WEEKLY",
@@ -361,6 +372,7 @@ class TaskControllerTest {
         StaticTaskResponse expectedResponse = new StaticTaskResponse(
             200L,
             UUID.randomUUID().toString(),
+            ColorToken.RED,
             "Updated static task",
             "Updated description",
                 Task.Difficulty.TRIVIAL,
@@ -397,6 +409,7 @@ class TaskControllerTest {
 
         DynamicTaskUpdateRequest request = new DynamicTaskUpdateRequest(
             null,
+            ColorToken.RED,
             "Dynamic name",
             "Dynamic description",
                 Task.Difficulty.TRIVIAL,
@@ -431,6 +444,7 @@ class TaskControllerTest {
 
         StaticTaskUpdateRequest request = new StaticTaskUpdateRequest(
             null,
+            ColorToken.RED,
             "Static name",
             "Static description",
             "FREQ=WEEKLY",
@@ -471,6 +485,7 @@ class TaskControllerTest {
         StaticTaskResponse expectedResponse = new StaticTaskResponse(
             400L,
             targetOrganization,
+            ColorToken.RED,
             "Updated static task",
             "Updated description",
             Task.Difficulty.TRIVIAL,
@@ -483,6 +498,7 @@ class TaskControllerTest {
 
         StaticTaskUpdateRequest request = new StaticTaskUpdateRequest(
             targetOrganization,
+            ColorToken.RED,
             "Updated static task",
             "Updated description",
             "FREQ=WEEKLY",
@@ -517,6 +533,7 @@ class TaskControllerTest {
 
         StaticTaskUpdateRequest request = new StaticTaskUpdateRequest(
             UUID.randomUUID().toString(),
+            ColorToken.RED,
             "Updated static task",
             "Updated description",
             "FREQ=WEEKLY",

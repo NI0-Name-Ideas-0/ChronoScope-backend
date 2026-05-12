@@ -36,13 +36,6 @@ public record DynamicTaskUpdateRequest(
     Duration maxScopeDuration,
     List<@NotNull Long> dependencies
 ) implements TaskUpdateRequest {
-    public DynamicTaskUpdateRequest(String organizationId, String name, String description,
-            Task.Difficulty difficulty, Instant startAt, Instant endAt,
-            List<@Valid @NotNull LabelCreateRequest> labels,
-            Duration duration, Duration elapsed, Duration minScopeDuration,
-            Duration maxScopeDuration, List<@NotNull Long> dependencies) {
-        this(organizationId, null, name, description, difficulty, startAt, endAt, labels, duration, elapsed, minScopeDuration, maxScopeDuration, dependencies);
-    }
 
     /**
      * Validation hook that permits omitted duration updates while rejecting negative values.

@@ -16,7 +16,7 @@ public record StaticTaskResponse(
     @NotNull Long id,
     @Schema(description = "Organization ID. Null for blocker tasks that are not assigned to an organizationId.", nullable = true)
     String organizationId,
-    ColorToken color,
+    @NotNull ColorToken color,
     @NotNull String name,
     String description,
     @NotNull Task.Difficulty difficulty,
@@ -26,9 +26,4 @@ public record StaticTaskResponse(
     @NotNull List<LabelResponse> labels,
     @NotNull Boolean isBlocker
 ) implements TaskResponse {
-    public StaticTaskResponse(Long id, String organizationId, String name, String description,
-            Task.Difficulty difficulty, Instant startAt, Instant endAt, String rrule,
-            List<LabelResponse> labels, Boolean isBlocker) {
-        this(id, organizationId, null, name, description, difficulty, startAt, endAt, rrule, labels, isBlocker);
-    }
 }

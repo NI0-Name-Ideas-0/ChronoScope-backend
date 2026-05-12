@@ -101,7 +101,7 @@ public class IdentityService {
 
     @Transactional(readOnly = true)
     public List<IdentityOrganizationColor> getOrganizationColors(long identityId) {
-        return this.identityOrganizationColorRepository.findByIdentityId(identityId);
+        return this.identityOrganizationColorRepository.findAllByIdentityId(identityId);
     }
 
     @Transactional
@@ -197,7 +197,7 @@ public class IdentityService {
         this.workSlotRepository.saveAll(workSlots);
 
         if (this.identityOrganizationColorRepository != null) {
-            List<IdentityOrganizationColor> oldOrganizationColors = this.identityOrganizationColorRepository.findByIdentityId(oldIdentity.getId());
+            List<IdentityOrganizationColor> oldOrganizationColors = this.identityOrganizationColorRepository.findAllByIdentityId(oldIdentity.getId());
             for (IdentityOrganizationColor oldColor : oldOrganizationColors) {
                 var newColor = this.identityOrganizationColorRepository.findByIdentityIdAndOrganizationId(newIdentity.getId(), oldColor.getOrganizationId());
                 if (newColor.isPresent()) {

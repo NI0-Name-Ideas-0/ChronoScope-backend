@@ -53,7 +53,7 @@ public abstract class Task {
     private String organizationId;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "color", nullable = true)
+    @Column(name = "color", nullable = false)
     private ColorToken color;
 
     @Column(nullable = false)

@@ -544,12 +544,12 @@ class IdentityServiceTest {
         color.setOrganizationId("org-1");
         color.setColor(ColorToken.BLUE);
 
-        when(identityOrganizationColorRepository.findByIdentityId(99L)).thenReturn(List.of(color));
+        when(identityOrganizationColorRepository.findAllByIdentityId(99L)).thenReturn(List.of(color));
 
         List<IdentityOrganizationColor> result = identityService.getOrganizationColors(99L);
 
         assertEquals(List.of(color), result);
-        verify(identityOrganizationColorRepository).findByIdentityId(99L);
+        verify(identityOrganizationColorRepository).findAllByIdentityId(99L);
     }
 
     @Test
@@ -638,7 +638,7 @@ class IdentityServiceTest {
         targetColor.setOrganizationId("org-1");
         targetColor.setColor(ColorToken.ORANGE);
 
-        when(identityOrganizationColorRepository.findByIdentityId(targetIdentity.getId())).thenReturn(List.of(targetColor));
+        when(identityOrganizationColorRepository.findAllByIdentityId(targetIdentity.getId())).thenReturn(List.of(targetColor));
 
         String token = requestLinkAndExtractToken(identityService, sourceAccount.getId(), targetAccount);
         when(accountRepository.getReferenceById(sourceAccount.getId())).thenReturn(sourceAccount);
@@ -675,7 +675,7 @@ class IdentityServiceTest {
         sourceColor.setOrganizationId("org-1");
         sourceColor.setColor(ColorToken.PURPLE);
 
-        when(identityOrganizationColorRepository.findByIdentityId(targetIdentity.getId())).thenReturn(List.of(targetColor));
+        when(identityOrganizationColorRepository.findAllByIdentityId(targetIdentity.getId())).thenReturn(List.of(targetColor));
         when(identityOrganizationColorRepository.findByIdentityIdAndOrganizationId(sourceIdentity.getId(), "org-1")).thenReturn(Optional.of(sourceColor));
 
         String token = requestLinkAndExtractToken(identityService, sourceAccount.getId(), targetAccount);

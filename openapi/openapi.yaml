@@ -931,6 +931,7 @@ components:
       description: Create request for a dynamic (schedulable) task with duration and
         scope constraints
       required:
+      - color
       - dependencies
       - description
       - difficulty
@@ -1038,6 +1039,7 @@ components:
       description: "Response for a dynamic (schedulable) task, including its scopes\
         \ and dependencies"
       required:
+      - color
       - dependencies
       - dependents
       - difficulty
@@ -1501,6 +1503,7 @@ components:
             format: date-time
       description: Create request for a static (fixed-time) task
       required:
+      - color
       - description
       - difficulty
       - endAt
@@ -1590,6 +1593,7 @@ components:
             format: date-time
       description: Response for a static (fixed-time) task
       required:
+      - color
       - difficulty
       - endAt
       - id

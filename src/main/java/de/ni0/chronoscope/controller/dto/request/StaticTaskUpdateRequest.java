@@ -26,9 +26,4 @@ public record StaticTaskUpdateRequest(
     List<@Valid @NotNull LabelCreateRequest> labels,
     Boolean isBlocker
 ) implements TaskUpdateRequest {
-    public StaticTaskUpdateRequest(String organizationId, String name, String description, String rrule,
-            Task.Difficulty difficulty, Instant startAt, Instant endAt,
-            List<@Valid @NotNull LabelCreateRequest> labels, Boolean isBlocker) {
-        this(organizationId, null, name, description, rrule, difficulty, startAt, endAt, labels, isBlocker);
-    }
 }
