@@ -274,12 +274,67 @@ class AlgorithmTest {
         assertScope(result.get(1), task, START.plus(Duration.ofMinutes(25)), START.plus(Duration.ofMinutes(45)));
     }
 
+    @Test
+    void planDoesNotScheduleTaskBeforeItsStartAt() {
+        // Task's startAt is two days after the first slot. The algorithm must not place any scope
+        // in the early slot and must instead wait until the later slot whose start >= task.startAt.
+        Instant taskStart = START.plus(Duration.ofDays(2));
+        TaskGraphNode task = node(1L, Duration.ofHours(2), taskStart, taskStart.plus(Duration.ofHours(4)));
+        ConcreteWorkSlot earlySlot = slot(START, START.plus(Duration.ofHours(2)));
+        ConcreteWorkSlot laterSlot = slot(taskStart, taskStart.plus(Duration.ofHours(4)));
+        Algorithm algorithm = new Algorithm(List.of(new FixedWeightProvider(Map.of(task, 1.0))));
+
+        List<Scope> result = algorithm.plan(
+                new ArrayList<>(List.of(task)),
+                dependencyCounts(task),
+                remainingDurations(task),
+                new ExhaustingWorkSlotProvider(List.of(earlySlot, laterSlot)),
+                earlySlot,
+                START,
+                new ArrayList<>());
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertScope(result.get(0), task, taskStart, taskStart.plus(Duration.ofHours(2)));
+    }
+
+    @Test
+    void planReturnsNullWhenNoSlotExistsOnOrAfterTaskStartAt() {
+        // Only slot is before the task's startAt → impossible to schedule → must return null.
+        Instant taskStart = START.plus(Duration.ofDays(2));
+        TaskGraphNode task = node(1L, Duration.ofHours(1), taskStart, taskStart.plus(Duration.ofHours(4)));
+        ConcreteWorkSlot onlySlot = slot(START, START.plus(Duration.ofHours(2)));
+        Algorithm algorithm = new Algorithm(List.of(new FixedWeightProvider(Map.of(task, 1.0))));
+
+        List<Scope> result = algorithm.plan(
+                new ArrayList<>(List.of(task)),
+                dependencyCounts(task),
+                remainingDurations(task),
+                new ExhaustingWorkSlotProvider(List.of(onlySlot)),
+                onlySlot,
+                START,
+                new ArrayList<>());
+
+        assertNull(result);
+    }
+
     private static TaskGraphNode node(Long id, Duration duration, Instant deadline) {
         DynamicTask task = new DynamicTask();
         task.setId(id);
         task.setDuration(duration);
         task.setEndAt(deadline);
         task.setStartAt(START);
+        task.setMinScopeDuration(Duration.ofMinutes(1));
+        task.setMaxScopeDuration(duration);
+        return new TaskGraphNode(task, new ArrayList<>(), new ArrayList<>());
+    }
+
+    private static TaskGraphNode node(Long id, Duration duration, Instant startAt, Instant deadline) {
+        DynamicTask task = new DynamicTask();
+        task.setId(id);
+        task.setDuration(duration);
+        task.setStartAt(startAt);
+        task.setEndAt(deadline);
         task.setMinScopeDuration(Duration.ofMinutes(1));
         task.setMaxScopeDuration(duration);
         return new TaskGraphNode(task, new ArrayList<>(), new ArrayList<>());
