@@ -158,7 +158,7 @@ class PlanningServiceTest {
 
         assertEquals(1, result.size());
         assertEquals(task, result.getFirst().getDynamicTask());
-        verify(scopeRepository).deleteAll(Set.of(existingScope));
+        verify(scopeRepository).deleteAllInBatch(Set.of(existingScope));
         verify(scopeRepository).saveAll(result);
         verifyNoMoreInteractions(taskRepository, scopeRepository, workSlotService, accountService);
     }
@@ -190,7 +190,7 @@ class PlanningServiceTest {
         assertEquals(1, result.size());
         assertEquals(task, result.getFirst().getDynamicTask());
         assertEquals(existingScope.getEndAt(), result.getFirst().getStartAt());
-        verify(scopeRepository).deleteAll(Set.of());
+        verify(scopeRepository).deleteAllInBatch(Set.of());
         verify(scopeRepository).saveAll(result);
         verifyNoMoreInteractions(taskRepository, scopeRepository, workSlotService, accountService);
     }
@@ -226,7 +226,7 @@ class PlanningServiceTest {
         assertEquals(1, result.size());
         assertEquals(dependentTask, result.getFirst().getDynamicTask());
         assertEquals(existingScope.getEndAt(), result.getFirst().getStartAt());
-        verify(scopeRepository).deleteAll(Set.of());
+        verify(scopeRepository).deleteAllInBatch(Set.of());
         verify(scopeRepository).saveAll(result);
         verifyNoMoreInteractions(taskRepository, scopeRepository, workSlotService, accountService);
     }
