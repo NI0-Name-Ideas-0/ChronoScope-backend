@@ -144,7 +144,7 @@ public class Algorithm {
             List<Scope> nextResult;
             if (newCurrentTime.equals(slot.endAt())) {
                 nextResult = advanceToNextSlot(tasks, dependencyCount, remainingTaskDurations,
-                        slots, slot, newCurrentTime, plannedScopes);
+                        slots, slot, newCurrentTime, scopes);
             } else {
                 nextResult = plan(tasks, dependencyCount, remainingTaskDurations,
                         slots, slot, newCurrentTime, scopes);
