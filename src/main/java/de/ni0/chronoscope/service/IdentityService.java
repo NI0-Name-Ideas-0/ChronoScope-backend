@@ -196,19 +196,12 @@ public class IdentityService {
         }
         this.workSlotRepository.saveAll(workSlots);
 
-        if (this.identityOrganizationColorRepository != null) {
-            List<IdentityOrganizationColor> oldOrganizationColors = this.identityOrganizationColorRepository.findAllByIdentityId(oldIdentity.getId());
-            for (IdentityOrganizationColor oldColor : oldOrganizationColors) {
-                var newColor = this.identityOrganizationColorRepository.findByIdentityIdAndOrganizationId(newIdentity.getId(), oldColor.getOrganizationId());
-                if (newColor.isPresent()) {
-                    newColor.get().setColor(oldColor.getColor());
-                    this.identityOrganizationColorRepository.save(newColor.get());
-                    this.identityOrganizationColorRepository.delete(oldColor);
-                } else {
-                    oldColor.setIdentity(newIdentity);
-                    this.identityOrganizationColorRepository.save(oldColor);
-                }
-            }
+        List<IdentityOrganizationColor> oldOrganizationColors = this.identityOrganizationColorRepository.findAllByIdentityId(oldIdentity.getId());
+        for (IdentityOrganizationColor oldColor : oldOrganizationColors) {
+            var newColor = this.identityOrganizationColorRepository.findByIdentityIdAndOrganizationId(newIdentity.getId(), oldColor.getOrganizationId());
+            if (newColor.isPresent()) continue; // target identity already has a color for this organization, skip
+            oldColor.setIdentity(newIdentity);
+            this.identityOrganizationColorRepository.save(oldColor);
         }
 
         for (Account account : oldIdentity.getAccounts()) {
