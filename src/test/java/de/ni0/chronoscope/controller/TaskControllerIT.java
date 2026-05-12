@@ -762,7 +762,7 @@ class TaskControllerIT {
         String payload = """
             {
               "type": "dynamic",
-              "duration": "PT8M"
+              "duration": "PT15M"
             }
             """;
 
@@ -771,9 +771,9 @@ class TaskControllerIT {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(payload))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.duration").value("PT8M"))
-            .andExpect(jsonPath("$.minScopeDuration").value("PT8M"))
-            .andExpect(jsonPath("$.maxScopeDuration").value("PT8M"));
+            .andExpect(jsonPath("$.duration").value("PT15M"))
+            .andExpect(jsonPath("$.minScopeDuration").value("PT15M"))
+            .andExpect(jsonPath("$.maxScopeDuration").value("PT15M"));
     }
 
     @Test
