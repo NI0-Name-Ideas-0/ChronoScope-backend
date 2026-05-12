@@ -114,7 +114,11 @@ public class PlanningService {
 
             // If there is an active scope we want  to respect it when planning
             if (activeScope != null && activeScope.getDynamicTask().getId().equals(node.task().getId())) {
-                remainingTaskDuration = remainingTaskDuration.minus(activeScope.getStartAt().until(activeScope.getEndAt()));
+                if (activeScope.getEndAt().isBefore(activeScope.getStartAt())) {
+                    throw new InvalidRequestException("Active scope end time must not be before start time");
+                }
+                Duration activeScopeDuration = Duration.between(activeScope.getStartAt(), activeScope.getEndAt());
+                remainingTaskDuration = remainingTaskDuration.minus(activeScopeDuration);
             }
 
             if (remainingTaskDuration.isNegative()) {
