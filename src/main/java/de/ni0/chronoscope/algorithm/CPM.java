@@ -34,9 +34,12 @@ public class CPM {
 
     private Instant calcFirstStart(TaskGraphNode task, Instant defaultStart) {
         Instant firstStart = defaultStart;
+        if (task.getStartAt() != null && task.getStartAt().isAfter(defaultStart)) {
+            firstStart = task.getStartAt();
+        }
         for (TaskGraphNode dependency : task.dependencies()) {
             Instant depEarliestStart = this.calcFirstStart(dependency, defaultStart);
-            Instant depEarliestEnd = depEarliestStart.plus(dependency.getDuration());
+            Instant depEarliestEnd = depEarliestStart.plus(dependency.getRemaining());
             if (depEarliestEnd.isAfter(firstStart)) {
                 firstStart = depEarliestEnd;
             }
@@ -50,7 +53,7 @@ public class CPM {
         }
         for (TaskGraphNode successor : task.dependents()) {
             Instant sucLatestFinish = this.calcLatestFinish(successor);
-            Instant sucLatestStart = sucLatestFinish.minus(successor.getDuration());
+            Instant sucLatestStart = sucLatestFinish.minus(successor.getRemaining());
             if (sucLatestStart.isBefore(latestFinish)) {
                 latestFinish = sucLatestStart;
             }
@@ -67,9 +70,9 @@ public class CPM {
     public CPM(List<TaskGraphNode> tasks, Instant start) {
         for (TaskGraphNode task : tasks) {
             Instant firstStart = calcFirstStart(task, start);
-            Instant firstFinish = firstStart.plus(task.getDuration());
+            Instant firstFinish = firstStart.plus(task.getRemaining());
             Instant latestFinish = calcLatestFinish(task);
-            Instant latestStart = latestFinish.minus(task.getDuration());
+            Instant latestStart = latestFinish.minus(task.getRemaining());
             this.taskData.put(task, new TaskData(task, firstStart, firstFinish, latestStart, latestFinish));
         }
     }

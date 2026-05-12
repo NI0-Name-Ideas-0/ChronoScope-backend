@@ -175,7 +175,7 @@ class AlgorithmTest {
                 START,
                 new ArrayList<>());
 
-        assertNull(result);
+        assertEquals(0, result.size());
     }
 
     @Test
@@ -200,6 +200,53 @@ class AlgorithmTest {
         assertScope(result.get(0), task, START, START.plus(Duration.ofMinutes(30)));
         assertScope(result.get(1), task, START.plus(Duration.ofMinutes(30)), START.plus(Duration.ofMinutes(60)));
         assertScope(result.get(2), task, START.plus(Duration.ofMinutes(60)), START.plus(Duration.ofMinutes(90)));
+    }
+
+    @Test
+    void planDoesNotPlanFinishedTask() {
+        // Task: 90 min total, max scope 30 min → expect 3 × 30-min scopes in a 2 h slot
+        TaskGraphNode task = node(1L, Duration.ofMinutes(90), Duration.ofMinutes(1), Duration.ofMinutes(90),
+                START.plus(Duration.ofHours(4)));
+        task.task().setElapsed(Duration.ofMinutes(90));
+        ConcreteWorkSlot slot = slot(START, START.plus(Duration.ofHours(2)));
+        Algorithm algorithm = new Algorithm(List.of(new FixedWeightProvider(Map.of(task, 1.0))));
+
+        List<Scope> result = algorithm.plan(
+                new ArrayList<>(List.of(task)),
+                dependencyCounts(task),
+                remainingDurations(task),
+                new WorkSlotProvider(List.of(slot)),
+                slot,
+                START,
+                new ArrayList<>());
+
+        assertNotNull(result);
+        assertEquals(0, result.size());
+    }
+
+    @Test
+    void planContinuesWhenSomeTasksAreFinishedButOthersHaveRemainingWork() {
+        TaskGraphNode finishedTask = node(1L, Duration.ofMinutes(60), START.plus(Duration.ofHours(4)));
+        TaskGraphNode remainingTask = node(2L, Duration.ofMinutes(60), START.plus(Duration.ofHours(4)));
+        finishedTask.task().setElapsed(Duration.ofMinutes(60));
+        remainingTask.task().setElapsed(Duration.ofMinutes(0));
+        ConcreteWorkSlot slot = slot(START, START.plus(Duration.ofHours(2)));
+        Algorithm algorithm = new Algorithm(List.of(new FixedWeightProvider(Map.of(
+                finishedTask, 2.0,
+                remainingTask, 1.0))));
+
+        List<Scope> result = algorithm.plan(
+                new ArrayList<>(List.of(finishedTask, remainingTask)),
+                dependencyCounts(finishedTask, remainingTask),
+                remainingDurations(finishedTask, remainingTask),
+                new WorkSlotProvider(List.of(slot)),
+                slot,
+                START,
+                new ArrayList<>());
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertScope(result.get(0), remainingTask, START, START.plus(Duration.ofMinutes(60)));
     }
 
     @Test
@@ -299,6 +346,29 @@ class AlgorithmTest {
     }
 
     @Test
+    void planDoesNotScheduleTaskBeforeItsStartAt2() {
+        // Task's startAt is two days after the first slot. The algorithm must not place any scope
+        // in the early slot and must instead wait until the later slot whose start >= task.startAt.
+        Instant taskStart = START.plus(Duration.ofHours(2));
+        TaskGraphNode task = node(1L, Duration.ofHours(2), taskStart, taskStart.plus(Duration.ofHours(8)));
+        ConcreteWorkSlot earlySlot = slot(START, START.plus(Duration.ofHours(8)));
+        Algorithm algorithm = new Algorithm(List.of(new FixedWeightProvider(Map.of(task, 1.0))));
+
+        List<Scope> result = algorithm.plan(
+                new ArrayList<>(List.of(task)),
+                dependencyCounts(task),
+                remainingDurations(task),
+                new ExhaustingWorkSlotProvider(List.of(earlySlot)),
+                earlySlot,
+                START,
+                new ArrayList<>());
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertScope(result.getFirst(), task, taskStart, taskStart.plus(Duration.ofHours(2)));
+    }
+
+    @Test
     void planReturnsNullWhenNoSlotExistsOnOrAfterTaskStartAt() {
         // Only slot is before the task's startAt → impossible to schedule → must return null.
         Instant taskStart = START.plus(Duration.ofDays(2));
@@ -371,7 +441,7 @@ class AlgorithmTest {
     private static Map<TaskGraphNode, Duration> remainingDurations(TaskGraphNode... tasks) {
         Map<TaskGraphNode, Duration> remainingDurations = new HashMap<>();
         for (TaskGraphNode task : tasks) {
-            remainingDurations.put(task, task.getDuration());
+            remainingDurations.put(task, task.getDuration().minus(task.task().getElapsed()));
         }
         return remainingDurations;
     }

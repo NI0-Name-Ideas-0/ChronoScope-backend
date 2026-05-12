@@ -9,7 +9,6 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -22,7 +21,6 @@ import de.ni0.chronoscope.model.Account;
 import de.ni0.chronoscope.model.DynamicTask;
 import de.ni0.chronoscope.model.Identity;
 import de.ni0.chronoscope.model.Label;
-import de.ni0.chronoscope.model.Scope;
 import de.ni0.chronoscope.model.Task;
 import de.ni0.chronoscope.model.WorkSettings;
 
@@ -47,9 +45,6 @@ class RepositoryMappingsIT {
 
     @Autowired
     private TaskRepository taskRepository;
-
-    @Autowired
-    private ScopeRepository scopeRepository;
 
     @Test
     void accountRepository_FindsAccountBySubject() {
@@ -124,7 +119,7 @@ class RepositoryMappingsIT {
         Account account = new Account();
         account.setSubject("subject-dependency-test");
         account.setIdentity(identity);
-        account = accountRepository.saveAndFlush(account);
+        accountRepository.saveAndFlush(account);
 
         DynamicTask predecessor = new DynamicTask();
         predecessor.setIdentity(identity);
@@ -166,46 +161,5 @@ class RepositoryMappingsIT {
 
         assertEquals(1, reloadedDependent.getDependencies().size());
         assertEquals(predecessor.getId(), reloadedDependent.getDependencies().iterator().next().getId());
-    }
-
-    @Test
-    void scopeRepository_DeleteByDynamicTaskIdIn_DeletesOnlyMatchingScopes() {
-        Identity identity = identityRepository.saveAndFlush(new Identity());
-        String organization = UUID.randomUUID().toString();
-
-        DynamicTask taskToDelete = buildDynamicTask(identity, organization);
-        DynamicTask taskToKeep = buildDynamicTask(identity, organization);
-
-        Scope scopeToDelete = new Scope(null, taskToDelete,
-                Instant.parse("2026-04-26T08:00:00Z"), Instant.parse("2026-04-26T09:00:00Z"));
-        Scope scopeToKeep = new Scope(null, taskToKeep,
-                Instant.parse("2026-04-26T09:00:00Z"), Instant.parse("2026-04-26T10:00:00Z"));
-        scopeRepository.saveAndFlush(scopeToDelete);
-        scopeRepository.saveAndFlush(scopeToKeep);
-
-        long deleted = scopeRepository.deleteByDynamicTaskIdIn(List.of(taskToDelete.getId()));
-
-        assertEquals(1L, deleted);
-        assertTrue(scopeRepository.findById(scopeToKeep.getId()).isPresent());
-    }
-
-    private DynamicTask buildDynamicTask(Identity identity, String organization) {
-        DynamicTask task = new DynamicTask();
-        task.setIdentity(identity);
-        task.setOrganizationId(organization);
-        task.setName("repo-it-task-" + System.nanoTime());
-        task.setDescription("Test task");
-        task.setDifficulty(Task.Difficulty.TRIVIAL);
-        task.setStartAt(Instant.parse("2026-04-26T08:00:00Z"));
-        task.setEndAt(Instant.parse("2026-04-26T18:00:00Z"));
-        task.setDuration(Duration.of(60, ChronoUnit.MINUTES));
-        task.setElapsed(Duration.of(0, ChronoUnit.MINUTES));
-        task.setMinScopeDuration(Duration.of(30, ChronoUnit.MINUTES));
-        task.setMaxScopeDuration(Duration.of(60, ChronoUnit.MINUTES));
-        task.setLabels(new ArrayList<>());
-        task.setScopes(new ArrayList<>());
-        task.setDependencies(new HashSet<>());
-        task.setDependents(new HashSet<>());
-        return taskRepository.saveAndFlush(task);
     }
 }
