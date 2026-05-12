@@ -134,7 +134,7 @@ public class IdentityController {
         Identity identity = this.requestContext.getAccount().getIdentity();
         this.keycloakService.validateIdentityOrgAccess(identity, organizationId);
         var color = this.identityService.upsertOrganizationColor(identity.getId(), organizationId, request.color());
-        return new IdentityOrganizationColorResponse(organizationId, color == null ? request.color() : color.getColor());
+        return new IdentityOrganizationColorResponse(organizationId, color.getColor());
     }
 
     @DeleteMapping("/colors/{organizationId}")

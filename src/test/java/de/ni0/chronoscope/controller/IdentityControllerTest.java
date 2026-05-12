@@ -144,22 +144,6 @@ class IdentityControllerTest {
     }
 
     @Test
-    void updateOrganizationColor_ReturnsUnsetWhenServiceDeletesColor() {
-        Account account = account(1L, 2L);
-        Identity identity = account.getIdentity();
-        when(requestContext.getAccount()).thenReturn(account);
-        when(identityService.upsertOrganizationColor(identity.getId(), "org-1", ColorToken.UNSET)).thenReturn(null);
-
-        IdentityController controller = new IdentityController(identityService, requestContext, identityMapper, keycloakService);
-
-        IdentityOrganizationColorResponse actual = controller.updateOrganizationColor("org-1", new IdentityOrganizationColorUpdateRequest(ColorToken.UNSET));
-
-        assertEquals(new IdentityOrganizationColorResponse("org-1", ColorToken.UNSET), actual);
-        verify(keycloakService).validateIdentityOrgAccess(identity, "org-1");
-        verify(identityService).upsertOrganizationColor(identity.getId(), "org-1", ColorToken.UNSET);
-    }
-
-    @Test
     void deleteOrganizationColor_ValidatesAccessAndDeletesColor() {
         Account account = account(1L, 2L);
         Identity identity = account.getIdentity();

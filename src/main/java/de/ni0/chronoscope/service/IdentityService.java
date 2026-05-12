@@ -121,18 +121,13 @@ public class IdentityService {
 
     @Transactional
     public IdentityOrganizationColor upsertOrganizationColor(long identityId, String organizationId, ColorToken color) {
-        Identity identity = this.identityRepository.findById(identityId)
-            .orElseThrow(() -> new ResourceNotFoundException("Identity not found: " + identityId));
         if (color == null) {
             throw new IllegalArgumentException("color must be provided");
         }
+        Identity identity = this.identityRepository.findById(identityId)
+            .orElseThrow(() -> new ResourceNotFoundException("Identity not found: " + identityId));
 
         var existing = this.identityOrganizationColorRepository.findByIdentityIdAndOrganizationId(identityId, organizationId);
-        if (color == ColorToken.UNSET) {
-            existing.ifPresent(this.identityOrganizationColorRepository::delete);
-            return null;
-        }
-
         IdentityOrganizationColor entity = existing.orElseGet(IdentityOrganizationColor::new);
         entity.setIdentity(identity);
         entity.setOrganizationId(organizationId);

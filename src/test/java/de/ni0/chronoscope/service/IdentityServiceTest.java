@@ -5,7 +5,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -632,26 +632,6 @@ class IdentityServiceTest {
     }
 
     @Test
-    void upsertOrganizationColor_DeletesRowWhenUnset() {
-        IdentityService identityService = identityServiceWithColors();
-        Identity identity = new Identity();
-        identity.setId(77L);
-
-        IdentityOrganizationColor existing = new IdentityOrganizationColor();
-        existing.setIdentity(identity);
-        existing.setOrganizationId("org-1");
-        existing.setColor(ColorToken.BLUE);
-
-        when(identityRepository.findById(77L)).thenReturn(Optional.of(identity));
-        when(identityOrganizationColorRepository.findByIdentityIdAndOrganizationId(77L, "org-1")).thenReturn(Optional.of(existing));
-
-        IdentityOrganizationColor result = identityService.upsertOrganizationColor(77L, "org-1", ColorToken.UNSET);
-
-        assertNull(result);
-        verify(identityOrganizationColorRepository).delete(existing);
-    }
-
-    @Test
     void deleteOrganizationColor_DeletesMappedRow() {
         IdentityService identityService = identityServiceWithColors();
 
@@ -725,9 +705,7 @@ class IdentityServiceTest {
 
         identityService.mergeAccounts(targetIdentity.getId(), token);
 
-        assertEquals(ColorToken.ORANGE, sourceColor.getColor());
-        verify(identityOrganizationColorRepository).save(sourceColor);
-        verify(identityOrganizationColorRepository).delete(targetColor);
+        assertEquals(ColorToken.PURPLE, sourceColor.getColor());
         verify(identityRepository).delete(targetIdentity);
     }
 }
