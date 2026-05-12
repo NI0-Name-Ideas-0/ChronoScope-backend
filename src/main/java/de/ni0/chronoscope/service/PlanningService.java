@@ -57,7 +57,9 @@ public class PlanningService {
         }
         List<Scope> activeScopes = scopeRepository.findActiveScope(identity.getId());
         if (activeScopes.size() > 1) {
-            throw new IllegalStateException("There are somehow more than two scopes active!");
+            throw new IllegalStateException(
+                    "More than one active scope found for identityId=" + identity.getId() + ", orgId=" + orgId
+                            + " (activeScopes=" + activeScopes.size() + ")");
         }
         Scope activeScope = activeScopes.isEmpty() ? null : activeScopes.getFirst();
 
