@@ -51,4 +51,8 @@ public record TaskGraphNode(DynamicTask task, List<TaskGraphNode> dependencies, 
     public Duration getMaxScopeDuration() {
         return this.task.getMaxScopeDuration();
     }
+
+    public Duration getRemaining() {
+        return this.getDuration().minus(this.task.getElapsed());
+    }
 }
