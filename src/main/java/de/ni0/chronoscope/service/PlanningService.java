@@ -103,14 +103,14 @@ public class PlanningService {
         }
 
         List<TaskGraphNode> taskNodes = toTaskGraphNodes(tasks);
-        Map<TaskGraphNode, Integer> dependencyCountMap = new HashMap<>();
+        Map<TaskGraphNode, Integer> uncompletedDependencies = new HashMap<>();
         Map<TaskGraphNode, Duration> remainingTaskDurationMap = new HashMap<>();
         List<TaskGraphNode> startNodes = new ArrayList<>();
 
         for (TaskGraphNode node : taskNodes) {
-            int dependencyCount = node.dependencies().size();
-            dependencyCountMap.put(node, dependencyCount);
-            Duration remainingTaskDuration = node.getDuration().minus(node.task().getElapsed());
+            int dependencyCount = getUncompletedDependencies(node, activeScope).size();
+            uncompletedDependencies.put(node, dependencyCount);
+            Duration remainingTaskDuration = node.getRemaining();
 
             // If there is an active scope we want  to respect it when planning
             if (activeScope != null && activeScope.getDynamicTask().getId().equals(node.task().getId())) {
@@ -121,8 +121,8 @@ public class PlanningService {
                 remainingTaskDuration = remainingTaskDuration.minus(activeScopeDuration);
             }
 
-            if (remainingTaskDuration.isNegative()) {
-                remainingTaskDuration = Duration.ZERO;
+            if (!remainingTaskDuration.isPositive()) {
+                continue;
             }
 
             remainingTaskDurationMap.put(node, remainingTaskDuration);
@@ -132,7 +132,7 @@ public class PlanningService {
         }
 
         if (startNodes.isEmpty()) {
-            throw new InvalidRequestException("Tasks contain a dependency cycle: no task has zero dependencies");
+            throw new InvalidRequestException("Did not find any nodes to start");
         }
 
         List<WeightDataProvider> providers = List.of(
@@ -143,10 +143,21 @@ public class PlanningService {
         WorkSlotProvider workSlotProvider = new WorkSlotProvider(slots);
         ConcreteWorkSlot startSlot = workSlotProvider.getNextSlot(null);
 
-        return algorithm.plan(startNodes, dependencyCountMap,
+        return algorithm.plan(startNodes, uncompletedDependencies,
                 remainingTaskDurationMap, workSlotProvider, startSlot,
                 startSlot.startAt(),
                 new ArrayList<>());
+    }
+
+    private List<TaskGraphNode> getUncompletedDependencies(TaskGraphNode node, Scope activeScope) {
+        List<TaskGraphNode> uncompletedDependencies = node.getUncompletedDependencies();
+        return uncompletedDependencies.stream().filter(d -> {
+            if (activeScope != null && d.task().getId().equals(activeScope.getDynamicTask().getId())) {
+                return d.getRemaining().minus(Duration.between(activeScope.getStartAt(), activeScope.getEndAt()))
+                        .isPositive();
+            }
+            return true;
+        }).toList();
     }
 
     private List<TaskGraphNode> toTaskGraphNodes(List<DynamicTask> tasks) {

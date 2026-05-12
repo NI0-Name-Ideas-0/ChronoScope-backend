@@ -346,6 +346,29 @@ class AlgorithmTest {
     }
 
     @Test
+    void planDoesNotScheduleTaskBeforeItsStartAt2() {
+        // Task's startAt is two days after the first slot. The algorithm must not place any scope
+        // in the early slot and must instead wait until the later slot whose start >= task.startAt.
+        Instant taskStart = START.plus(Duration.ofHours(2));
+        TaskGraphNode task = node(1L, Duration.ofHours(2), taskStart, taskStart.plus(Duration.ofHours(8)));
+        ConcreteWorkSlot earlySlot = slot(START, START.plus(Duration.ofHours(8)));
+        Algorithm algorithm = new Algorithm(List.of(new FixedWeightProvider(Map.of(task, 1.0))));
+
+        List<Scope> result = algorithm.plan(
+                new ArrayList<>(List.of(task)),
+                dependencyCounts(task),
+                remainingDurations(task),
+                new ExhaustingWorkSlotProvider(List.of(earlySlot)),
+                earlySlot,
+                START,
+                new ArrayList<>());
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertScope(result.getFirst(), task, taskStart, taskStart.plus(Duration.ofHours(2)));
+    }
+
+    @Test
     void planReturnsNullWhenNoSlotExistsOnOrAfterTaskStartAt() {
         // Only slot is before the task's startAt → impossible to schedule → must return null.
         Instant taskStart = START.plus(Duration.ofDays(2));

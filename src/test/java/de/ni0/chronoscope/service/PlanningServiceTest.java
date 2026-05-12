@@ -195,6 +195,42 @@ class PlanningServiceTest {
         verifyNoMoreInteractions(taskRepository, scopeRepository, workSlotService, accountService);
     }
 
+    @Test
+    void planTasksForAccount_PlanDependency_WhenActiveScopeResultsInFinishedTask() {
+        PlanningService service = new PlanningService(taskRepository, scopeRepository, workSlotService, keycloakService, workSlotExpander);
+        Identity identity = TestData.identity(1);
+        String orgId = UUID.randomUUID().toString();
+
+        DynamicTask task = buildTask(1L, Duration.ofHours(1));
+        DynamicTask dependentTask = buildTask(2L, Duration.ofHours(1));
+        dependentTask.setDependencies(Set.of(task));
+        task.setDependents(Set.of(dependentTask));
+
+        WorkSlot slot = buildWorkSlot();
+        Scope existingScope = new Scope(2L, task,
+                Instant.parse("2026-04-26T07:30:00Z"),
+                Instant.parse("2026-04-26T08:30:00Z"));
+
+        when(taskRepository.findDynamicTasksByIdentityIdAndOrganizationId(identity.getId(), orgId))
+                .thenReturn(List.of(task, dependentTask));
+        when(scopeRepository.findActiveScope(identity.getId())).thenReturn(List.of(existingScope));
+        when(scopeRepository.getScopesByDynamicTaskOrganizationIdAndDynamicTaskIdentityId(orgId, identity.getId()))
+                .thenReturn(Set.of(existingScope));
+        when(workSlotService.getWorkSlotsForIdentity(identity.getId(), orgId)).thenReturn(List.of(slot));
+        when(workSlotExpander.expand(eq(List.of(slot)), any(Instant.class), any(Instant.class)))
+                .thenReturn(List.of(concreteSlot(Instant.parse("2026-04-26T08:30:00Z"), Instant.parse("2026-04-26T18:00:00Z"))));
+        when(scopeRepository.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        List<Scope> result = service.planTasksForIdentity(identity, orgId);
+
+        assertEquals(1, result.size());
+        assertEquals(dependentTask, result.getFirst().getDynamicTask());
+        assertEquals(existingScope.getEndAt(), result.getFirst().getStartAt());
+        verify(scopeRepository).deleteAll(Set.of());
+        verify(scopeRepository).saveAll(result);
+        verifyNoMoreInteractions(taskRepository, scopeRepository, workSlotService, accountService);
+    }
+
     private static DynamicTask buildTask(long id, Duration duration) {
         DynamicTask task = new DynamicTask();
         task.setId(id);

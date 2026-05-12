@@ -70,6 +70,7 @@ public class Algorithm {
         List<TaskGraphNode> possibleTasks = new ArrayList<>(
                 tasks.stream().filter(
                 t -> remainingSlotDuration.compareTo(t.getMinScopeDuration()) >= 0
+                            && remainingTaskDurations.get(t).isPositive()
                             && (t.getStartAt() == null || t.getStartAt().isBefore(slot.endAt()))).toList()
         );
         if (possibleTasks.isEmpty()) {
@@ -116,7 +117,7 @@ public class Algorithm {
             // Only calculate new possible tasks if current one has been completly planned
             if (newRemainingTaskDuration.isZero()) {
                 tasks.remove(task);
-                for (TaskGraphNode successor : task.dependents()) {
+                for (TaskGraphNode successor : task.getUncompletedDependents()) {
                     int newCount = dependencyCount.get(successor) - 1;
                     dependencyCount.put(successor, newCount);
                     if (newCount == 0) {
