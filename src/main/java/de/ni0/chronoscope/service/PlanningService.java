@@ -117,6 +117,10 @@ public class PlanningService {
                 remainingTaskDuration = remainingTaskDuration.minus(activeScope.getStartAt().until(activeScope.getEndAt()));
             }
 
+            if (remainingTaskDuration.isNegative()) {
+                remainingTaskDuration = Duration.ZERO;
+            }
+
             remainingTaskDurationMap.put(node, remainingTaskDuration);
             if (dependencyCount == 0) {
                 startNodes.add(node);
