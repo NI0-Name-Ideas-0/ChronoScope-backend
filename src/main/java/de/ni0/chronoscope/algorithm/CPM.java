@@ -34,6 +34,9 @@ public class CPM {
 
     private Instant calcFirstStart(TaskGraphNode task, Instant defaultStart) {
         Instant firstStart = defaultStart;
+        if (task.getStartAt() != null && task.getStartAt().isAfter(defaultStart)) {
+            firstStart = task.getStartAt();
+        }
         for (TaskGraphNode dependency : task.dependencies()) {
             Instant depEarliestStart = this.calcFirstStart(dependency, defaultStart);
             Instant depEarliestEnd = depEarliestStart.plus(dependency.getDuration());

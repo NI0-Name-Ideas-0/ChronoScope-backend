@@ -175,7 +175,7 @@ class AlgorithmTest {
                 START,
                 new ArrayList<>());
 
-        assertNull(result);
+        assertEquals(0, result.size());
     }
 
     @Test
@@ -200,6 +200,28 @@ class AlgorithmTest {
         assertScope(result.get(0), task, START, START.plus(Duration.ofMinutes(30)));
         assertScope(result.get(1), task, START.plus(Duration.ofMinutes(30)), START.plus(Duration.ofMinutes(60)));
         assertScope(result.get(2), task, START.plus(Duration.ofMinutes(60)), START.plus(Duration.ofMinutes(90)));
+    }
+
+    @Test
+    void planDoesNotPlanFinishedTask() {
+        // Task: 90 min total, max scope 30 min → expect 3 × 30-min scopes in a 2 h slot
+        TaskGraphNode task = node(1L, Duration.ofMinutes(90), Duration.ofMinutes(1), Duration.ofMinutes(90),
+                START.plus(Duration.ofHours(4)));
+        task.task().setElapsed(Duration.ofMinutes(90));
+        ConcreteWorkSlot slot = slot(START, START.plus(Duration.ofHours(2)));
+        Algorithm algorithm = new Algorithm(List.of(new FixedWeightProvider(Map.of(task, 1.0))));
+
+        List<Scope> result = algorithm.plan(
+                new ArrayList<>(List.of(task)),
+                dependencyCounts(task),
+                remainingDurations(task),
+                new WorkSlotProvider(List.of(slot)),
+                slot,
+                START,
+                new ArrayList<>());
+
+        assertNotNull(result);
+        assertEquals(0, result.size());
     }
 
     @Test
@@ -371,7 +393,7 @@ class AlgorithmTest {
     private static Map<TaskGraphNode, Duration> remainingDurations(TaskGraphNode... tasks) {
         Map<TaskGraphNode, Duration> remainingDurations = new HashMap<>();
         for (TaskGraphNode task : tasks) {
-            remainingDurations.put(task, task.getDuration());
+            remainingDurations.put(task, task.getDuration().minus(task.task().getElapsed()));
         }
         return remainingDurations;
     }

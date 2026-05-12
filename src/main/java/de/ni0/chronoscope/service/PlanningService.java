@@ -102,7 +102,7 @@ public class PlanningService {
         for (TaskGraphNode node : taskNodes) {
             int dependencyCount = node.dependencies().size();
             dependencyCountMap.put(node, dependencyCount);
-            remainingTaskDurationMap.put(node, node.getDuration());
+            remainingTaskDurationMap.put(node, node.getDuration().minus(node.task().getElapsed()));
             if (dependencyCount == 0) {
                 startNodes.add(node);
             }
