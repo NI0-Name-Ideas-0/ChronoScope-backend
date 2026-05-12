@@ -8,7 +8,6 @@ import java.util.UUID;
 import javax.crypto.SecretKey;
 
 import org.keycloak.representations.idm.UserRepresentation;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
@@ -53,17 +52,6 @@ public class IdentityService {
     private final WorkSlotRepository workSlotRepository;
 
     private final SecretKey key = Keys.secretKeyFor(SignatureAlgorithm.HS256);
-
-    @Autowired
-    public IdentityService(AccountRepository accountRepository,
-            IdentityRepository identityRepository,
-            de.ni0.chronoscope.repository.IdentitySettingsRepository identitySettingsRepository,
-            KeycloakService keycloakService,
-            JavaMailSender mailSender,
-            TaskRepository taskRepository,
-            WorkSlotRepository workSlotRepository) {
-        this(accountRepository, identityRepository, identitySettingsRepository, null, keycloakService, mailSender, taskRepository, workSlotRepository);
-    }
 
     /**
      * Synchronizes the identity for the user identified by the given subject.
@@ -113,17 +101,11 @@ public class IdentityService {
 
     @Transactional(readOnly = true)
     public List<IdentityOrganizationColor> getOrganizationColors(long identityId) {
-        if (this.identityOrganizationColorRepository == null) {
-            return List.of();
-        }
         return this.identityOrganizationColorRepository.findByIdentityId(identityId);
     }
 
     @Transactional
     public IdentityOrganizationColor upsertOrganizationColor(long identityId, String organizationId, ColorToken color) {
-        if (this.identityOrganizationColorRepository == null) {
-            throw new IllegalStateException("Organization color repository is not configured");
-        }
         Identity identity = this.identityRepository.findById(identityId)
             .orElseThrow(() -> new ResourceNotFoundException("Identity not found: " + identityId));
         if (color == null) {
@@ -145,9 +127,6 @@ public class IdentityService {
 
     @Transactional
     public void deleteOrganizationColor(long identityId, String organizationId) {
-        if (this.identityOrganizationColorRepository == null) {
-            return;
-        }
         this.identityOrganizationColorRepository.deleteByIdentityIdAndOrganizationId(identityId, organizationId);
     }
 

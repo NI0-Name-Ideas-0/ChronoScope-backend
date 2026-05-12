@@ -84,7 +84,7 @@ class IdentityServiceTest {
 
     @Test
     void syncIdentity_ReusesExistingIdentityForSameAccount() {
-        IdentityService identityService = new IdentityService(accountRepository, identityRepository, identitySettingsRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
+        IdentityService identityService = identityServiceWithColors();
 
         Account account = new Account();
         account.setSubject("subject-123");
@@ -109,7 +109,7 @@ class IdentityServiceTest {
 
     @Test
     void syncIdentity_ThrowsWhenAccountIsMissing() {
-        IdentityService identityService = new IdentityService(accountRepository, identityRepository, identitySettingsRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
+        IdentityService identityService = identityServiceWithColors();
 
         when(accountRepository.findBySubject("unknown-subject")).thenReturn(Optional.empty());
 
@@ -125,7 +125,7 @@ class IdentityServiceTest {
 
     @Test
     void getIdentity_ReturnsIdentityForExistingId() {
-        IdentityService identityService = new IdentityService(accountRepository, identityRepository, identitySettingsRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
+        IdentityService identityService = identityServiceWithColors();
 
         Identity identity = new Identity();
         identity.setId(99L);
@@ -140,7 +140,7 @@ class IdentityServiceTest {
 
     @Test
     void getIdentity_ThrowsWhenIdentityIsMissing() {
-        IdentityService identityService = new IdentityService(accountRepository, identityRepository, identitySettingsRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
+        IdentityService identityService = identityServiceWithColors();
 
         when(identityRepository.findByIdWithAccountsAndOrganizations(99L)).thenReturn(Optional.empty());
 
@@ -154,7 +154,7 @@ class IdentityServiceTest {
 
     @Test
     void sendLink_LooksUpTargetInKeycloakAndSendsTokenForLocalAccount() {
-        IdentityService identityService = new IdentityService(accountRepository, identityRepository, identitySettingsRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
+        IdentityService identityService = identityServiceWithColors();
 
         UserRepresentation targetUser = new UserRepresentation();
         targetUser.setId("keycloak-target-subject");
@@ -182,7 +182,7 @@ class IdentityServiceTest {
 
     @Test
     void sendLink_ThrowsWhenKeycloakUserHasNoLocalAccount() {
-        IdentityService identityService = new IdentityService(accountRepository, identityRepository, identitySettingsRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
+        IdentityService identityService = identityServiceWithColors();
 
         UserRepresentation targetUser = new UserRepresentation();
         targetUser.setId("keycloak-missing-subject");
@@ -203,7 +203,7 @@ class IdentityServiceTest {
 
     @Test
     void mergeAccounts_MovesTargetIdentityAccountsToSourceIdentityAndDeletesOldIdentity() {
-        IdentityService identityService = new IdentityService(accountRepository, identityRepository, identitySettingsRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
+        IdentityService identityService = identityServiceWithColors();
 
         Identity sourceIdentity = new Identity();
         sourceIdentity.setId(101L);
@@ -243,7 +243,7 @@ class IdentityServiceTest {
 
     @Test
     void mergeAccounts_ThrowsWhenAuthenticatedIdentityIsNotTargetIdentity() {
-        IdentityService identityService = new IdentityService(accountRepository, identityRepository, identitySettingsRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
+        IdentityService identityService = identityServiceWithColors();
 
         Identity sourceIdentity = new Identity();
         sourceIdentity.setId(101L);
@@ -294,7 +294,7 @@ class IdentityServiceTest {
 
     @Test
     void updateSettings_UpdatesLanguageOnly() {
-        IdentityService identityService = new IdentityService(accountRepository, identityRepository, identitySettingsRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
+        IdentityService identityService = identityServiceWithColors();
         Identity identity = new Identity();
         identity.setId(99L);
 
@@ -311,7 +311,7 @@ class IdentityServiceTest {
 
     @Test
     void updateSettings_UpdatesThemeOnly() {
-        IdentityService identityService = new IdentityService(accountRepository, identityRepository, identitySettingsRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
+        IdentityService identityService = identityServiceWithColors();
         Identity identity = new Identity();
         identity.setId(99L);
 
@@ -328,7 +328,7 @@ class IdentityServiceTest {
 
     @Test
     void updateSettings_UpdatesBothLanguageAndTheme() {
-        IdentityService identityService = new IdentityService(accountRepository, identityRepository, identitySettingsRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
+        IdentityService identityService = identityServiceWithColors();
         Identity identity = new Identity();
         identity.setId(99L);
 
@@ -346,7 +346,7 @@ class IdentityServiceTest {
 
     @Test
     void updateSettings_UpdatesWorkSettings() {
-        IdentityService identityService = new IdentityService(accountRepository, identityRepository, identitySettingsRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
+        IdentityService identityService = identityServiceWithColors();
         Identity identity = new Identity();
         identity.setId(99L);
 
@@ -365,7 +365,7 @@ class IdentityServiceTest {
 
     @Test
     void updateSettings_LeavesExistingValuesWhenRequestIsEmpty() {
-        IdentityService identityService = new IdentityService(accountRepository, identityRepository, identitySettingsRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
+        IdentityService identityService = identityServiceWithColors();
         Identity identity = new Identity();
         identity.setId(99L);
 
@@ -381,7 +381,7 @@ class IdentityServiceTest {
 
     @Test
     void updateSettings_ThrowsWhenIdentityIsMissing() {
-        IdentityService identityService = new IdentityService(accountRepository, identityRepository, identitySettingsRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
+        IdentityService identityService = identityServiceWithColors();
 
         when(identityRepository.findById(99L)).thenReturn(Optional.empty());
 
@@ -397,7 +397,7 @@ class IdentityServiceTest {
 
     @Test
     void mergeAccounts_InheritsSourceLanguageWhenTargetLanguageIsNull() {
-        IdentityService identityService = new IdentityService(accountRepository, identityRepository, identitySettingsRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
+        IdentityService identityService = identityServiceWithColors();
         Identity sourceIdentity = new Identity();
         sourceIdentity.setId(101L);
         Account sourceAccount = account(11L, "source-subject", sourceIdentity);
@@ -429,7 +429,7 @@ class IdentityServiceTest {
 
     @Test
     void mergeAccounts_PreservesTargetLanguageWhenAlreadySet() {
-        IdentityService identityService = new IdentityService(accountRepository, identityRepository, identitySettingsRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
+        IdentityService identityService = identityServiceWithColors();
 
         Identity sourceIdentity = new Identity();
         sourceIdentity.setId(101L);
@@ -470,7 +470,7 @@ class IdentityServiceTest {
 
     @Test
     void mergeAccounts_PreservesSourceWorkSettingsWhenTargetWorkSettingsIsNull() {
-        IdentityService identityService = new IdentityService(accountRepository, identityRepository, identitySettingsRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
+        IdentityService identityService = identityServiceWithColors();
 
         Identity sourceIdentity = new Identity();
         sourceIdentity.setId(101L);
@@ -501,7 +501,7 @@ class IdentityServiceTest {
 
     @Test
     void mergeAccounts_OverridesSourceWorkSettingsWhenTargetWorkSettingsIsSet() {
-        IdentityService identityService = new IdentityService(accountRepository, identityRepository, identitySettingsRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
+        IdentityService identityService = identityServiceWithColors();
 
         Identity sourceIdentity = new Identity();
         sourceIdentity.setId(101L);
@@ -550,13 +550,6 @@ class IdentityServiceTest {
 
         assertEquals(List.of(color), result);
         verify(identityOrganizationColorRepository).findByIdentityId(99L);
-    }
-
-    @Test
-    void getOrganizationColors_ReturnsEmptyWhenRepositoryIsMissing() {
-        IdentityService identityService = new IdentityService(accountRepository, identityRepository, identitySettingsRepository, keycloakService, mailSender, taskRepository, workSlotRepository);
-
-        assertEquals(List.of(), identityService.getOrganizationColors(99L));
     }
 
     @Test
@@ -661,7 +654,7 @@ class IdentityServiceTest {
     }
 
     @Test
-    void mergeAccounts_PrefersSourceOrganizationColorWhenBothIdentitiesHaveOne() {
+    void mergeAccounts_PrefersTargetOrganizationColorWhenBothIdentitiesHaveOne() {
         IdentityService identityService = identityServiceWithColors();
 
         Identity sourceIdentity = new Identity();
