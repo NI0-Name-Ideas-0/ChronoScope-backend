@@ -49,17 +49,21 @@ public class Algorithm {
         log.debug("{} time left in slot", remainingSlotDuration);
 
         for (TaskGraphNode task : tasks) {
-            if (currentTime.plus(remainingTaskDurations.get(task)).isAfter(task.getEndAt())) {
+            Instant effectiveStart = task.getStartAt() != null && task.getStartAt().isAfter(currentTime)
+                    ? task.getStartAt() : currentTime;
+            if (effectiveStart.plus(remainingTaskDurations.get(task)).isAfter(task.getEndAt())) {
                 log.debug("Deadline not met");
                 return null;
             }
         }
 
-        // Advance to the next slot if no pending task's minimum scope fits in the remaining time
+        // Advance to the next slot if no pending task can start: either its minimum scope does not fit
+        // the remaining time or its startAt has not been reached yet.
         boolean anyTaskCanStart = tasks.stream()
-                .anyMatch(t -> remainingSlotDuration.compareTo(t.getMinScopeDuration()) >= 0);
+                .anyMatch(t -> remainingSlotDuration.compareTo(t.getMinScopeDuration()) >= 0
+                        && (t.getStartAt() == null || !currentTime.isBefore(t.getStartAt())));
         if (!anyTaskCanStart) {
-            log.debug("Remaining slot time {} is below all minScopeDurations; advancing to next slot", remainingSlotDuration);
+            log.debug("No task can start in remaining slot time; advancing to next slot");
             return advanceToNextSlot(tasks, dependencyCount, remainingTaskDurations, slots, slot, currentTime, plannedScopes);
         }
 
@@ -74,6 +78,11 @@ public class Algorithm {
             List<Scope> scopes = new ArrayList<>();
 
             Duration remainingTaskDuration = remainingTaskDurations.get(task);
+
+            // Skip tasks whose startAt has not been reached yet
+            if (task.getStartAt() != null && currentTime.isBefore(task.getStartAt())) {
+                continue;
+            }
 
             // Skip tasks whose minimum scope duration exceeds the remaining slot time
             if (remainingSlotDuration.compareTo(task.getMinScopeDuration()) < 0) {
