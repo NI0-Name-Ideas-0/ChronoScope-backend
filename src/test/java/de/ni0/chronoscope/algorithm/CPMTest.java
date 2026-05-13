@@ -7,6 +7,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -22,7 +23,10 @@ class CPMTest {
         link(longDependency, join);
         link(shortDependency, join);
 
-        CPM.TaskData joinData = new CPM(List.of(longDependency, shortDependency, join), START)
+        CPM.TaskData joinData = new CPM(List.of(longDependency, shortDependency, join),
+                Map.of(longDependency, longDependency.getRemaining(), shortDependency, shortDependency.getRemaining(),
+                        join, join.getRemaining()),
+                START)
                 .getTaskData()
                 .get(join);
 
@@ -38,7 +42,9 @@ class CPMTest {
         link(root, earlySuccessor);
         link(root, lateSuccessor);
 
-        CPM.TaskData rootData = new CPM(List.of(root, earlySuccessor, lateSuccessor), START)
+        CPM.TaskData rootData = new CPM(List.of(root, earlySuccessor, lateSuccessor),
+                Map.of(root, root.getRemaining(), earlySuccessor, earlySuccessor.getRemaining(),
+                        lateSuccessor, lateSuccessor.getRemaining()), START)
                 .getTaskData()
                 .get(root);
 
@@ -51,7 +57,7 @@ class CPMTest {
     void leavesLatestFinishUnboundedWhenTaskHasNoDeadlineOrSuccessors() {
         TaskGraphNode task = node(1L, Duration.ofHours(1), null);
 
-        CPM.TaskData data = new CPM(List.of(task), START).getTaskData().get(task);
+        CPM.TaskData data = new CPM(List.of(task), Map.of(task, task.getRemaining()), START).getTaskData().get(task);
 
         assertEquals(Instant.MAX, data.latestFinish());
         assertEquals(START, data.earliestStart());

@@ -10,7 +10,6 @@ import java.util.List;
 public class DifficultyDataProvider implements WeightDataProvider {
     private double plannedDifficulty;
     public static final double CUTOFF_FACTOR = 0.8;
-    public static final double INFLUENCE_FACTOR = 0.5;
 
     private double calculatePlannedDifficulty(List<Scope> plannedScopes) {
         double difficulty = 0;
@@ -22,7 +21,7 @@ public class DifficultyDataProvider implements WeightDataProvider {
             summedWeights += weight;
             difficulty += weight * taskDifficulty;
         }
-        return difficulty / summedWeights;
+        return (difficulty / summedWeights);
     }
 
     @Override
@@ -33,6 +32,6 @@ public class DifficultyDataProvider implements WeightDataProvider {
     @Override
     public double getWeight(TaskGraphNode task) {
         double taskDifficulty = task.task().getDifficulty().getNormalizedDifficulty();
-        return taskDifficulty * (1 - INFLUENCE_FACTOR*this.plannedDifficulty);
+        return 1 - Math.pow(Math.E, -3 * Math.abs(taskDifficulty - this.plannedDifficulty));
     }
 }
