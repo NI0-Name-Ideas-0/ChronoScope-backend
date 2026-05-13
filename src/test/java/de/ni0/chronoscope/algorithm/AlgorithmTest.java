@@ -1,11 +1,15 @@
 package de.ni0.chronoscope.algorithm;
 
+import de.ni0.chronoscope.algorithm.dataprovider.CPMDataProvider;
+import de.ni0.chronoscope.algorithm.dataprovider.DifficultyDataProvider;
 import de.ni0.chronoscope.model.DynamicTask;
 import de.ni0.chronoscope.model.Scope;
+import de.ni0.chronoscope.model.Task;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -366,6 +370,37 @@ class AlgorithmTest {
         assertNotNull(result);
         assertEquals(1, result.size());
         assertScope(result.getFirst(), task, taskStart, taskStart.plus(Duration.ofHours(2)));
+    }
+
+
+    @Test
+    void planDoesRespecComplexity() {
+        TaskGraphNode task = node(1L, Duration.ofHours(4), START, START.plus(Duration.ofHours(8)));
+        task.task().setDifficulty(Task.Difficulty.TRIVIAL);
+        task.task().setMinScopeDuration(Duration.of(30, ChronoUnit.MINUTES));
+        task.task().setMaxScopeDuration(Duration.of(30, ChronoUnit.MINUTES));
+        TaskGraphNode task2 = node(2L, Duration.ofHours(4), START, START.plus(Duration.ofHours(8)));
+        task2.task().setDifficulty(Task.Difficulty.EXTREME);
+        task2.task().setMinScopeDuration(Duration.of(30, ChronoUnit.MINUTES));
+        task2.task().setMaxScopeDuration(Duration.of(30, ChronoUnit.MINUTES));
+        ConcreteWorkSlot slot = slot(START, START.plus(Duration.ofHours(8)));
+
+        List<WeightDataProvider> providers = List.of(
+                new CPMDataProvider(),
+                new DifficultyDataProvider()
+        );
+        Algorithm algorithm = new Algorithm(providers);
+
+        List<Scope> result = algorithm.plan(
+                new ArrayList<>(List.of(task, task2)),
+                dependencyCounts(task, task2),
+                remainingDurations(task, task2),
+                new ExhaustingWorkSlotProvider(List.of(slot)),
+                slot,
+                START,
+                new ArrayList<>());
+
+        assertNotNull(result);
     }
 
     @Test

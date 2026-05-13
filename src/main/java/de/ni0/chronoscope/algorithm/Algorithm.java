@@ -57,7 +57,7 @@ public class Algorithm {
             return List.of();
         }
 
-        CPM cpm = new CPM(tasks, currentTime);
+        CPM cpm = new CPM(tasks, remainingTaskDurations, currentTime);
         for (TaskGraphNode task : tasks) {
             if (cpm.getTaskData().get(task).getSlack().isNegative()) {
                 log.debug("Deadline not met");
@@ -78,8 +78,9 @@ public class Algorithm {
             return advanceToNextSlot(tasks, dependencyCount, remainingTaskDurations, slots, slot, currentTime, plannedScopes);
         }
 
+        DataProviderContext ctx = new DataProviderContext(currentTime, plannedScopes, remainingTaskDurations);
         for (WeightDataProvider provider : this.providers) {
-            provider.calculate(new DataProviderContext(currentTime, plannedScopes), possibleTasks);
+            provider.calculate(ctx, possibleTasks);
         }
         possibleTasks.sort((t1, t2) -> -1*Double.compare(getWeight(t1), getWeight(t2)));
 
@@ -135,6 +136,8 @@ public class Algorithm {
             }
 
             scopes.add(new Scope(null, task.task(), effectiveStart, effectiveStart.plus(scopeDuration)));
+            List<Scope> newPlannedScopes = new ArrayList<>(plannedScopes);
+            newPlannedScopes.add(scopes.getLast());
 
             if (tasks.isEmpty()) {
                 return scopes;
@@ -144,10 +147,10 @@ public class Algorithm {
             List<Scope> nextResult;
             if (newCurrentTime.equals(slot.endAt())) {
                 nextResult = advanceToNextSlot(tasks, dependencyCount, remainingTaskDurations,
-                        slots, slot, newCurrentTime, scopes);
+                        slots, slot, newCurrentTime, newPlannedScopes);
             } else {
                 nextResult = plan(tasks, dependencyCount, remainingTaskDurations,
-                        slots, slot, newCurrentTime, scopes);
+                        slots, slot, newCurrentTime, newPlannedScopes);
             }
             if (nextResult != null) {
                 scopes.addAll(nextResult);
