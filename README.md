@@ -2,7 +2,7 @@
 
 ChronoScope Backend is the Spring Boot API for ChronoScope, a browser-based task planning system. The backend manages identities, tasks, dependencies, work slots and organization administration, and exposes an endpoint that generates optimized work plans from open tasks and available time windows.
 
-The project is part of the DHBW Software Engineering team project. Besides the implementation itself, the repository is set up to support iterative development, API documentation, automated tests and coverage reporting.
+The project is part of a DHBW Software Engineering team project. Besides the implementation itself, the repository is set up to support iterative development, API documentation, automated tests and coverage reporting.
 
 ## Tech Stack
 
