@@ -134,7 +134,21 @@ public class PlanningService {
                     throw new InvalidRequestException("Active scope end time must not be before start time");
                 }
                 Duration activeScopeDuration = Duration.between(activeScope.getStartAt(), activeScope.getEndAt());
-                remainingTaskDuration = remainingTaskDuration.minus(activeScopeDuration);
+
+                List<Scope> scopes = activeScope.getDynamicTask().getScopes();
+                Duration scopeDurationSum = Duration.ZERO;
+                for (Scope scope : scopes) {
+                    if (scope.getId().equals(activeScope.getId())) break;
+                    scopeDurationSum = scopeDurationSum.plus(Duration.between(scope.getStartAt(), scope.getEndAt()));
+                }
+                // We only subtract the current scope duration if it is not marked as done yet.
+                // Consider Scopes: 15-15-15-15
+                // If the user works on scope 1, marks it as complete while working on it,
+                // the elapsed time would be increased to 15, but because the algorithm thinks the
+                // current scope needs to be subtracted the algorithm would only plan for 30 minutes
+                if (activeScope.getDynamicTask().getElapsed().compareTo(scopeDurationSum) <= 0) {
+                    remainingTaskDuration = remainingTaskDuration.minus(activeScopeDuration);
+                }
             }
 
             if (!remainingTaskDuration.isPositive()) {
