@@ -77,11 +77,12 @@ public class PlanningService {
             throw new InsufficientSlotsException("No valid plan could be found with the available work slots");
         }
 
-        Set<Scope> existingScopes = new HashSet<>(scopeRepository.getScopesByDynamicTaskOrganizationIdAndDynamicTaskIdentityId(orgId, identity.getId()));
+        Set<Scope> futureScopes = new HashSet<>(scopeRepository.getScopesByDynamicTaskOrganizationIdAndDynamicTaskIdentityId(orgId, identity.getId()));
         if (activeScope != null) {
-            existingScopes.remove(activeScope);
+            futureScopes.remove(activeScope);
         }
-        scopeRepository.deleteAllInBatch(existingScopes); // Clear old scopes
+        futureScopes.removeIf(s -> s.getEndAt().isBefore(Instant.now()));
+        scopeRepository.deleteAllInBatch(futureScopes); // Clear old scopes
         scopeRepository.saveAll(planningResult); // Save new scopes
 
         return planningResult;
