@@ -1,9 +1,12 @@
 package de.ni0.chronoscope.service;
 
 import de.ni0.chronoscope.algorithm.Algorithm;
+import de.ni0.chronoscope.algorithm.BlockedInterval;
 import de.ni0.chronoscope.algorithm.ConcreteWorkSlot;
+import de.ni0.chronoscope.algorithm.StaticTaskExpander;
 import de.ni0.chronoscope.algorithm.TaskGraphNode;
 import de.ni0.chronoscope.algorithm.WeightDataProvider;
+import de.ni0.chronoscope.algorithm.WorkSlotCarver;
 import de.ni0.chronoscope.algorithm.WorkSlotExpander;
 import de.ni0.chronoscope.algorithm.WorkSlotProvider;
 import de.ni0.chronoscope.algorithm.dataprovider.CPMDataProvider;
@@ -34,6 +37,8 @@ public class PlanningService {
     private final WorkSlotService workSlotService;
     private final KeycloakService keycloakService;
     private final WorkSlotExpander workSlotExpander;
+    private final StaticTaskExpander staticTaskExpander;
+    private final WorkSlotCarver workSlotCarver;
 
     /**
      * Replans all dynamic tasks for an account and organizationId.
@@ -64,8 +69,9 @@ public class PlanningService {
         Scope activeScope = activeScopes.isEmpty() ? null : activeScopes.getFirst();
 
         var recurringSlots = workSlotService.getWorkSlotsForIdentity(identity.getId(), orgId);
+        var staticTasks = taskRepository.findStaticTasksByIdentityId(identity.getId());
 
-        var planningResult = plan(dynamicTasks, activeScope, recurringSlots);
+        var planningResult = plan(dynamicTasks, activeScope, recurringSlots, staticTasks);
 
         if (planningResult == null) {
             throw new InsufficientSlotsException("No valid plan could be found with the available work slots");
@@ -81,7 +87,7 @@ public class PlanningService {
         return planningResult;
     }
 
-    private List<Scope> plan(List<DynamicTask> tasks, Scope activeScope, List<WorkSlot> recurringSlots) {
+    private List<Scope> plan(List<DynamicTask> tasks, Scope activeScope, List<WorkSlot> recurringSlots, List<StaticTask> staticTasks) {
         if (recurringSlots == null || recurringSlots.isEmpty()) {
             throw new InsufficientSlotsException("No work slots are available for planning");
         }
@@ -100,6 +106,15 @@ public class PlanningService {
         List<ConcreteWorkSlot> slots = workSlotExpander.expand(recurringSlots, now, horizon);
         if (slots.isEmpty()) {
             throw new InsufficientSlotsException("No work slots fall within the planning horizon");
+        }
+
+        // Carve out time blocks occupied by static-task occurrences.
+        if (!staticTasks.isEmpty()) {
+            List<BlockedInterval> blocked = staticTaskExpander.expand(staticTasks, now, horizon);
+            slots = workSlotCarver.carve(slots, blocked);
+            if (slots.isEmpty()) {
+                throw new InsufficientSlotsException("No work slots remain after blocking static task time");
+            }
         }
 
         List<TaskGraphNode> taskNodes = toTaskGraphNodes(tasks);
