@@ -141,6 +141,11 @@
             <artifactId>keycloak-admin-client</artifactId>
             <version>26.0.9</version>
         </dependency>
+        <dependency>
+            <groupId>org.dmfs</groupId>
+            <artifactId>lib-recur</artifactId>
+            <version>0.17.1</version>
+        </dependency>
     </dependencies>
 
     <build>

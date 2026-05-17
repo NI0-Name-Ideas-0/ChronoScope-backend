@@ -9,6 +9,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import de.ni0.chronoscope.model.DynamicTask;
+import de.ni0.chronoscope.model.StaticTask;
 import de.ni0.chronoscope.model.Task;
 
 /**
@@ -68,4 +69,14 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
             """)
     List<DynamicTask> findDependentsByDependencyIdAndIdentityId(@Param("dependencyId") Long dependencyId,
             @Param("identityId") Long identityId);
+
+    /**
+     * Loads all static tasks for a given identity, across all organizations.
+     * Every static task for the identity blocks work slots regardless of which
+     * organization it belongs to.
+     *
+     * @param identityId identity ID
+     * @return all static tasks owned by that identity
+     */
+    List<StaticTask> findStaticTasksByIdentityId(Long identityId);
 }

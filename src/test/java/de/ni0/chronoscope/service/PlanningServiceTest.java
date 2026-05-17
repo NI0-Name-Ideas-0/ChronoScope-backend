@@ -1,6 +1,8 @@
 package de.ni0.chronoscope.service;
 
 import de.ni0.chronoscope.algorithm.ConcreteWorkSlot;
+import de.ni0.chronoscope.algorithm.StaticTaskExpander;
+import de.ni0.chronoscope.algorithm.WorkSlotCarver;
 import de.ni0.chronoscope.algorithm.WorkSlotExpander;
 import de.ni0.chronoscope.TestData;
 import de.ni0.chronoscope.exception.InsufficientSlotsException;
@@ -49,9 +51,15 @@ class PlanningServiceTest {
     @Mock
     private WorkSlotExpander workSlotExpander;
 
+    @Mock
+    private StaticTaskExpander staticTaskExpander;
+
+    @Mock
+    private WorkSlotCarver workSlotCarver;
+
     @Test
     void planTasksForAccount_ReturnsEmptyList_WhenNoTasksForOrganization() {
-        PlanningService service = new PlanningService(taskRepository, scopeRepository, workSlotService, keycloakService, workSlotExpander);
+        PlanningService service = new PlanningService(taskRepository, scopeRepository, workSlotService, keycloakService, workSlotExpander, staticTaskExpander, workSlotCarver);
         String orgId = UUID.randomUUID().toString();
         Identity identity = TestData.identity(1);
 
@@ -70,7 +78,7 @@ class PlanningServiceTest {
 
     @Test
     void planTasksForAccount_ThrowsInsufficientSlotsException_WhenNoWorkSlotsAvailable() {
-        PlanningService service = new PlanningService(taskRepository, scopeRepository, workSlotService, keycloakService, workSlotExpander);
+        PlanningService service = new PlanningService(taskRepository, scopeRepository, workSlotService, keycloakService, workSlotExpander, staticTaskExpander, workSlotCarver);
         Identity identity = TestData.identity(1);
         String orgId = UUID.randomUUID().toString();
 
@@ -86,7 +94,7 @@ class PlanningServiceTest {
 
     @Test
     void planTasksForAccount_ThrowsInvalidRequestException_WhenTasksFormACycle() {
-        PlanningService service = new PlanningService(taskRepository, scopeRepository, workSlotService, keycloakService, workSlotExpander);
+        PlanningService service = new PlanningService(taskRepository, scopeRepository, workSlotService, keycloakService, workSlotExpander, staticTaskExpander, workSlotCarver);
         Identity identity = TestData.identity(1);
         String orgId = UUID.randomUUID().toString();
 
@@ -111,7 +119,7 @@ class PlanningServiceTest {
 
     @Test
     void planTasksForAccount_ThrowsInsufficientSlotsException_WhenDeadlineCannotBeMet() {
-        PlanningService service = new PlanningService(taskRepository, scopeRepository, workSlotService, keycloakService, workSlotExpander);
+        PlanningService service = new PlanningService(taskRepository, scopeRepository, workSlotService, keycloakService, workSlotExpander, staticTaskExpander, workSlotCarver);
         Identity identity = TestData.identity(1);
         String orgId = UUID.randomUUID().toString();
 
@@ -136,7 +144,7 @@ class PlanningServiceTest {
 
     @Test
     void planTasksForAccount_DeletesOldScopesAndReturnsNewScopes_WhenPlanSucceeds() {
-        PlanningService service = new PlanningService(taskRepository, scopeRepository, workSlotService, keycloakService, workSlotExpander);
+        PlanningService service = new PlanningService(taskRepository, scopeRepository, workSlotService, keycloakService, workSlotExpander, staticTaskExpander, workSlotCarver);
         Identity identity = TestData.identity(1);
         String orgId = UUID.randomUUID().toString();
 
@@ -146,6 +154,7 @@ class PlanningServiceTest {
 
         when(taskRepository.findDynamicTasksByIdentityIdAndOrganizationId(identity.getId(), orgId))
                 .thenReturn(List.of(task));
+        when(taskRepository.findStaticTasksByIdentityId(identity.getId())).thenReturn(List.of());
         when(scopeRepository.findActiveScope(identity.getId())).thenReturn(List.of());
         when(scopeRepository.getScopesByDynamicTaskOrganizationIdAndDynamicTaskIdentityId(orgId, identity.getId()))
                 .thenReturn(Set.of(existingScope));
@@ -165,7 +174,7 @@ class PlanningServiceTest {
 
     @Test
     void planTasksForAccount_DoNotDeleteActiveScope_WhenPlanSucceeds() {
-        PlanningService service = new PlanningService(taskRepository, scopeRepository, workSlotService, keycloakService, workSlotExpander);
+        PlanningService service = new PlanningService(taskRepository, scopeRepository, workSlotService, keycloakService, workSlotExpander, staticTaskExpander, workSlotCarver);
         Identity identity = TestData.identity(1);
         String orgId = UUID.randomUUID().toString();
 
@@ -177,6 +186,7 @@ class PlanningServiceTest {
 
         when(taskRepository.findDynamicTasksByIdentityIdAndOrganizationId(identity.getId(), orgId))
                 .thenReturn(List.of(task));
+        when(taskRepository.findStaticTasksByIdentityId(identity.getId())).thenReturn(List.of());
         when(scopeRepository.findActiveScope(identity.getId())).thenReturn(List.of(existingScope));
         when(scopeRepository.getScopesByDynamicTaskOrganizationIdAndDynamicTaskIdentityId(orgId, identity.getId()))
                 .thenReturn(Set.of(existingScope));
@@ -197,7 +207,7 @@ class PlanningServiceTest {
 
     @Test
     void planTasksForAccount_PlanDependency_WhenActiveScopeResultsInFinishedTask() {
-        PlanningService service = new PlanningService(taskRepository, scopeRepository, workSlotService, keycloakService, workSlotExpander);
+        PlanningService service = new PlanningService(taskRepository, scopeRepository, workSlotService, keycloakService, workSlotExpander, staticTaskExpander, workSlotCarver);
         Identity identity = TestData.identity(1);
         String orgId = UUID.randomUUID().toString();
 
@@ -213,6 +223,7 @@ class PlanningServiceTest {
 
         when(taskRepository.findDynamicTasksByIdentityIdAndOrganizationId(identity.getId(), orgId))
                 .thenReturn(List.of(task, dependentTask));
+        when(taskRepository.findStaticTasksByIdentityId(identity.getId())).thenReturn(List.of());
         when(scopeRepository.findActiveScope(identity.getId())).thenReturn(List.of(existingScope));
         when(scopeRepository.getScopesByDynamicTaskOrganizationIdAndDynamicTaskIdentityId(orgId, identity.getId()))
                 .thenReturn(Set.of(existingScope));
