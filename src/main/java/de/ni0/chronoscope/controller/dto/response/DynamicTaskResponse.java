@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
+import de.ni0.chronoscope.model.ColorToken;
 import de.ni0.chronoscope.model.Task;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotNull;
@@ -15,6 +16,7 @@ import jakarta.validation.constraints.NotNull;
 public record DynamicTaskResponse(
     @NotNull Long id,
     @NotNull String organizationId,
+    @NotNull ColorToken color,
     @NotNull String name,
     String description,
     @NotNull Task.Difficulty difficulty,

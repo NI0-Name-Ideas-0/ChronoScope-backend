@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
+import de.ni0.chronoscope.model.ColorToken;
 import de.ni0.chronoscope.model.Task;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
@@ -16,6 +17,7 @@ import jakarta.validation.constraints.NotNull;
 @Schema(description = "Create request for a dynamic (schedulable) task with duration and scope constraints")
 public record DynamicTaskCreateRequest(
     @NotBlank String organizationId,
+    @NotNull ColorToken color,
     @NotBlank String name,
     @NotNull String description,
     @NotNull Task.Difficulty difficulty,

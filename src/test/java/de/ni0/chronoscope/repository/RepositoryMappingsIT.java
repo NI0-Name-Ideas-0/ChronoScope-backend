@@ -9,6 +9,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -18,9 +19,11 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
 
 import de.ni0.chronoscope.model.Account;
+import de.ni0.chronoscope.model.ColorToken;
 import de.ni0.chronoscope.model.DynamicTask;
 import de.ni0.chronoscope.model.Identity;
 import de.ni0.chronoscope.model.Label;
+import de.ni0.chronoscope.model.Scope;
 import de.ni0.chronoscope.model.Task;
 import de.ni0.chronoscope.model.WorkSettings;
 
@@ -45,6 +48,9 @@ class RepositoryMappingsIT {
 
     @Autowired
     private TaskRepository taskRepository;
+
+    @Autowired
+    private ScopeRepository scopeRepository;
 
     @Test
     void accountRepository_FindsAccountBySubject() {
@@ -124,6 +130,7 @@ class RepositoryMappingsIT {
         DynamicTask predecessor = new DynamicTask();
         predecessor.setIdentity(identity);
         predecessor.setOrganizationId(organization);
+        predecessor.setColor(ColorToken.RED);
         predecessor.setName("Predecessor");
         predecessor.setDescription("Dependency source");
         predecessor.setDifficulty(Task.Difficulty.TRIVIAL);
@@ -142,6 +149,7 @@ class RepositoryMappingsIT {
         DynamicTask dependent = new DynamicTask();
         dependent.setIdentity(identity);
         dependent.setOrganizationId(organization);
+        dependent.setColor(ColorToken.RED);
         dependent.setName("Dependent");
         dependent.setDescription("Depends on predecessor");
         dependent.setDifficulty(Task.Difficulty.TRIVIAL);

@@ -8,6 +8,8 @@ import jakarta.persistence.Column;
 import jakarta.persistence.DiscriminatorColumn;
 import jakarta.persistence.DiscriminatorType;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import jakarta.persistence.Inheritance;
@@ -15,7 +17,11 @@ import jakarta.persistence.InheritanceType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
-import lombok.*;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 
 // @Getter/@Setter instead of @Data: @Data's generated toString/equals/hashCode are unsafe on JPA
 // entities — bidirectional associations cause StackOverflowError in toString, and field-based
@@ -45,6 +51,10 @@ public abstract class Task {
 
     @Column(name = "organization_id", nullable = true)
     private String organizationId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "color", nullable = false)
+    private ColorToken color;
 
     @Column(nullable = false)
     private String name;

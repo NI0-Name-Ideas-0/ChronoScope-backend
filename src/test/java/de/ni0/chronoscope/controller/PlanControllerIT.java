@@ -94,6 +94,7 @@ class PlanControllerIT {
         DynamicTask task = new DynamicTask();
         task.setIdentity(identity);
         task.setOrganizationId(orgId);
+        task.setColor(ColorToken.RED);
         task.setName("it-plan-task-" + System.nanoTime());
         task.setDescription("Task for planning IT test");
         task.setDifficulty(Task.Difficulty.TRIVIAL);

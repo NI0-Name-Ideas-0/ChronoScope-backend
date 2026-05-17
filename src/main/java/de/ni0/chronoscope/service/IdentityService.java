@@ -19,10 +19,13 @@ import de.ni0.chronoscope.exception.AccountAccessDeniedException;
 import de.ni0.chronoscope.exception.AccountNotFoundException;
 import de.ni0.chronoscope.exception.ResourceNotFoundException;
 import de.ni0.chronoscope.model.Account;
+import de.ni0.chronoscope.model.ColorToken;
 import de.ni0.chronoscope.model.Identity;
+import de.ni0.chronoscope.model.IdentityOrganizationColor;
 import de.ni0.chronoscope.model.Task;
 import de.ni0.chronoscope.model.WorkSlot;
 import de.ni0.chronoscope.repository.AccountRepository;
+import de.ni0.chronoscope.repository.IdentityOrganizationColorRepository;
 import de.ni0.chronoscope.repository.IdentityRepository;
 import de.ni0.chronoscope.repository.TaskRepository;
 import de.ni0.chronoscope.repository.WorkSlotRepository;
@@ -42,6 +45,7 @@ public class IdentityService {
     private final AccountRepository accountRepository;
     private final IdentityRepository identityRepository;
     private final de.ni0.chronoscope.repository.IdentitySettingsRepository identitySettingsRepository;
+    private final IdentityOrganizationColorRepository identityOrganizationColorRepository;
     private final KeycloakService keycloakService;
     private final JavaMailSender mailSender;
     private final TaskRepository taskRepository;
@@ -93,6 +97,47 @@ public class IdentityService {
     public Identity getIdentity(long identityId) {
         return this.identityRepository.findByIdWithAccountsAndOrganizations(identityId)
             .orElseThrow(() -> new ResourceNotFoundException("Identity not found: " + identityId));
+    }
+
+    @Transactional(readOnly = true)
+    public List<IdentityOrganizationColor> getOrganizationColors(long identityId) {
+        return this.identityOrganizationColorRepository.findAllByIdentityId(identityId);
+    }
+
+    @Transactional
+    public IdentityOrganizationColor getOrganizationColor(long identityId, String organizationId) {
+        var existing = this.identityOrganizationColorRepository.findByIdentityIdAndOrganizationId(identityId, organizationId);
+        if(existing.isPresent()) return existing.get();
+
+        // Set random color for organizations without a set color
+
+        IdentityOrganizationColor color = new IdentityOrganizationColor();
+        color.setIdentity(this.identityRepository.getReferenceById(identityId));
+        color.setOrganizationId(organizationId);
+        color.setColor(randomColor());
+
+        return this.identityOrganizationColorRepository.save(color);
+    }
+
+    @Transactional
+    public IdentityOrganizationColor upsertOrganizationColor(long identityId, String organizationId, ColorToken color) {
+        if (color == null) {
+            throw new IllegalArgumentException("color must be provided");
+        }
+        Identity identity = this.identityRepository.findById(identityId)
+            .orElseThrow(() -> new ResourceNotFoundException("Identity not found: " + identityId));
+
+        var existing = this.identityOrganizationColorRepository.findByIdentityIdAndOrganizationId(identityId, organizationId);
+        IdentityOrganizationColor entity = existing.orElseGet(IdentityOrganizationColor::new);
+        entity.setIdentity(identity);
+        entity.setOrganizationId(organizationId);
+        entity.setColor(color);
+        return this.identityOrganizationColorRepository.save(entity);
+    }
+
+    @Transactional
+    public void deleteOrganizationColor(long identityId, String organizationId) {
+        this.identityOrganizationColorRepository.deleteByIdentityIdAndOrganizationId(identityId, organizationId);
     }
 
     /**
@@ -160,6 +205,14 @@ public class IdentityService {
             workSlot.setIdentity(newIdentity);
         }
         this.workSlotRepository.saveAll(workSlots);
+
+        List<IdentityOrganizationColor> oldOrganizationColors = this.identityOrganizationColorRepository.findAllByIdentityId(oldIdentity.getId());
+        for (IdentityOrganizationColor oldColor : oldOrganizationColors) {
+            var newColor = this.identityOrganizationColorRepository.findByIdentityIdAndOrganizationId(newIdentity.getId(), oldColor.getOrganizationId());
+            if (newColor.isPresent()) continue; // target identity already has a color for this organization, skip
+            oldColor.setIdentity(newIdentity);
+            this.identityOrganizationColorRepository.save(oldColor);
+        }
 
         for (Account account : oldIdentity.getAccounts()) {
             account.setIdentity(newIdentity);
@@ -265,5 +318,10 @@ public class IdentityService {
 
     private Claims getTokenClaims(String token) {
         return Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token).getBody();
+    }
+
+    private ColorToken randomColor() {
+        ColorToken[] values = ColorToken.values();
+        return values[1 + (int) (Math.random() * (values.length - 1))]; // exclude UNSET
     }
 }

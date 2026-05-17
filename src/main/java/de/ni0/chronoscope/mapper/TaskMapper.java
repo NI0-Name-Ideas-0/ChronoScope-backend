@@ -41,6 +41,7 @@ public interface TaskMapper {
     // Organization is validated and assigned by controller logic after request parsing.
     @Mapping(target = "identity", ignore = true)
     @Mapping(target = "organizationId", ignore = true)
+    @Mapping(target = "color", source = "color")
     @Mapping(target = "name", source = "name")
     @Mapping(target = "description", source = "description")
     @Mapping(target = "difficulty", source = "difficulty")
@@ -62,6 +63,7 @@ public interface TaskMapper {
     // Organization is validated and assigned by controller logic after request parsing.
     @Mapping(target = "identity", ignore = true)
     @Mapping(target = "organizationId", ignore = true)
+    @Mapping(target = "color", source = "color")
     @Mapping(target = "name", source = "name")
     @Mapping(target = "description", source = "description")
     @Mapping(target = "difficulty", source = "difficulty")
@@ -89,6 +91,7 @@ public interface TaskMapper {
     // Organization updates are validated and assigned by service logic.
     @Mapping(target = "identity", ignore = true)
     @Mapping(target = "organizationId", ignore = true)
+    @Mapping(target = "color", source = "color")
     @Mapping(target = "labels", source = "labels")
     @Mapping(target = "name", source = "name")
     @Mapping(target = "description", source = "description")
@@ -112,6 +115,7 @@ public interface TaskMapper {
     // Organization updates are validated and assigned by service logic.
     @Mapping(target = "identity", ignore = true)
     @Mapping(target = "organizationId", ignore = true)
+    @Mapping(target = "color", source = "color")
     @Mapping(target = "labels", source = "labels")
     @Mapping(target = "scopes", ignore = true)
     @Mapping(target = "dependencies", ignore = true)
@@ -135,6 +139,7 @@ public interface TaskMapper {
      * @return response DTO
      */
     @Mapping(target = "organizationId", source = "organizationId")
+    @Mapping(target = "color", source = "color")
     @Mapping(target = "id", source = "id")
     @Mapping(target = "name", source = "name")
     @Mapping(target = "description", source = "description")
@@ -153,6 +158,7 @@ public interface TaskMapper {
      * @return response DTO
      */
     @Mapping(target = "organizationId", source = "organizationId")
+    @Mapping(target = "color", source = "color")
     @Mapping(target = "id", source = "id")
     @Mapping(target = "name", source = "name")
     @Mapping(target = "description", source = "description")

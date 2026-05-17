@@ -107,6 +107,74 @@ paths:
       summary: Confirm account linking
       tags:
       - Identity
+  /v1/identity/colors:
+    get:
+      operationId: getOrganizationColors
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/IdentityOrganizationColorResponse"
+          description: OK
+      tags:
+      - Identity
+  /v1/identity/colors/{organizationId}:
+    delete:
+      operationId: deleteOrganizationColor
+      parameters:
+      - in: path
+        name: organizationId
+        required: true
+        schema:
+          type: string
+      responses:
+        "204":
+          description: No Content
+      tags:
+      - Identity
+    get:
+      operationId: getOrganizationColor
+      parameters:
+      - in: path
+        name: organizationId
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/IdentityOrganizationColorResponse"
+          description: OK
+      tags:
+      - Identity
+    put:
+      operationId: updateOrganizationColor
+      parameters:
+      - in: path
+        name: organizationId
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IdentityOrganizationColorUpdateRequest"
+        required: true
+      responses:
+        "200":
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/IdentityOrganizationColorResponse"
+          description: OK
+      tags:
+      - Identity
   /v1/identity/settings:
     get:
       operationId: getSettings
@@ -801,6 +869,23 @@ components:
       - $ref: "#/components/schemas/TaskCreateRequest"
       - type: object
         properties:
+          color:
+            type: string
+            enum:
+            - UNSET
+            - RED
+            - ORANGE
+            - AMBER
+            - YELLOW
+            - GREEN
+            - MINT
+            - CYAN
+            - BLUE
+            - INDIGO
+            - PURPLE
+            - PINK
+            - BROWN
+            - GRAY
           dependencies:
             type: array
             items:
@@ -841,6 +926,7 @@ components:
       description: Create request for a dynamic (schedulable) task with duration and
         scope constraints
       required:
+      - color
       - dependencies
       - description
       - difficulty
@@ -857,6 +943,23 @@ components:
       - $ref: "#/components/schemas/TaskResponse"
       - type: object
         properties:
+          color:
+            type: string
+            enum:
+            - UNSET
+            - RED
+            - ORANGE
+            - AMBER
+            - YELLOW
+            - GREEN
+            - MINT
+            - CYAN
+            - BLUE
+            - INDIGO
+            - PURPLE
+            - PINK
+            - BROWN
+            - GRAY
           dependencies:
             type: array
             items:
@@ -909,6 +1012,7 @@ components:
       description: "Response for a dynamic (schedulable) task, including its scopes\
         \ and dependencies"
       required:
+      - color
       - dependencies
       - dependents
       - difficulty
@@ -928,6 +1032,23 @@ components:
       - $ref: "#/components/schemas/TaskUpdateRequest"
       - type: object
         properties:
+          color:
+            type: string
+            enum:
+            - UNSET
+            - RED
+            - ORANGE
+            - AMBER
+            - YELLOW
+            - GREEN
+            - MINT
+            - CYAN
+            - BLUE
+            - INDIGO
+            - PURPLE
+            - PINK
+            - BROWN
+            - GRAY
           dependencies:
             type: array
             items:
@@ -968,6 +1089,53 @@ components:
             type: string
             format: date-time
       description: Update request for a dynamic (schedulable) task
+    IdentityOrganizationColorResponse:
+      type: object
+      properties:
+        color:
+          type: string
+          enum:
+          - UNSET
+          - RED
+          - ORANGE
+          - AMBER
+          - YELLOW
+          - GREEN
+          - MINT
+          - CYAN
+          - BLUE
+          - INDIGO
+          - PURPLE
+          - PINK
+          - BROWN
+          - GRAY
+        organizationId:
+          type: string
+      required:
+      - color
+      - organizationId
+    IdentityOrganizationColorUpdateRequest:
+      type: object
+      properties:
+        color:
+          type: string
+          enum:
+          - UNSET
+          - RED
+          - ORANGE
+          - AMBER
+          - YELLOW
+          - GREEN
+          - MINT
+          - CYAN
+          - BLUE
+          - INDIGO
+          - PURPLE
+          - PINK
+          - BROWN
+          - GRAY
+      required:
+      - color
     IdentityResponse:
       type: object
       properties:
@@ -1171,6 +1339,23 @@ components:
       - $ref: "#/components/schemas/TaskCreateRequest"
       - type: object
         properties:
+          color:
+            type: string
+            enum:
+            - UNSET
+            - RED
+            - ORANGE
+            - AMBER
+            - YELLOW
+            - GREEN
+            - MINT
+            - CYAN
+            - BLUE
+            - INDIGO
+            - PURPLE
+            - PINK
+            - BROWN
+            - GRAY
           description:
             type: string
           difficulty:
@@ -1203,6 +1388,7 @@ components:
             format: date-time
       description: Create request for a static (fixed-time) task
       required:
+      - color
       - description
       - difficulty
       - endAt
@@ -1216,6 +1402,23 @@ components:
       - $ref: "#/components/schemas/TaskResponse"
       - type: object
         properties:
+          color:
+            type: string
+            enum:
+            - UNSET
+            - RED
+            - ORANGE
+            - AMBER
+            - YELLOW
+            - GREEN
+            - MINT
+            - CYAN
+            - BLUE
+            - INDIGO
+            - PURPLE
+            - PINK
+            - BROWN
+            - GRAY
           description:
             type: string
           difficulty:
@@ -1253,6 +1456,7 @@ components:
             format: date-time
       description: Response for a static (fixed-time) task
       required:
+      - color
       - difficulty
       - endAt
       - id
@@ -1266,6 +1470,23 @@ components:
       - $ref: "#/components/schemas/TaskUpdateRequest"
       - type: object
         properties:
+          color:
+            type: string
+            enum:
+            - UNSET
+            - RED
+            - ORANGE
+            - AMBER
+            - YELLOW
+            - GREEN
+            - MINT
+            - CYAN
+            - BLUE
+            - INDIGO
+            - PURPLE
+            - PINK
+            - BROWN
+            - GRAY
           description:
             type: string
           difficulty:

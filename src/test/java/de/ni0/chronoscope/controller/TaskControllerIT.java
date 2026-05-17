@@ -99,6 +99,7 @@ class TaskControllerIT {
         DynamicTask predecessor = new DynamicTask();
         predecessor.setIdentity(identity);
         predecessor.setOrganizationId(DEFAULT_ORGANIZATION_ID);
+        predecessor.setColor(ColorToken.RED);
         predecessor.setName("Predecessor task");
         predecessor.setDescription("Predecessor task for dependency test");
         predecessor.setDifficulty(Task.Difficulty.TRIVIAL);
@@ -131,6 +132,7 @@ class TaskControllerIT {
         DynamicTask ownTask = new DynamicTask();
         ownTask.setIdentity(identity);
         ownTask.setOrganizationId(DEFAULT_ORGANIZATION_ID);
+        ownTask.setColor(ColorToken.RED);
         ownTask.setName(dynamicTaskName);
         ownTask.setDescription("Dynamic task in current identity");
         ownTask.setDifficulty(Task.Difficulty.TRIVIAL);
@@ -152,6 +154,7 @@ class TaskControllerIT {
         linkedTask.setName(linkedStaticTaskName);
         linkedTask.setDescription("Static task in linked account");
         linkedTask.setDifficulty(Task.Difficulty.EASY);
+        linkedTask.setColor(ColorToken.RED);
         linkedTask.setStartAt(Instant.parse("2026-04-20T09:00:00Z"));
         linkedTask.setEndAt(Instant.parse("2026-04-20T10:00:00Z"));
         linkedTask.setRrule("FREQ=DAILY");
@@ -165,6 +168,7 @@ class TaskControllerIT {
         foreignTask.setName(foreignTaskName);
         foreignTask.setDescription("Task from another identity");
         foreignTask.setDifficulty(Task.Difficulty.EASY);
+        foreignTask.setColor(ColorToken.RED);
         foreignTask.setStartAt(Instant.parse("2026-04-20T11:00:00Z"));
         foreignTask.setEndAt(Instant.parse("2026-04-20T12:00:00Z"));
         foreignTask.setRrule("FREQ=DAILY");
@@ -200,7 +204,8 @@ class TaskControllerIT {
               "startAt": "2026-04-20T09:00:00Z",
               "endAt": "2026-04-20T10:00:00Z",
               "labels": [],
-              "isBlocker": false
+              "isBlocker": false,
+              "color": "RED"
             }
             """.formatted(organizationId);
 
@@ -231,7 +236,8 @@ class TaskControllerIT {
               "startAt": "2026-04-20T09:00:00Z",
               "endAt": "2026-04-20T10:00:00Z",
               "labels": [],
-              "isBlocker": true
+              "isBlocker": true,
+              "color": "RED"
             }
             """;
 
@@ -291,7 +297,8 @@ class TaskControllerIT {
               "duration": "PT240M",
               "minScopeDuration": "PT30M",
                             "maxScopeDuration": "PT90M",
-              "dependencies": []
+              "dependencies": [],
+              "color": "RED"
             }
             """.formatted(organizationId);
 
@@ -333,7 +340,8 @@ class TaskControllerIT {
               "startAt": "2026-04-20T09:00:00Z",
               "endAt": "2026-04-20T10:00:00Z",
               "labels": [],
-              "isBlocker": false
+              "isBlocker": false,
+              "color": "RED"
             }
             """.formatted(organizationId);
 
@@ -366,7 +374,8 @@ class TaskControllerIT {
               "startAt": "2026-04-20T09:00:00Z",
               "endAt": "2026-04-20T10:00:00Z",
               "labels": [],
-              "isBlocker": false
+              "isBlocker": false,
+              "color": "RED"
             }
             """.formatted(inaccessibleOrganizationId);
 
@@ -399,7 +408,8 @@ class TaskControllerIT {
               "duration": "PT240M",
               "minScopeDuration": "PT30M",
                             "maxScopeDuration": "PT90M",
-              "dependencies": []
+              "dependencies": [],
+              "color": "RED"
             }
             """.formatted(organizationId);
 
@@ -417,7 +427,7 @@ class TaskControllerIT {
     void createTask_Dynamic_InvalidDurationFormat_ReturnsInvalidRequest() throws Exception {
         Account account = createAccount();
         String organizationId = UUID.randomUUID().toString();
-        
+
         String payload = """
             {
               "type": "dynamic",
@@ -488,7 +498,8 @@ class TaskControllerIT {
               "maxScopeDuration": "PT90M",
               "dependencies": [
                   %d
-              ]
+              ],
+              "color": "RED"
             }
             """.formatted(organizationId, predecessorId);
 
@@ -525,7 +536,8 @@ class TaskControllerIT {
                         "maxScopeDuration": "PT90M",
                         "dependencies": [
                             %d
-                        ]
+                        ],
+                        "color": "RED"
                     }
                     """.formatted(organizationId, predecessorId);
 
@@ -565,7 +577,8 @@ class TaskControllerIT {
                         "maxScopeDuration": "PT90M",
                         "dependencies": [
                             %d
-                        ]
+                        ],
+                        "color": "RED"
                     }
                     """.formatted(organizationId, predecessorId);
 
@@ -588,6 +601,7 @@ class TaskControllerIT {
             DynamicTask dependent = new DynamicTask();
             dependent.setIdentity(account.getIdentity());
             dependent.setOrganizationId(DEFAULT_ORGANIZATION_ID);
+            dependent.setColor(ColorToken.RED);
             dependent.setName("Dependent dynamic task");
             dependent.setDescription("Depends on predecessor");
             dependent.setDifficulty(Task.Difficulty.HARD);
@@ -622,6 +636,7 @@ class TaskControllerIT {
         StaticTask task = new StaticTask();
         task.setIdentity(account.getIdentity());
         task.setOrganizationId(DEFAULT_ORGANIZATION_ID);
+        task.setColor(ColorToken.RED);
         task.setName("Original static task");
         task.setDescription("Original description");
         task.setDifficulty(Task.Difficulty.TRIVIAL);
@@ -664,6 +679,7 @@ class TaskControllerIT {
         StaticTask task = new StaticTask();
         task.setIdentity(account.getIdentity());
         task.setOrganizationId(organizationId);
+        task.setColor(ColorToken.RED);
         task.setName("Original static task");
         task.setDescription("Original description");
         task.setDifficulty(Task.Difficulty.TRIVIAL);
@@ -701,6 +717,7 @@ class TaskControllerIT {
         DynamicTask task = new DynamicTask();
         task.setIdentity(account.getIdentity());
         task.setOrganizationId(DEFAULT_ORGANIZATION_ID);
+        task.setColor(ColorToken.RED);
         task.setName("Original dynamic task");
         task.setDescription("Original dynamic description");
         task.setDifficulty(Task.Difficulty.HARD);
@@ -739,11 +756,12 @@ class TaskControllerIT {
     void updateTask_Dynamic_ReducesDuration_CapsMinAndMaxScopeDurations() throws Exception {
         Account account = createAccount();
         String organizationId = UUID.randomUUID().toString();
-        
+
 
         DynamicTask task = new DynamicTask();
         task.setIdentity(account.getIdentity());
         task.setOrganizationId(organizationId);
+        task.setColor(ColorToken.RED);
         task.setName("Dynamic task");
         task.setDescription("Should cap scope durations when duration is lowered");
         task.setDifficulty(Task.Difficulty.HARD);
@@ -783,6 +801,7 @@ class TaskControllerIT {
         DynamicTask task = new DynamicTask();
         task.setIdentity(account.getIdentity());
         task.setOrganizationId(DEFAULT_ORGANIZATION_ID);
+        task.setColor(ColorToken.RED);
         task.setName("Dynamic task");
         task.setDescription("Can reset elapsed to zero");
         task.setDifficulty(Task.Difficulty.HARD);
@@ -825,6 +844,7 @@ class TaskControllerIT {
         DynamicTask task = new DynamicTask();
         task.setIdentity(account.getIdentity());
         task.setOrganizationId(DEFAULT_ORGANIZATION_ID);
+        task.setColor(ColorToken.RED);
         task.setName("Dynamic task");
         task.setDescription("Should reject negative elapsed");
         task.setDifficulty(Task.Difficulty.HARD);
@@ -864,6 +884,7 @@ class TaskControllerIT {
         DynamicTask task = new DynamicTask();
         task.setIdentity(account.getIdentity());
         task.setOrganizationId(DEFAULT_ORGANIZATION_ID);
+        task.setColor(ColorToken.RED);
         task.setName("Dynamic task");
         task.setDescription("Type mismatch case");
         task.setDifficulty(Task.Difficulty.HARD);
@@ -905,6 +926,7 @@ class TaskControllerIT {
         DynamicTask dependent = new DynamicTask();
         dependent.setIdentity(account.getIdentity());
         dependent.setOrganizationId(DEFAULT_ORGANIZATION_ID);
+        dependent.setColor(ColorToken.RED);
         dependent.setName("Dependent task");
         dependent.setDescription("Initially depends on predecessor");
         dependent.setDifficulty(Task.Difficulty.HARD);
@@ -956,6 +978,7 @@ class TaskControllerIT {
         DynamicTask dependent = new DynamicTask();
         dependent.setIdentity(account.getIdentity());
         dependent.setOrganizationId(DEFAULT_ORGANIZATION_ID);
+        dependent.setColor(ColorToken.RED);
         dependent.setName("Independent task");
         dependent.setDescription("Will gain a dependency");
         dependent.setDifficulty(Task.Difficulty.HARD);
@@ -1009,6 +1032,7 @@ class TaskControllerIT {
         DynamicTask task = new DynamicTask();
         task.setIdentity(account.getIdentity());
         task.setOrganizationId(DEFAULT_ORGANIZATION_ID);
+        task.setColor(ColorToken.RED);
         task.setName("Task to patch");
         task.setDescription("Should reject foreign dependency");
         task.setDifficulty(Task.Difficulty.HARD);
@@ -1050,6 +1074,7 @@ class TaskControllerIT {
         task.setIdentity(ownerAccount.getIdentity());
         task.setOrganizationId(DEFAULT_ORGANIZATION_ID);
         task.setName("Foreign task");
+        task.setColor(ColorToken.RED);
         task.setDescription("Should not be patchable by someone else");
         task.setDifficulty(Task.Difficulty.EASY);
         task.setStartAt(Instant.parse("2026-04-20T09:00:00Z"));
@@ -1097,7 +1122,7 @@ class TaskControllerIT {
     void createTask_Dynamic_MissingDependencies_ReturnsValidationError() throws Exception {
         Account account = createAccount();
         String organizationId = UUID.randomUUID().toString();
-        
+
 
         String payload = """
             {
@@ -1129,7 +1154,7 @@ class TaskControllerIT {
     void createTask_Static_MissingStartAndEndAt_ReturnsValidationError() throws Exception {
         Account account = createAccount();
         String organizationId = UUID.randomUUID().toString();
-        
+
 
         String payload = """
             {
@@ -1201,6 +1226,7 @@ class TaskControllerIT {
         task.setDifficulty(Task.Difficulty.EASY);
         task.setStartAt(Instant.parse("2026-04-20T09:00:00Z"));
         task.setEndAt(Instant.parse("2026-04-20T10:00:00Z"));
+        task.setColor(ColorToken.RED);
         task.setRrule("FREQ=DAILY");
         task.setLabels(new ArrayList<>());
         task.setIsBlocker(false);
@@ -1230,6 +1256,7 @@ class TaskControllerIT {
         predecessor.setMinScopeDuration(Duration.of(30, ChronoUnit.MINUTES));
         predecessor.setMaxScopeDuration(Duration.of(60, ChronoUnit.MINUTES));
         predecessor.setLabels(new ArrayList<>());
+        predecessor.setColor(ColorToken.RED);
         predecessor.setDependencies(new HashSet<>());
         predecessor.setDependents(new HashSet<>());
 
@@ -1246,6 +1273,7 @@ class TaskControllerIT {
         DynamicTask dependent = new DynamicTask();
         dependent.setIdentity(account.getIdentity());
         dependent.setOrganizationId(DEFAULT_ORGANIZATION_ID);
+        dependent.setColor(ColorToken.RED);
         dependent.setName("Dependent");
         dependent.setDescription("Depends on predecessor");
         dependent.setDifficulty(Task.Difficulty.HARD);
@@ -1289,6 +1317,7 @@ class TaskControllerIT {
         StaticTask task = new StaticTask();
         task.setIdentity(account.getIdentity());
         task.setOrganizationId(DEFAULT_ORGANIZATION_ID);
+        task.setColor(ColorToken.RED);
         task.setName("Foreign task");
         task.setDescription("Should not be deletable");
         task.setDifficulty(Task.Difficulty.EASY);
