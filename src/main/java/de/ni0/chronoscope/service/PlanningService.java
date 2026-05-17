@@ -81,6 +81,7 @@ public class PlanningService {
         if (activeScope != null) {
             existingScopes.remove(activeScope);
         }
+        existingScopes.removeIf(s -> s.getEndAt().isBefore(Instant.now()));
         scopeRepository.deleteAllInBatch(existingScopes); // Clear old scopes
         scopeRepository.saveAll(planningResult); // Save new scopes
 
