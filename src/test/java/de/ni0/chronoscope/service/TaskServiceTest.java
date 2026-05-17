@@ -33,6 +33,7 @@ class TaskServiceTest {
 
     @Mock
     private TaskRepository taskRepository;
+
     @Mock
     private KeycloakService keycloakService;
 

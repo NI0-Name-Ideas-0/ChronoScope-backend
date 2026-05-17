@@ -29,6 +29,8 @@ public class CPM {
         }
     }
 
+    private final Map<TaskGraphNode, Duration> remainingTaskDurations;
+
     @Getter
     private final Map<TaskGraphNode, TaskData> taskData = new HashMap<>();
 
@@ -38,8 +40,9 @@ public class CPM {
             firstStart = task.getStartAt();
         }
         for (TaskGraphNode dependency : task.dependencies()) {
+            if (!remainingTaskDurations.containsKey(dependency)) continue;
             Instant depEarliestStart = this.calcFirstStart(dependency, defaultStart);
-            Instant depEarliestEnd = depEarliestStart.plus(dependency.getRemaining());
+            Instant depEarliestEnd = depEarliestStart.plus(remainingTaskDurations.get(dependency));
             if (depEarliestEnd.isAfter(firstStart)) {
                 firstStart = depEarliestEnd;
             }
@@ -52,8 +55,9 @@ public class CPM {
             latestFinish = task.getEndAt();
         }
         for (TaskGraphNode successor : task.dependents()) {
+            if (!this.remainingTaskDurations.containsKey(successor)) continue;
             Instant sucLatestFinish = this.calcLatestFinish(successor);
-            Instant sucLatestStart = sucLatestFinish.minus(successor.getRemaining());
+            Instant sucLatestStart = sucLatestFinish.minus(this.remainingTaskDurations.get(successor));
             if (sucLatestStart.isBefore(latestFinish)) {
                 latestFinish = sucLatestStart;
             }
@@ -67,12 +71,13 @@ public class CPM {
      * @param tasks task graph nodes to analyze
      * @param start default start time used for tasks with no dependency-imposed start
      */
-    public CPM(List<TaskGraphNode> tasks, Instant start) {
+    public CPM(List<TaskGraphNode> tasks, Map<TaskGraphNode, Duration> remainingTaskDurations, Instant start) {
+        this.remainingTaskDurations = remainingTaskDurations;
         for (TaskGraphNode task : tasks) {
             Instant firstStart = calcFirstStart(task, start);
-            Instant firstFinish = firstStart.plus(task.getRemaining());
+            Instant firstFinish = firstStart.plus(remainingTaskDurations.get(task));
             Instant latestFinish = calcLatestFinish(task);
-            Instant latestStart = latestFinish.minus(task.getRemaining());
+            Instant latestStart = latestFinish.minus(remainingTaskDurations.get(task));
             this.taskData.put(task, new TaskData(task, firstStart, firstFinish, latestStart, latestFinish));
         }
     }

@@ -24,7 +24,7 @@ public class CPMDataProvider implements WeightDataProvider {
      */
     @Override
     public void calculate(DataProviderContext ctx, List<TaskGraphNode> tasks) {
-        this.cpm = new CPM(tasks, ctx.getCurrentTime());
+        this.cpm = new CPM(tasks, ctx.getRemainingTaskDurations(), ctx.getCurrentTime());
         this.minSlack = Long.MAX_VALUE;
         this.maxSlack = Long.MIN_VALUE;
         for (CPM.TaskData data : this.cpm.getTaskData().values()) {
