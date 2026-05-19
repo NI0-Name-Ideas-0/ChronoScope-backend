@@ -12,18 +12,16 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.Test;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
-
-import de.ni0.chronoscope.exception.AccountAccessDeniedException;
-import de.ni0.chronoscope.model.*;
-import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -33,9 +31,16 @@ import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.transaction.annotation.Transactional;
 
+import de.ni0.chronoscope.exception.AccountAccessDeniedException;
+import de.ni0.chronoscope.model.Account;
+import de.ni0.chronoscope.model.ColorToken;
+import de.ni0.chronoscope.model.DynamicTask;
+import de.ni0.chronoscope.model.Identity;
+import de.ni0.chronoscope.model.Scope;
+import de.ni0.chronoscope.model.StaticTask;
+import de.ni0.chronoscope.model.Task;
 import de.ni0.chronoscope.repository.AccountRepository;
 import de.ni0.chronoscope.repository.IdentityRepository;
 import de.ni0.chronoscope.repository.ScopeRepository;
@@ -753,7 +758,7 @@ class TaskControllerIT {
     }
 
     @Test
-    void updateTask_Dynamic_ReducesDuration_CapsMinAndMaxScopeDurations() throws Exception {
+    void updateTask_Dynamic_ReducesDuration_CapsMinScopeDuration() throws Exception {
         Account account = createAccount();
         String organizationId = UUID.randomUUID().toString();
 
@@ -763,7 +768,7 @@ class TaskControllerIT {
         task.setOrganizationId(organizationId);
         task.setColor(ColorToken.RED);
         task.setName("Dynamic task");
-        task.setDescription("Should cap scope durations when duration is lowered");
+        task.setDescription("Should cap minScopeDuration when duration is lowered, maxScopeDuration remains unchanged");
         task.setDifficulty(Task.Difficulty.HARD);
         task.setStartAt(Instant.parse("2026-04-21T08:00:00Z"));
         task.setEndAt(Instant.parse("2026-04-24T18:00:00Z"));
@@ -791,7 +796,7 @@ class TaskControllerIT {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.duration").value("PT15M"))
             .andExpect(jsonPath("$.minScopeDuration").value("PT15M"))
-            .andExpect(jsonPath("$.maxScopeDuration").value("PT15M"));
+            .andExpect(jsonPath("$.maxScopeDuration").value("PT1H30M"));
     }
 
     @Test

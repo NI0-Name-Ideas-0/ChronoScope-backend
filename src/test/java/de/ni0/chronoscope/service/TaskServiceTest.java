@@ -564,7 +564,7 @@ class TaskServiceTest {
     }
 
     @Test
-    void createDynamicTask_CapsDurationsToDuration_WhenMinOrMaxExceedDuration() {
+    void createDynamicTask_CapsMinDurationToDuration_WhenMinExceedsDuration() {
         TaskService taskService = new TaskService(taskRepository, keycloakService);
 
         Identity identity = new Identity();
@@ -584,7 +584,7 @@ class TaskServiceTest {
 
         assertEquals(newTask, result);
         assertEquals(Duration.ofMinutes(15), newTask.getMinScopeDuration());
-        assertEquals(Duration.ofMinutes(15), newTask.getMaxScopeDuration());
+        assertEquals(Duration.ofMinutes(25), newTask.getMaxScopeDuration());
         verify(taskRepository).save(newTask);
     }
 
@@ -664,7 +664,7 @@ class TaskServiceTest {
     }
 
     @Test
-    void updateDynamicTask_CapsMaxScopeDurationWhenDurationIsReduced() {
+    void updateDynamicTask_AllowsMaxScopeDurationToExceedDuration() {
         TaskService taskService = new TaskService(taskRepository, keycloakService);
 
         Identity identity = new Identity();
@@ -695,7 +695,7 @@ class TaskServiceTest {
         DynamicTask result = taskService.updateDynamicTask(220L, task);
 
         assertEquals(managedTask, result);
-        assertEquals(Duration.ofMinutes(20), managedTask.getMaxScopeDuration());
+        assertEquals(Duration.ofMinutes(60), managedTask.getMaxScopeDuration());
         verify(taskRepository).flush();
     }
 }

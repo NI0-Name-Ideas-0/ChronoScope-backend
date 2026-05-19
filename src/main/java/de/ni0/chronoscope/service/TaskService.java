@@ -274,6 +274,19 @@ public class TaskService {
         }
     }
 
+    /**
+     * Validates and normalizes scope duration fields for a dynamic task.
+     *
+     * <p>Validation rules:
+     * <ul>
+     * <li>duration must be positive</li>
+     * <li>minScopeDuration must be positive and >= 10 minutes; auto-capped to duration if exceeded</li>
+     * <li>maxScopeDuration must be positive, <= 4 hours, and >= minScopeDuration; allowed to exceed duration</li>
+     * </ul>
+     * </p>
+     *
+     * @param task the dynamic task to validate
+     */
     private void validateAndNormalizeDynamicTask(DynamicTask task) {
         validateCommonTaskFields(task);
         if (task.getOrganizationId() == null) {
@@ -295,11 +308,6 @@ public class TaskService {
         }
         if (maxScopeDuration.isZero() || maxScopeDuration.isNegative()) {
             throw new InvalidRequestException("maxScopeDuration must be greater than 0");
-        }
-
-        if (maxScopeDuration.compareTo(duration) > 0) {
-            maxScopeDuration = duration;
-            task.setMaxScopeDuration(maxScopeDuration);
         }
 
         if (minScopeDuration.compareTo(duration) > 0) {
