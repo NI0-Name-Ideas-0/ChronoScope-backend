@@ -209,7 +209,12 @@ public class IdentityService {
         List<IdentityOrganizationColor> oldOrganizationColors = this.identityOrganizationColorRepository.findAllByIdentityId(oldIdentity.getId());
         for (IdentityOrganizationColor oldColor : oldOrganizationColors) {
             var newColor = this.identityOrganizationColorRepository.findByIdentityIdAndOrganizationId(newIdentity.getId(), oldColor.getOrganizationId());
-            if (newColor.isPresent()) continue; // target identity already has a color for this organization, skip
+            if (newColor.isPresent()) {
+                // newIdentity already has a color for this org; delete the duplicate so no
+                // managed entity remains pointing to oldIdentity when it is deleted below.
+                this.identityOrganizationColorRepository.delete(oldColor);
+                continue;
+            }
             oldColor.setIdentity(newIdentity);
             this.identityOrganizationColorRepository.save(oldColor);
         }

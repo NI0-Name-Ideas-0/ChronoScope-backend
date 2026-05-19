@@ -706,6 +706,7 @@ class IdentityServiceTest {
         identityService.mergeAccounts(targetIdentity.getId(), token);
 
         assertEquals(ColorToken.PURPLE, sourceColor.getColor());
+        verify(identityOrganizationColorRepository).delete(targetColor);
         verify(identityRepository).delete(targetIdentity);
     }
 }
