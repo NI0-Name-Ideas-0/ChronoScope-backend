@@ -20,8 +20,10 @@ import java.util.*;
 public class Algorithm {
 
     private static final Logger log = LoggerFactory.getLogger(Algorithm.class);
+    private static final int MAX_FAILED_ITERATIONS = 100_000;
 
     private final List<WeightDataProvider> providers;
+    private int failedIterations = 0;
 
     /**
      * Plans scopes for the currently ready tasks from the given point in time.
@@ -155,6 +157,11 @@ public class Algorithm {
             if (nextResult != null) {
                 scopes.addAll(nextResult);
                 return scopes;
+            }
+
+            if (++failedIterations >= MAX_FAILED_ITERATIONS) {
+                log.warn("Algorithm exceeded {} failed iterations; aborting", MAX_FAILED_ITERATIONS);
+                return null;
             }
 
             // Reset for backtracking
