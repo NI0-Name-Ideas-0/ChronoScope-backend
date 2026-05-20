@@ -379,11 +379,11 @@ class AlgorithmTest {
         task.task().setDifficulty(Task.Difficulty.TRIVIAL);
         task.task().setMinScopeDuration(Duration.of(30, ChronoUnit.MINUTES));
         task.task().setMaxScopeDuration(Duration.of(30, ChronoUnit.MINUTES));
-        TaskGraphNode task2 = node(2L, Duration.ofHours(4), START, START.plus(Duration.ofHours(8)));
+        TaskGraphNode task2 = node(2L, Duration.ofHours(2), START, START.plus(Duration.ofHours(8)));
         task2.task().setDifficulty(Task.Difficulty.EXTREME);
         task2.task().setMinScopeDuration(Duration.of(30, ChronoUnit.MINUTES));
         task2.task().setMaxScopeDuration(Duration.of(30, ChronoUnit.MINUTES));
-        ConcreteWorkSlot slot = slot(START, START.plus(Duration.ofHours(8)));
+        ConcreteWorkSlot slot = slot(START, START.plus(Duration.ofHours(12)));
 
         List<WeightDataProvider> providers = List.of(
                 new CPMDataProvider(),
@@ -427,6 +427,7 @@ class AlgorithmTest {
         DynamicTask task = new DynamicTask();
         task.setId(id);
         task.setDuration(duration);
+        task.setDifficulty(Task.Difficulty.TRIVIAL);
         task.setEndAt(deadline);
         task.setStartAt(START);
         task.setMinScopeDuration(Duration.ofMinutes(1));
@@ -439,6 +440,7 @@ class AlgorithmTest {
         task.setId(id);
         task.setDuration(duration);
         task.setStartAt(startAt);
+        task.setDifficulty(Task.Difficulty.TRIVIAL);
         task.setEndAt(deadline);
         task.setMinScopeDuration(Duration.ofMinutes(1));
         task.setMaxScopeDuration(duration);
@@ -449,6 +451,7 @@ class AlgorithmTest {
         DynamicTask task = new DynamicTask();
         task.setId(id);
         task.setDuration(duration);
+        task.setDifficulty(Task.Difficulty.TRIVIAL);
         task.setEndAt(deadline);
         task.setStartAt(START);
         task.setMinScopeDuration(minScope);
