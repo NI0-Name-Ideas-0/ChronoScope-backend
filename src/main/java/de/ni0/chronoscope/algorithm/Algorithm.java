@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 
 /**
@@ -18,7 +19,7 @@ import java.util.*;
  */
 @RequiredArgsConstructor
 public class Algorithm {
-
+    public static final int MAX_COMPLEXITY = 250;
     private static final Logger log = LoggerFactory.getLogger(Algorithm.class);
     private static final int MAX_FAILED_ITERATIONS = 100_000;
 
@@ -46,6 +47,33 @@ public class Algorithm {
                             ConcreteWorkSlot slot,
                             Instant currentTime,
                             List<Scope> plannedScopes) {
+        return this.plan(tasks, dependencyCount,
+                remainingTaskDurations, slots,
+                slot, currentTime, plannedScopes, 0);
+    }
+
+    /**
+     * Plans scopes for the currently ready tasks from the given point in time.
+     *
+     * <p>The input collections are mutated while exploring a branch and restored when the
+     * branch fails, so callers should pass planner-owned state rather than shared state.</p>
+     *
+     * @param tasks dependency-ready tasks that can be scheduled next
+     * @param dependencyCount remaining unresolved dependency count per task
+     * @param remainingTaskDurations remaining unscheduled duration for each incomplete task
+     * @param slots provider used to move to the next available work slot
+     * @param slot current work slot
+     * @param currentTime current cursor inside {@code slot}
+     * @return planned scopes for a successful branch, or {@code null} when no valid plan exists
+     */
+    public List<Scope> plan(List<TaskGraphNode> tasks,
+                            Map<TaskGraphNode, Integer> dependencyCount,
+                            Map<TaskGraphNode, Duration> remainingTaskDurations,
+                            WorkSlotProvider slots,
+                            ConcreteWorkSlot slot,
+                            Instant currentTime,
+                            List<Scope> plannedScopes,
+                            double currentComplexity) {
         log.debug("Planning tasks {} in slot", tasks);
         Duration remainingSlotDuration = currentTime.until(slot.endAt());
         log.debug("{} time left in slot", remainingSlotDuration);
@@ -77,7 +105,7 @@ public class Algorithm {
         );
         if (possibleTasks.isEmpty()) {
             log.debug("No task can start in remaining slot time; advancing to next slot");
-            return advanceToNextSlot(tasks, dependencyCount, remainingTaskDurations, slots, slot, currentTime, plannedScopes);
+            return advanceToNextSlot(tasks, dependencyCount, remainingTaskDurations, slots, slot, currentTime, plannedScopes, currentComplexity);
         }
 
         DataProviderContext ctx = new DataProviderContext(currentTime, plannedScopes, remainingTaskDurations);
@@ -121,6 +149,17 @@ public class Algorithm {
                 scopeDuration = adjustedScope;
             }
 
+            double normalizedDifficulty = task.task().getDifficulty().getNormalizedDifficulty();
+            double newComplexity = currentComplexity + scopeDuration.toMinutes() * normalizedDifficulty * 1.5;
+            if (newComplexity > MAX_COMPLEXITY) {
+                double difference = (newComplexity - MAX_COMPLEXITY)/normalizedDifficulty;
+                Duration adjustedScope = scopeDuration.minus(Duration.of((long) difference, ChronoUnit.MINUTES));
+                if (adjustedScope.compareTo(task.getMinScopeDuration()) < 0) {
+                    continue;
+                }
+                scopeDuration = adjustedScope;
+            }
+
             Duration newRemainingTaskDuration = remainingTaskDurations.get(task).minus(scopeDuration);
 
             remainingTaskDurations.put(task, newRemainingTaskDuration);
@@ -146,13 +185,20 @@ public class Algorithm {
             }
 
             Instant newCurrentTime = effectiveStart.plus(scopeDuration);
+
+            if (newComplexity > 90) {
+                long pauseTime = Math.round(4 * normalizedDifficulty) * 5;
+                newCurrentTime = newCurrentTime.plus(pauseTime, ChronoUnit.MINUTES);
+                newComplexity -= 45;
+            }
+
             List<Scope> nextResult;
             if (newCurrentTime.equals(slot.endAt())) {
                 nextResult = advanceToNextSlot(tasks, dependencyCount, remainingTaskDurations,
-                        slots, slot, newCurrentTime, newPlannedScopes);
+                        slots, slot, newCurrentTime, newPlannedScopes, newComplexity);
             } else {
                 nextResult = plan(tasks, dependencyCount, remainingTaskDurations,
-                        slots, slot, newCurrentTime, newPlannedScopes);
+                        slots, slot, newCurrentTime, newPlannedScopes, newComplexity);
             }
             if (nextResult != null) {
                 scopes.addAll(nextResult);
@@ -179,7 +225,7 @@ public class Algorithm {
             }
         }
         log.debug("Path did not find result");
-        return advanceToNextSlot(tasks, dependencyCount, remainingTaskDurations, slots, slot, currentTime, plannedScopes);
+        return advanceToNextSlot(tasks, dependencyCount, remainingTaskDurations, slots, slot, currentTime, plannedScopes, currentComplexity);
     }
 
     private List<Scope> advanceToNextSlot(List<TaskGraphNode> tasks,
@@ -188,12 +234,14 @@ public class Algorithm {
                                           WorkSlotProvider slots,
                                           ConcreteWorkSlot slot,
                                           Instant currentTime,
-                                          List<Scope> plannedScopes) {
+                                          List<Scope> plannedScopes,
+                                          double complexity) {
         ConcreteWorkSlot nextSlot = slots.getNextSlot(slot);
         if (nextSlot == null || nextSlot.startAt().isBefore(currentTime)) {
             return null;
         }
-        return plan(tasks, dependencyCount, remainingTaskDurations, slots, nextSlot, nextSlot.startAt(), plannedScopes);
+        double newComplexity = Math.max(0, complexity - Duration.between(currentTime, nextSlot.startAt()).toMinutes());
+        return plan(tasks, dependencyCount, remainingTaskDurations, slots, nextSlot, nextSlot.startAt(), plannedScopes, newComplexity);
     }
 
     private double getWeight(TaskGraphNode task) {
