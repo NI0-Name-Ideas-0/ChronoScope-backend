@@ -32,6 +32,6 @@ public class DifficultyDataProvider implements WeightDataProvider {
     @Override
     public double getWeight(TaskGraphNode task) {
         double taskDifficulty = task.task().getDifficulty().getNormalizedDifficulty();
-        return 1 - Math.pow(Math.E, -3 * Math.abs(taskDifficulty - this.plannedDifficulty));
+        return (1 - Math.pow(Math.E, -3 * Math.abs(taskDifficulty - this.plannedDifficulty)))*2;
     }
 }
